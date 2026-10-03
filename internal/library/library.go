@@ -31,7 +31,8 @@ const (
 	partsDir  = ".parts"
 )
 
-var imageExts = []string{"webp", "avif", "jpg", "png", "gif"}
+// imageExts are the page image formats (the WebView shows them all; AVIF pages are not decoded by the app)
+var imageExts = []string{"webp", "avif", "jpg", "jpeg", "png", "gif", "bmp"}
 
 // badChars replaces characters not allowed in file names with full-width lookalikes (Japanese UI)
 var badChars = strings.NewReplacer(

@@ -4,11 +4,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"golang.org/x/image/bmp"
 
 	"poruneko/internal/model"
 	"poruneko/internal/store"
@@ -164,5 +167,40 @@ func TestFileThumbShrinks(t *testing.T) {
 	}
 	if b2, ok := lib.FileThumb(FileKey("Big.cbz"), 0, true); !ok || !bytes.Equal(b, b2) {
 		t.Fatal("not cached")
+	}
+}
+
+// .jpeg and .bmp pages count as pages, with their sizes
+func TestJPEGAndBMPPages(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := store.Open()
+	s := st.Settings()
+	s.LibraryDir = dir
+	st.SetSettings(s)
+	lib := New(st)
+	t.Cleanup(lib.Close)
+	img := image.NewRGBA(image.Rect(0, 0, 12, 34))
+	var jp, bm bytes.Buffer
+	if err := jpeg.Encode(&jp, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := bmp.Encode(&bm, img); err != nil {
+		t.Fatal(err)
+	}
+	f, _ := os.Create(filepath.Join(dir, "Mixed.zip"))
+	w := zip.NewWriter(f)
+	for name, b := range map[string][]byte{"page01.JPEG": jp.Bytes(), "page02.bmp": bm.Bytes()} {
+		fw, _ := w.Create(name)
+		_, _ = fw.Write(b)
+	}
+	_ = w.Close()
+	_ = f.Close()
+	d, err := lib.ArchiveDetail("Mixed.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Pages) != 2 || d.Pages[0].Name != "page01.JPEG" || d.Pages[1].Width != 12 || d.Pages[1].Height != 34 {
+		t.Fatalf("%+v", d.Pages)
 	}
 }
