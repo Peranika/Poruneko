@@ -17,7 +17,7 @@ import (
 // favoriteNames collects artist and group names from the bookmarks that can be searched on the site.
 // Japanese names fetched from DLsite etc. cannot be searched on the site, so the site's spelling is used.
 // With excludeCollective, anthologies and magazines (works with many artists) are left out.
-func (a *App) favoriteNames(excludeCollective bool) []model.FavoriteName {
+func (a *App) favoriteNames(siteID model.SiteID, excludeCollective bool) []model.FavoriteName {
 	found := map[string]*model.FavoriteName{}
 	add := func(ns, name string) {
 		name = strings.ToLower(strings.TrimSpace(name))
@@ -32,6 +32,9 @@ func (a *App) favoriteNames(excludeCollective bool) []model.FavoriteName {
 		found[tag] = &model.FavoriteName{Tag: tag, Name: name, NS: ns, Bookmarks: 1}
 	}
 	for _, b := range a.st.Bookmarks() {
+		if model.IsFileKey(b.Key) || siteOfBookmark(&b) != siteID {
+			continue
+		}
 		s := b.Summary
 		// works made from a page range use only the site artists and groups set on them
 		// (creator names typed by the user are not necessarily the site's spellings)
@@ -65,7 +68,7 @@ func (a *App) favoriteNames(excludeCollective bool) []model.FavoriteName {
 func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) {
 	ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
 	defer cancel()
-	p, err := browseSite()
+	p, err := browseSite(q.Site)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +77,7 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 		return nil, apperr.New("favorites.unsupported", "this site does not support favorites search")
 	}
 
-	names := a.favoriteNames(q.ExcludeCollective)
+	names := a.favoriteNames(p.ID(), q.ExcludeCollective)
 	var tags []string
 	if q.Tag != "" {
 		tags = []string{q.Tag}
@@ -92,7 +95,7 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 			exclude[b.Key] = true
 		}
 	}
-	res, err := lister.ListAny(ctx, site.AnyQuery{Tags: tags, Types: q.Types, Language: q.Language, Page: q.Page, Exclude: exclude})
+	res, err := lister.ListAny(ctx, site.AnyQuery{Tags: tags, Filters: q.Filters, Page: q.Page, Exclude: exclude})
 	if err != nil {
 		return nil, err
 	}

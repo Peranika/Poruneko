@@ -17,6 +17,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -47,10 +48,10 @@ var badCharsEn = strings.NewReplacer(
 type Library struct {
 	st *store.Store
 
-	mu       sync.Mutex
-	scanned  map[string]string // index of cbz files without ArchiveFile: key -> absolute path
-	scanRoot string
-	zips     *zipCache
+	mu sync.Mutex
+	// scanned indexes the cbz files without ArchiveFile in each save location: root -> key -> absolute path
+	scanned map[string]map[string]string
+	zips    *zipCache
 	// fileDetails caches the details of the user's archives (key -> details), as reading page sizes takes a while
 	fileDetails map[string]*model.GalleryDetail
 
@@ -63,12 +64,38 @@ func New(st *store.Store) *Library {
 	return &Library{st: st, zips: newZipCache(8), pending: map[string]*pendingFetch{}}
 }
 
-func (l *Library) root() string { return l.st.Settings().LibraryDir }
+// rootFor is where a work's files are saved: its site's save location (a page range work: its source's site)
+func (l *Library) rootFor(key string) string {
+	site, _, _ := model.ParseKey(key)
+	if site == model.SiteLocal {
+		if b, ok := l.st.Bookmark(key); ok && b.Summary.Origin != nil {
+			site, _, _ = model.ParseKey(b.Summary.Origin.Key)
+		}
+	}
+	return l.st.SiteDir(site)
+}
+
+// roots are the save locations: the folders chosen for sites and the default ones in LibraryDir
+func (l *Library) roots() []string {
+	s := l.st.Settings()
+	var out []string
+	for _, d := range s.SiteDirs {
+		out = append(out, filepath.Clean(d))
+	}
+	entries, _ := os.ReadDir(s.LibraryDir)
+	for _, e := range entries {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") {
+			out = append(out, filepath.Join(s.LibraryDir, e.Name()))
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
 
 // WorkDir is the work dir holding pages of an in-progress download
 func (l *Library) WorkDir(key string) string {
 	s, id, _ := model.ParseKey(key)
-	return filepath.Join(l.root(), partsDir, s, id)
+	return filepath.Join(l.rootFor(key), partsDir, s, id)
 }
 
 func (l *Library) thumbPath(key string) string {
@@ -254,21 +281,24 @@ func (l *Library) DeleteWork(key string) {
 
 // WorkKeys returns the keys of works that have a work dir
 func (l *Library) WorkKeys() []string {
-	base := filepath.Join(l.root(), partsDir)
-	sites, _ := os.ReadDir(base)
 	var keys []string
-	for _, s := range sites {
-		if !s.IsDir() {
-			continue
-		}
-		ids, _ := os.ReadDir(filepath.Join(base, s.Name()))
-		for _, id := range ids {
-			if id.IsDir() {
-				keys = append(keys, model.MakeKey(s.Name(), id.Name()))
+	for _, root := range l.roots() {
+		base := filepath.Join(root, partsDir)
+		sites, _ := os.ReadDir(base)
+		for _, s := range sites {
+			if !s.IsDir() {
+				continue
+			}
+			ids, _ := os.ReadDir(filepath.Join(base, s.Name()))
+			for _, id := range ids {
+				if id.IsDir() {
+					keys = append(keys, model.MakeKey(s.Name(), id.Name()))
+				}
 			}
 		}
 	}
-	return keys
+	slices.Sort(keys)
+	return slices.Compact(keys)
 }
 
 // CountLocalPages is the number of pages 0 to n-1 stored locally

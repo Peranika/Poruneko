@@ -36,10 +36,12 @@ export function suggestSeriesName(title: string): string {
   return t || title
 }
 
-/** The series selected in the series view of the Bookmarks screen */
-export const loadSeriesId = (): string => loadString('bm.series', '')
+/** The series selected in the series view of the Bookmarks screen (or a local folder's tab; space as in spaceOf) */
+const seriesIdKey = (space: string) => (space === 'bookmarks' ? 'bm.series' : space + '.series')
 
-export const saveSeriesId = (id: string): void => saveString('bm.series', id)
+export const loadSeriesId = (space = 'bookmarks'): string => loadString(seriesIdKey(space), '')
+
+export const saveSeriesId = (id: string, space = 'bookmarks'): void => saveString(seriesIdKey(space), id)
 
 // ---------------------------------------------------------------- Collapsing in lists
 

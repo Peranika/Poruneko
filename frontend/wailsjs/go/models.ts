@@ -1,5 +1,19 @@
 export namespace main {
 	
+	export class IconFile {
+	    name: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IconFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.url = source["url"];
+	    }
+	}
 	export class PluginInfo {
 	    abi: number;
 	    kind: string;
@@ -7,7 +21,10 @@ export namespace main {
 	    name: string;
 	    version: string;
 	    hosts: string[];
+	    displayHosts?: string[];
 	    capabilities: string[];
+	    icon?: string;
+	    browse?: model.BrowseSpec;
 	    file: string;
 	    formats: string[];
 	
@@ -23,10 +40,31 @@ export namespace main {
 	        this.name = source["name"];
 	        this.version = source["version"];
 	        this.hosts = source["hosts"];
+	        this.displayHosts = source["displayHosts"];
 	        this.capabilities = source["capabilities"];
+	        this.icon = source["icon"];
+	        this.browse = this.convertValues(source["browse"], model.BrowseSpec);
 	        this.file = source["file"];
 	        this.formats = source["formats"];
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }
@@ -291,6 +329,120 @@ export namespace model {
 		    return a;
 		}
 	}
+	export class Namespace {
+	    id: string;
+	    label: Record<string, string>;
+	    suffix?: string;
+	    color?: string;
+	    translated?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Namespace(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.suffix = source["suffix"];
+	        this.color = source["color"];
+	        this.translated = source["translated"];
+	    }
+	}
+	export class FilterOption {
+	    value: string;
+	    label: Record<string, string>;
+	    color?: string;
+	    spread?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new FilterOption(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.value = source["value"];
+	        this.label = source["label"];
+	        this.color = source["color"];
+	        this.spread = source["spread"];
+	    }
+	}
+	export class FilterSpec {
+	    id: string;
+	    label: Record<string, string>;
+	    options: FilterOption[];
+	    default: string;
+	    in?: string[];
+	    multi?: boolean;
+	    onSearch?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new FilterSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.options = this.convertValues(source["options"], FilterOption);
+	        this.default = source["default"];
+	        this.in = source["in"];
+	        this.multi = source["multi"];
+	        this.onSearch = source["onSearch"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class BrowseSpec {
+	    placeholder?: Record<string, string>;
+	    filters: FilterSpec[];
+	    namespaces?: Namespace[];
+	
+	    static createFrom(source: any = {}) {
+	        return new BrowseSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.placeholder = source["placeholder"];
+	        this.filters = this.convertValues(source["filters"], FilterSpec);
+	        this.namespaces = this.convertValues(source["namespaces"], Namespace);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	
 	
 	
@@ -313,11 +465,11 @@ export namespace model {
 	    }
 	}
 	export class FavoritesQuery {
-	    language: string;
+	    site?: string;
+	    filters: Record<string, string>;
 	    page: number;
 	    tag: string;
 	    includeGroups: boolean;
-	    types: string[];
 	    hideBookmarked: boolean;
 	    excludeCollective: boolean;
 	    minPages?: number;
@@ -329,11 +481,11 @@ export namespace model {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.language = source["language"];
+	        this.site = source["site"];
+	        this.filters = source["filters"];
 	        this.page = source["page"];
 	        this.tag = source["tag"];
 	        this.includeGroups = source["includeGroups"];
-	        this.types = source["types"];
 	        this.hideBookmarked = source["hideBookmarked"];
 	        this.excludeCollective = source["excludeCollective"];
 	        this.minPages = source["minPages"];
@@ -382,6 +534,8 @@ export namespace model {
 		    return a;
 		}
 	}
+	
+	
 	export class PageInfo {
 	    index: number;
 	    name: string;
@@ -500,9 +654,9 @@ export namespace model {
 		}
 	}
 	export class ListQuery {
+	    site?: string;
 	    query: string;
-	    language: string;
-	    sort: string;
+	    filters: Record<string, string>;
 	    page: number;
 	    minPages?: number;
 	    maxPages?: number;
@@ -513,9 +667,9 @@ export namespace model {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.site = source["site"];
 	        this.query = source["query"];
-	        this.language = source["language"];
-	        this.sort = source["sort"];
+	        this.filters = source["filters"];
 	        this.page = source["page"];
 	        this.minPages = source["minPages"];
 	        this.maxPages = source["maxPages"];
@@ -561,6 +715,25 @@ export namespace model {
 		    return a;
 		}
 	}
+	export class LocalDir {
+	    id: number;
+	    path: string;
+	    name: string;
+	    icon: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LocalDir(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.icon = source["icon"];
+	    }
+	}
+	
 	
 	
 	export class RangeRequest {
@@ -596,6 +769,7 @@ export namespace model {
 	    name: string;
 	    createdAt: number;
 	    keys: string[];
+	    folder?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Series(source);
@@ -607,6 +781,7 @@ export namespace model {
 	        this.name = source["name"];
 	        this.createdAt = source["createdAt"];
 	        this.keys = source["keys"];
+	        this.folder = source["folder"];
 	    }
 	}
 	export class ViewerSettings {
@@ -653,12 +828,11 @@ export namespace model {
 	}
 	export class Settings {
 	    libraryDir: string;
-	    language: string;
-	    sort: string;
+	    pluginSettings: Record<string, any>;
+	    siteDirs: Record<string, string>;
 	    autoDownload: boolean;
 	    deleteFilesOnUnbookmark: boolean;
 	    downloadConcurrency: number;
-	    imageFormat: string;
 	    tempFiles: string;
 	    fontScale: number;
 	    theme: string;
@@ -676,6 +850,8 @@ export namespace model {
 	    rememberScreen: boolean;
 	    mouseGestures: boolean;
 	    libraryIgnored: string[];
+	    localDirs: LocalDir[];
+	    folderSeriesOff: string[];
 	    fileNameFormat: string;
 	
 	    static createFrom(source: any = {}) {
@@ -685,12 +861,11 @@ export namespace model {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.libraryDir = source["libraryDir"];
-	        this.language = source["language"];
-	        this.sort = source["sort"];
+	        this.pluginSettings = source["pluginSettings"];
+	        this.siteDirs = source["siteDirs"];
 	        this.autoDownload = source["autoDownload"];
 	        this.deleteFilesOnUnbookmark = source["deleteFilesOnUnbookmark"];
 	        this.downloadConcurrency = source["downloadConcurrency"];
-	        this.imageFormat = source["imageFormat"];
 	        this.tempFiles = source["tempFiles"];
 	        this.fontScale = source["fontScale"];
 	        this.theme = source["theme"];
@@ -708,6 +883,8 @@ export namespace model {
 	        this.rememberScreen = source["rememberScreen"];
 	        this.mouseGestures = source["mouseGestures"];
 	        this.libraryIgnored = source["libraryIgnored"];
+	        this.localDirs = this.convertValues(source["localDirs"], LocalDir);
+	        this.folderSeriesOff = source["folderSeriesOff"];
 	        this.fileNameFormat = source["fileNameFormat"];
 	    }
 	
@@ -733,6 +910,9 @@ export namespace model {
 	    id: string;
 	    name: string;
 	    favorites: boolean;
+	    icon: string;
+	    dir: string;
+	    browse?: BrowseSpec;
 	
 	    static createFrom(source: any = {}) {
 	        return new SiteInfo(source);
@@ -743,7 +923,28 @@ export namespace model {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.favorites = source["favorites"];
+	        this.icon = source["icon"];
+	        this.dir = source["dir"];
+	        this.browse = this.convertValues(source["browse"], BrowseSpec);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Suggestion {
 	    ns: string;

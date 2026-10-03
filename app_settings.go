@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"maps"
 	"net/url"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -72,7 +74,10 @@ func (a *App) GetSettings() model.Settings { return a.st.Settings() }
 
 func (a *App) SetSettings(s model.Settings) model.Settings {
 	// the archives removed from the library are kept by the backend (the screen's copy of the settings may be older)
-	s.LibraryIgnored = a.st.Settings().LibraryIgnored
+	cur := a.st.Settings()
+	s.LibraryIgnored = cur.LibraryIgnored
+	s.LocalDirs = cur.LocalDirs // changed only by AddLocalDir / RemoveLocalDir
+	s.FolderSeriesOff = cur.FolderSeriesOff
 	v := a.st.SetSettings(s)
 	model.SetUILanguage(resolveUILanguage(v.UILanguage))
 	return v
@@ -88,19 +93,30 @@ func resolveUILanguage(setting string) string {
 	return osLanguage()
 }
 
-// ChooseLibraryDir opens a dialog to choose the save location (title is the dialog title in the UI language)
-func (a *App) ChooseLibraryDir(title string) (string, error) {
+// ChooseSiteDir opens a dialog to choose where a site's works are saved (title is the dialog title in the UI
+// language). A folder overlapping a local folder is refused (its works would be listed there too)
+func (a *App) ChooseSiteDir(site, title string) (string, error) {
 	cur := a.st.Settings()
 	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
 		Title:                title,
-		DefaultDirectory:     cur.LibraryDir,
+		DefaultDirectory:     a.st.SiteDir(site),
 		CanCreateDirectories: true,
 	})
 	if err != nil || dir == "" {
 		return "", err
 	}
-	cur.LibraryDir = dir
-	defer func() { go a.ScanLibrary() }()
+	dir = filepath.Clean(dir)
+	for _, d := range cur.LocalDirs {
+		if overlaps(dir, d.Path) {
+			return "", apperr.New("library.dirOverlapsLocal", "the folder overlaps a local folder", "path", d.Path)
+		}
+	}
+	dirs := maps.Clone(cur.SiteDirs)
+	if dirs == nil {
+		dirs = map[string]string{}
+	}
+	dirs[site] = dir
+	cur.SiteDirs = dirs
 	a.st.SetSettings(cur)
 	return dir, nil
 }

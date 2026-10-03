@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { api, isLocalKey, setRangeThumbSetting, setThumbVersions } from './api'
+import { api, isBookmarked, isFileKey, isLocalKey, setRangeThumbSetting, setThumbVersions } from './api'
 import type { GroupBy } from './bookmarkList'
 import { UNBOOKMARK_RANGE_CONFIRM, hasRangeFile } from './bookmarkActions'
 import { applyFontScale, applyTheme } from './display'
 import { errorText, t } from './i18n'
 import { indexSeries } from './series'
 import { loadJSON, loadSkippedVersion, saveJSON } from './storage'
-import type { Bookmark, GallerySummary, ListQuery, Series, Settings, SortMode, UpdateRelease } from './types'
+import { filterDefaults, searchFilters, setBrowseSites } from './browseSpec'
+import type { Bookmark, GallerySummary, IconFile, ListQuery, Series, Settings, SiteInfo, UpdateRelease } from './types'
 import type { WorkSource } from './workSequence'
 
 // ---------------------------------------------------------------- Routing
@@ -15,9 +16,11 @@ export type Route =
   | { name: 'browse'; q: ListQuery }
   /** from: the list it was opened from (followed by next/previous work; bookmarks if absent) */
   | { name: 'gallery'; key: string; summary?: GallerySummary; from?: WorkSource }
-  /** view: the group or series to show (if absent, what was last shown on the Bookmarks screen) */
-  | { name: 'bookmarks'; view?: BookmarkView }
-  | { name: 'favorites'; page: number; tag: string }
+  /** A site's bookmarks. view: the group or series to show (if absent, what was last shown) */
+  | { name: 'bookmarks'; site?: string; view?: BookmarkView }
+  /** The works in a local folder (the same screen as Bookmarks) */
+  | { name: 'local'; dir: number; view?: BookmarkView }
+  | { name: 'favorites'; site?: string; page: number; tag: string }
   | { name: 'history' }
   | { name: 'settings' }
 
@@ -72,6 +75,15 @@ interface AppState {
   nav: Nav
   settings: Settings | null
   updateSettings(patch: Partial<Settings>): void
+  /** The sites from site plugins (undefined while loading) */
+  sites: SiteInfo[] | undefined
+  /** Keep a filter's value as a site plugin's setting (used by default from then on) */
+  setPluginSetting(site: string, filterId: string, value: string): void
+  /** Read the settings again after the backend changed them (the local folders) */
+  refreshSettings(): Promise<void>
+  /** The images in the icons folder, and reading them again */
+  localIcons: IconFile[]
+  reloadLocalIcons(): void
   bookmarks: Map<string, Bookmark>
   toggleBookmark(s: GallerySummary, confirmed?: boolean): Promise<void>
   toast(msg: string): void
@@ -110,7 +122,8 @@ export const loadPageRange = (): PageRange => {
   return { minPages: r.minPages || undefined, maxPages: r.maxPages || undefined }
 }
 
-export const defaultQuery = (language = 'all', sort: SortMode = 'date'): ListQuery => ({ query: '', language, sort, page: 1, ...loadPageRange() })
+/** A site's list with the filters' default values */
+export const defaultQuery = (site?: string): ListQuery => ({ site, query: '', filters: filterDefaults('browse', site), page: 1, ...loadPageRange() })
 
 /**
  * The bookmarks an action on key applies to: all the selected ones when key is one of several selected,
@@ -122,11 +135,23 @@ export const actionTargets = (key: string, selected: string[]): string[] =>
 /** Search token (in the form "artist:foo_bar") */
 export const tagToken = (ns: string, name: string): string => `${ns}:${name.replace(/ /g, '_')}`
 
-/** Temporarily sort newest first while there is a search query (back to the default when cleared; the default is unchanged) */
-export const searchQuery = (query: string, language = 'all', defaultSort: SortMode = 'date'): ListQuery => ({
-  ...defaultQuery(language, query.trim() ? 'date' : defaultSort),
+/**
+ * A search on the site's list. keep are the filters' values on the screen searched from; a filter the plugin gives a
+ * search value (such as newest first) uses it while there is a query
+ */
+export const searchQuery = (query: string, keep?: Record<string, string>, site?: string): ListQuery => ({
+  ...defaultQuery(site),
+  filters: searchFilters(query, keep, site),
   query
 })
+
+/** Which tab a screen belongs to (each site's list, bookmarks and Favorites are tabs of their own) */
+export function tabOf(r: Route): string {
+  if (r.name === 'browse') return 'browse:' + (r.q.site ?? '')
+  if (r.name === 'bookmarks' || r.name === 'favorites') return r.name + ':' + (r.site ?? '')
+  if (r.name === 'local') return 'local:' + r.dir
+  return r.name
+}
 
 // ---------------------------------------------------------------- The screen at the last exit
 
@@ -149,7 +174,7 @@ function loadLastScreen(): Route | null {
 export function AppProvider({ children }: { children: ReactNode }) {
   // history
   const [hist, setHist] = useState<{ stack: Entry[]; i: number }>({
-    stack: [newEntry({ name: 'browse', q: defaultQuery() })],
+    stack: [newEntry({ name: 'browse', q: { query: '', filters: {}, page: 1 } })],
     i: 0
   })
   const go = useCallback((r: Route) => {
@@ -163,11 +188,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [])
   // the history entry last shown in each tab
-  const lastOfTab = useRef<Partial<Record<Route['name'], Entry>>>({})
+  const lastOfTab = useRef<Record<string, Entry>>({})
   const openTab = useCallback((fresh: Route) => {
     setHist((h) => {
-      const last = lastOfTab.current[fresh.name]
-      return pushEntry(h, h.stack[h.i].r.name !== fresh.name && last ? newEntry(last.r, { ...last.s }) : newEntry(fresh))
+      const last = lastOfTab.current[tabOf(fresh)]
+      return pushEntry(h, tabOf(h.stack[h.i].r) !== tabOf(fresh) && last ? newEntry(last.r, { ...last.s }) : newEntry(fresh))
     })
   }, [])
   const back = useCallback(() => setHist((h) => ({ ...h, i: Math.max(0, h.i - 1) })), [])
@@ -176,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // the screen is saved only after the first screen is decided (the default one shown before that would overwrite it)
   const firstScreenSet = useRef(false)
   useEffect(() => {
-    lastOfTab.current[entry.r.name] = entry
+    lastOfTab.current[tabOf(entry.r)] = entry
     if (firstScreenSet.current) saveLastScreen(entry.r)
   }, [entry])
   const nav: Nav = {
@@ -195,21 +220,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // settings
   const [settings, setSettings] = useState<Settings | null>(null)
   const settingsRef = useRef<Settings | null>(null)
+  // the sites from site plugins (undefined while loading)
+  const [sites, setSites] = useState<SiteInfo[] | undefined>(undefined)
   useEffect(() => {
-    api.getSettings().then((s) => {
+    Promise.all([api.getSettings(), api.sites().catch(() => [])]).then(([s, list]) => {
+      setBrowseSites(list, s.pluginSettings)
+      setSites(list)
       setRangeThumbSetting(s.rangeThumb)
       settingsRef.current = s
       setSettings(s)
-      // the first screen: the one shown at the last exit if remembered, otherwise Browse with the default query
+      // the first screen: the one shown at the last exit if remembered, otherwise the first local folder (or Browse)
       const last = s.rememberScreen ? loadLastScreen() : null
+      const first: Route = s.localDirs?.length
+        ? { name: 'local', dir: s.localDirs[0].id }
+        : { name: 'browse', q: defaultQuery(list[0]?.id) }
       firstScreenSet.current = true
-      setHist((h) =>
-        h.stack.length === 1 && h.stack[0].r.name === 'browse'
-          ? { stack: [newEntry(last ?? { name: 'browse', q: defaultQuery(s.language, s.sort) })], i: 0 }
-          : h
-      )
+      setHist((h) => (h.stack.length === 1 && h.stack[0].r.name === 'browse' ? { stack: [newEntry(last ?? first)], i: 0 } : h))
     })
   }, [])
+  const setPluginSetting = useCallback((site: string, filterId: string, value: string) => {
+    const cur = settingsRef.current
+    if (!cur || !site) return
+    const all = cur.pluginSettings ?? {}
+    updateSettingsRef.current({ pluginSettings: { ...all, [site]: { ...all[site], [filterId]: value } } })
+  }, [])
+  // read the settings the backend changed itself (the local folders)
+  const refreshSettings = useCallback(async () => {
+    const s = await api.getSettings()
+    settingsRef.current = s
+    setSettings(s)
+  }, [])
+  // the images in the icons folder (for the local folders' tab icons)
+  const [localIcons, setLocalIcons] = useState<IconFile[]>([])
+  const reloadLocalIcons = useCallback(() => void api.localIcons().then(setLocalIcons), [])
+  useEffect(reloadLocalIcons, [reloadLocalIcons])
+  // the plugin's settings follow the settings
+  useEffect(() => {
+    if (sites) setBrowseSites(sites, settings?.pluginSettings)
+  }, [sites, settings?.pluginSettings])
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     const cur = settingsRef.current
     if (!cur) return
@@ -221,6 +269,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings(next)
     api.setSettings(next).catch(() => {})
   }, [])
+  const updateSettingsRef = useRef(updateSettings)
 
   // bookmarks
   const [bookmarks, setBookmarks] = useState<Map<string, Bookmark>>(new Map())
@@ -257,13 +306,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000)
   }, [])
 
+  // series
+  const [series, setSeries] = useState<Series[]>([])
+  useEffect(() => {
+    const reload = () => void api.seriesList().then(setSeries)
+    reload()
+    return api.onSeriesChanged(reload)
+  }, [])
+  const seriesOf = useMemo(() => indexSeries(series), [series])
+
   const toggleBookmark = useCallback(
     async (s: GallerySummary, confirmed = false) => {
       const isLocal = isLocalKey(s.key)
-      if (bookmarks.has(s.key)) {
+      const b = bookmarks.get(s.key)
+      if (isFileKey(s.key)) return // works in the library folder are not bookmarked
+      if (isBookmarked(b)) {
         // a work made from a page range exists only as its cbz, so confirm before removing it
-        const b = bookmarks.get(s.key)
-        if (b && hasRangeFile(b) && !confirmed && !confirm(UNBOOKMARK_RANGE_CONFIRM)) return
+        if (hasRangeFile(b) && !confirmed && !confirm(UNBOOKMARK_RANGE_CONFIRM)) return
         await api.removeBookmark(s.key)
         toast(t('toasts.unbookmarked'))
       } else if (isLocal) {
@@ -278,14 +337,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [editCreatorKey, setEditCreatorKey] = useState<string | null>(null)
 
-  // series
-  const [series, setSeries] = useState<Series[]>([])
-  useEffect(() => {
-    const reload = () => void api.seriesList().then(setSeries)
-    reload()
-    return api.onSeriesChanged(reload)
-  }, [])
-  const seriesOf = useMemo(() => indexSeries(series), [series])
   const [seriesDialogKey, setSeriesDialogKey] = useState<string | null>(null)
   // the selection is per screen, so moving to another history entry clears it
   const [selected, setSelected] = useState<string[]>([])
@@ -319,6 +370,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       nav,
       settings,
       updateSettings,
+      sites,
+      setPluginSetting,
+      refreshSettings,
+      localIcons,
+      reloadLocalIcons,
       bookmarks,
       toggleBookmark,
       toast,
@@ -336,7 +392,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dismissUpdate
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hist, settings, updateSettings, bookmarks, toggleBookmark, toast, toasts, editCreatorKey, series, seriesOf, seriesDialogKey, selected, update, checkUpdate, dismissUpdate]
+    [hist, settings, updateSettings, sites, setPluginSetting, refreshSettings, localIcons, reloadLocalIcons, bookmarks, toggleBookmark, toast, toasts, editCreatorKey, series, seriesOf, seriesDialogKey, selected, update, checkUpdate, dismissUpdate]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

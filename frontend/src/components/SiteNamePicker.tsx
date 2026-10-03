@@ -17,6 +17,8 @@ interface Props {
   onChange(v: SiteNames): void
   /** Choices "from the source gallery" (its site artists and groups) */
   candidates?: SiteNames
+  /** The site whose names are suggested */
+  site: string
 }
 
 const key = (ns: NS) => (ns === 'artist' ? 'artists' : 'groups')
@@ -25,7 +27,7 @@ const key = (ns: NS) => (ns === 'artist' ? 'artists' : 'groups')
  * Field to choose artists and groups as written on the site.
  * Suggests with the same suggestions as the Browse search box (the site's tag index) and also offers the source gallery's artists.
  */
-export function SiteNamePicker({ value, onChange, candidates }: Props) {
+export function SiteNamePicker({ value, onChange, candidates, site }: Props) {
   const [text, setText] = useState('')
   const [sugs, setSugs] = useState<Suggestion[]>([])
   const [sel, setSel] = useState(0)
@@ -49,7 +51,7 @@ export function SiteNamePicker({ value, onChange, candidates }: Props) {
     const my = ++seq.current
     const t = setTimeout(() => {
       api
-        .suggest(term)
+        .suggest(site, term)
         .then((r) => {
           if (my !== seq.current) return
           setSugs(r.filter((s) => s.ns === 'artist' || s.ns === 'group').slice(0, 10))
@@ -58,7 +60,7 @@ export function SiteNamePicker({ value, onChange, candidates }: Props) {
         .catch(() => {})
     }, 180)
     return () => clearTimeout(t)
-  }, [text])
+  }, [text, site])
 
   const pick = (s: Suggestion) => {
     add(s.ns as NS, s.name)

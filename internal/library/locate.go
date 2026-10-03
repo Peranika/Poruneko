@@ -16,11 +16,10 @@ import (
 // Managing cbz locations. The location is recorded in the bookmark's ArchiveFile, and a cbz without a record
 // is identified by reading its poruneko.json. The save name is decided by the file name format (naming.go).
 
-// scanIndex scans the cbz files in libraryDir and reads the work keys from poruneko.json
-func (l *Library) scanIndex() map[string]string {
-	root := l.root()
-	if l.scanned != nil && l.scanRoot == root {
-		return l.scanned
+// scanIndex scans the cbz files in a save location and reads the work keys from poruneko.json (call with l.mu held)
+func (l *Library) scanIndex(root string) map[string]string {
+	if idx, ok := l.scanned[root]; ok {
+		return idx
 	}
 	idx := map[string]string{}
 	_ = filepath.WalkDir(root, func(p string, e fs.DirEntry, err error) error {
@@ -46,23 +45,34 @@ func (l *Library) scanIndex() map[string]string {
 		l.zips.close(p)
 		return nil
 	})
-	l.scanned, l.scanRoot = idx, root
+	if l.scanned == nil {
+		l.scanned = map[string]map[string]string{}
+	}
+	l.scanned[root] = idx
 	return idx
 }
 
 // ArchivePath returns the absolute path of a work's cbz ("" if none)
 func (l *Library) ArchivePath(key string) string {
 	if b, ok := l.st.Bookmark(key); ok && b.ArchiveFile != "" {
-		p := filepath.Join(l.root(), toOS(b.ArchiveFile))
+		// the user's own archives are in a local folder; the app's own files are in their site's save location
+		p := filepath.Join(l.rootFor(key), toOS(b.ArchiveFile))
+		if model.IsFileKey(key) {
+			p = l.absPath(b.ArchiveFile)
+		}
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
+	if model.IsFileKey(key) {
+		return ""
+	}
+	root := l.rootFor(key)
 	l.mu.Lock()
-	p := l.scanIndex()[key]
+	p := l.scanIndex(root)[key]
 	if p != "" {
 		if _, err := os.Stat(p); err != nil {
-			delete(l.scanned, key)
+			delete(l.scanned[root], key)
 			p = ""
 		}
 	}
@@ -71,7 +81,7 @@ func (l *Library) ArchivePath(key string) string {
 		return ""
 	}
 	// record a cbz found without a record in its bookmark
-	if rel, err := filepath.Rel(l.root(), p); err == nil {
+	if rel, err := filepath.Rel(root, p); err == nil {
 		l.st.Update(key, func(b *model.Bookmark) { b.ArchiveFile = filepath.ToSlash(rel) })
 	}
 	return p
@@ -79,18 +89,19 @@ func (l *Library) ArchivePath(key string) string {
 
 // setArchive records the cbz location ("" to delete)
 func (l *Library) setArchive(key, abs string) {
+	root := l.rootFor(key)
 	l.mu.Lock()
-	if l.scanned != nil {
+	if idx := l.scanned[root]; idx != nil {
 		if abs == "" {
-			delete(l.scanned, key)
+			delete(idx, key)
 		} else {
-			l.scanned[key] = abs
+			idx[key] = abs
 		}
 	}
 	l.mu.Unlock()
 	rel := ""
 	if abs != "" {
-		if r, err := filepath.Rel(l.root(), abs); err == nil {
+		if r, err := filepath.Rel(root, abs); err == nil {
 			rel = filepath.ToSlash(r)
 		}
 	}
@@ -117,12 +128,13 @@ func (l *Library) TargetName(d *model.GalleryDetail) string {
 // targetPath returns the absolute save path from the format (adding the ID if it clashes with another work)
 func (l *Library) targetPath(d *model.GalleryDetail, current string) string {
 	rel := l.TargetName(d)
+	root := l.rootFor(d.Key)
 	for n := 0; n < 9; n++ {
 		cand := rel
 		if n > 0 {
 			cand = withID(rel, d.ID, n)
 		}
-		p := filepath.Join(l.root(), toOS(cand))
+		p := filepath.Join(root, toOS(cand))
 		if strings.EqualFold(p, current) {
 			return p
 		}
@@ -130,13 +142,22 @@ func (l *Library) targetPath(d *model.GalleryDetail, current string) string {
 			return p
 		}
 	}
-	return filepath.Join(l.root(), toOS(withID(rel, d.ID, 9)))
+	return filepath.Join(root, toOS(withID(rel, d.ID, 9)))
 }
 
-// removeEmptyDirs removes folders emptied by a move or delete, walking up to libraryDir
+// removeEmptyDirs removes folders emptied by a move or delete, walking up to the save location they are in
 func (l *Library) removeEmptyDirs(dir string) {
-	root := filepath.Clean(l.root())
-	for dir = filepath.Clean(dir); dir != root && strings.HasPrefix(dir, root); dir = filepath.Dir(dir) {
+	dir = filepath.Clean(dir)
+	root := ""
+	for _, r := range l.roots() {
+		if strings.HasPrefix(strings.ToLower(dir), strings.ToLower(r)+string(filepath.Separator)) {
+			root = r
+		}
+	}
+	if root == "" {
+		return
+	}
+	for ; dir != root && strings.HasPrefix(dir, root); dir = filepath.Dir(dir) {
 		if os.Remove(dir) != nil {
 			return
 		}
@@ -177,13 +198,14 @@ func (l *Library) Relocate(key string) (string, error) {
 // Ones not at their recorded place are searched for by rescanning, and if only moved or renamed the new place is recorded.
 // When the save folder itself is missing (e.g. an external drive is unplugged), it decides nothing and returns nil.
 func (l *Library) FindMissing(keys []string) []string {
-	if fi, err := os.Stat(l.root()); err != nil || !fi.IsDir() {
-		return nil
-	}
 	var unsure []string
 	for _, k := range keys {
+		root := l.rootFor(k)
+		if fi, err := os.Stat(root); err != nil || !fi.IsDir() {
+			continue // the save folder itself is missing: nothing is known
+		}
 		if b, ok := l.st.Bookmark(k); ok && b.ArchiveFile != "" {
-			if _, err := os.Stat(filepath.Join(l.root(), toOS(b.ArchiveFile))); err == nil {
+			if _, err := os.Stat(filepath.Join(root, toOS(b.ArchiveFile))); err == nil {
 				continue
 			}
 		}

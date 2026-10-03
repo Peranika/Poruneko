@@ -100,11 +100,10 @@ func Get(id model.SiteID) (Provider, error) {
 
 // AnyQuery is the query for listing "works with any of the tags"
 type AnyQuery struct {
-	Tags     []string        `json:"tags"`     // "artist:xxx" / "group:yyy" (any of them)
-	Types    []string        `json:"types"`    // types (doujinshi, manga, artistcg, etc.; all if empty)
-	Language string          `json:"language"` // "all" / "japanese" etc.
-	Page     int             `json:"page"`     // 1-based
-	Exclude  map[string]bool `json:"exclude"`  // keys of works to exclude (bookmarked ones etc.)
+	Tags    []string          `json:"tags"`    // "artist:xxx" / "group:yyy" (any of them)
+	Filters map[string]string `json:"filters"` // the values of the plugin's filters for Favorites
+	Page    int               `json:"page"`    // 1-based
+	Exclude map[string]bool   `json:"exclude"` // keys of works to exclude (bookmarked ones etc.)
 }
 
 // TagNamer is a site that has Japanese names for its tags

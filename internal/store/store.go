@@ -82,14 +82,11 @@ func Open() *Store {
 	s := &Store{
 		settings: model.Settings{
 			LibraryDir:          filepath.Join(dir, "library"),
-			Language:            "all",
-			Sort:                "date",
 			MouseGestures:       true,
 			InfiniteScroll:      true,
 			RememberWindow:      true,
 			AutoDownload:        true,
 			DownloadConcurrency: 4,
-			ImageFormat:         "webp",
 			RangeThumb:          RangeThumbPage,
 			TempFiles:           TempFilesStartup,
 			FontScale:           100,
@@ -241,6 +238,16 @@ func (s *Store) Settings() model.Settings {
 	return s.settings
 }
 
+// SiteDir is where a site's works are saved: the folder chosen for it, or LibraryDir/<site id>
+func (s *Store) SiteDir(site model.SiteID) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if d := s.settings.SiteDirs[site]; d != "" {
+		return d
+	}
+	return filepath.Join(s.settings.LibraryDir, site)
+}
+
 func (s *Store) SetSettings(v model.Settings) model.Settings {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -310,11 +317,8 @@ func (s *Store) Remove(key string) {
 
 // normalizeSettings fixes invalid or missing values (on load and on save)
 func normalizeSettings(v *model.Settings, libraryDir string) {
-	if !validSort(v.Sort) {
-		v.Sort = "date"
-	}
-	if v.Language == "" {
-		v.Language = "all"
+	if v.PluginSettings == nil {
+		v.PluginSettings = map[string]map[string]string{}
 	}
 	if strings.TrimSpace(v.FileNameFormat) == "" {
 		v.FileNameFormat = DefaultFileNameFormat
@@ -339,6 +343,20 @@ func normalizeSettings(v *model.Settings, libraryDir string) {
 	v.DownloadConcurrency = max(v.DownloadConcurrency, 1)
 	if v.LibraryDir == "" {
 		v.LibraryDir = libraryDir
+	}
+	if v.SiteDirs == nil {
+		v.SiteDirs = map[string]string{}
+	}
+	if v.LocalDirs == nil {
+		v.LocalDirs = []model.LocalDir{}
+	}
+	for i, d := range v.LocalDirs {
+		if strings.TrimSpace(d.Name) == "" {
+			v.LocalDirs[i].Name = filepath.Base(d.Path)
+		}
+		if d.Icon == "" {
+			v.LocalDirs[i].Icon = "folder"
+		}
 	}
 	if !validRangeThumb(v.RangeThumb) {
 		v.RangeThumb = RangeThumbPage
@@ -381,14 +399,6 @@ func migrateSources(v *model.Settings) bool {
 
 // DefaultFileNameFormat is the default cbz file name format
 const DefaultFileNameFormat = "[{group} ({artist})] {title}"
-
-func validSort(s string) bool {
-	switch s {
-	case "date", "popular-today", "popular-week", "popular-month", "popular-year":
-		return true
-	}
-	return false
-}
 
 // currentSourcesRev is the version of the default sources (1: added pawchive and DuckDuckGo)
 const currentSourcesRev = 1

@@ -207,7 +207,8 @@ export function SeriesMain({
     await api.renameSeries(series.id, name).catch((e) => toast(errorText(e)))
   }
   const remove = async () => {
-    if (!confirm(t('series.deleteConfirm', { name: series.name }))) return
+    const note = series.folder ? '\n' + t('series.deleteFolderNote') : ''
+    if (!confirm(t('series.deleteConfirm', { name: series.name }) + note)) return
     await api.deleteSeries(series.id).catch((e) => toast(errorText(e)))
   }
 

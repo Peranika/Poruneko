@@ -111,6 +111,16 @@ loaded at startup from a `plugins` folder next to the exe or in the data folder.
 functions, JSON calls, the methods of a site plugin) is described in `internal/plugin` (plugin.go and site.go).
 A plugin can fetch only through the host, and only from the hosts its info lists.
 
+A site plugin's info also says what the app shows for it, so nothing about a site is built into the app:
+
+- `icon`: the tab icon as a data URL (an SVG is drawn in the text color like the app's own icons)
+- `browse` (`model.BrowseSpec`): the search box's hint, the filters above the list (their options, defaults and
+  screens, a value used while searching), settings of the plugin's own (`"in": ["settings"]`), and the kinds of its
+  tags (names, a suffix such as ♀, colors, whether they have Japanese names). The filters' values are sent with
+  `list` / `listAny`; the user's choices are kept as the plugin's settings and come with every call
+  (`pluginsdk.Setting`)
+- `displayHosts`: the hosts shown in the settings when `hosts` also lists servers the user does not know
+
 A plugin written in Go uses `pluginsdk` and is built with
 
 ```

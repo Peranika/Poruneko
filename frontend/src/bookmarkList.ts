@@ -1,4 +1,4 @@
-import { isFileKey } from './api'
+import { isFileKey, localDirOfKey, siteOfBookmark } from './api'
 // Grouping, filtering and sorting of bookmarks.
 // The Bookmarks screen list and the viewer's "next/previous work" (when opened from bookmarks) use the same order.
 import { t } from './i18n'
@@ -12,6 +12,25 @@ import type { Bookmark } from './types'
  */
 export const needsReview = (b: Bookmark): boolean =>
   b.creator.status === 'uncertain' || (b.creator.status === 'notfound' && !isFileKey(b.key))
+
+/**
+ * Which works a list shows: the bookmarks, or every work in the library folder (Local tab). Both screens work the same
+ * way (tags, series, creators); each remembers its own view
+ */
+export type ListScope = 'bookmarks' | 'local'
+
+/**
+ * Whether a work is listed on a screen: one local folder's tab (id: the folder), or one site's bookmarks (id: the
+ * site). Without an id, all local works or all bookmarks
+ */
+export const inScope = (b: Bookmark, scope: ListScope, id?: number | string): boolean =>
+  scope === 'local'
+    ? isFileKey(b.key) && (id === undefined || localDirOfKey(b.key) === id)
+    : !isFileKey(b.key) && (id === undefined || siteOfBookmark(b) === id)
+
+/** The key a screen's view is remembered under: 'site.<site id>' (or 'bookmarks' without one) or 'local.<folder id>' */
+export const spaceOf = (scope: ListScope, id?: number | string): string =>
+  scope === 'local' ? `local.${id ?? 0}` : id === undefined ? 'bookmarks' : `site.${id}`
 
 export type GroupBy = 'circle' | 'artist'
 export type BookmarkSort = 'added' | 'title' | 'artist' | 'circle'
@@ -279,38 +298,45 @@ export interface BookmarkPrefs {
   htags: string[]
 }
 
-export function loadPrefs(): BookmarkPrefs {
-  const sort = loadString('bm.sort', 'added') as BookmarkSort
-  const tags = loadJSON<unknown>('bm.tags', [])
-  const htags = loadJSON<unknown>('bm.htags', [])
-  const pane = loadString('bm.mode', 'groups')
+// storage key prefix of each screen's view (see spaceOf)
+const prefixOf = (space: string) => (space === 'bookmarks' ? 'bm.' : space + '.')
+
+export function loadPrefs(space = 'bookmarks'): BookmarkPrefs {
+  const k = prefixOf(space)
+  // a local folder's tab groups by artist and filters by local tags only (no circles or site tags)
+  const local = space.startsWith('local.')
+  const sort = loadString(k + 'sort', 'added') as BookmarkSort
+  const tags = loadJSON<unknown>(k + 'tags', [])
+  const htags = loadJSON<unknown>(k + 'htags', [])
+  const pane = loadString(k + 'mode', 'groups')
   return {
     pane: pane === 'series' || pane === 'tags' ? pane : 'groups',
-    by: loadString('bm.by', 'circle') === 'artist' ? 'artist' : 'circle',
-    group: loadString('bm.group', '__all'),
-    sort: COMPARE[sort] ? sort : 'added',
+    by: local || loadString(k + 'by', 'circle') === 'artist' ? 'artist' : 'circle',
+    group: loadString(k + 'group', '__all'),
+    sort: COMPARE[sort] && !(local && sort === 'circle') ? sort : 'added',
     tags: Array.isArray(tags) ? tags.filter((t): t is string => typeof t === 'string') : [],
-    tagSource: loadString('bm.tagSource', 'local') === 'work' ? 'work' : 'local',
+    tagSource: !local && loadString(k + 'tagSource', 'local') === 'work' ? 'work' : 'local',
     htags: Array.isArray(htags) ? htags.filter((t): t is string => typeof t === 'string') : []
   }
 }
 
-export function savePrefs(p: Partial<BookmarkPrefs>): void {
-  if (p.pane) saveString('bm.mode', p.pane)
-  if (p.by) saveString('bm.by', p.by)
-  if (p.group) saveString('bm.group', p.group)
-  if (p.sort) saveString('bm.sort', p.sort)
-  if (p.tags) saveJSON('bm.tags', p.tags)
-  if (p.tagSource) saveString('bm.tagSource', p.tagSource)
-  if (p.htags) saveJSON('bm.htags', p.htags)
+export function savePrefs(p: Partial<BookmarkPrefs>, space = 'bookmarks'): void {
+  const k = prefixOf(space)
+  if (p.pane) saveString(k + 'mode', p.pane)
+  if (p.by) saveString(k + 'by', p.by)
+  if (p.group) saveString(k + 'group', p.group)
+  if (p.sort) saveString(k + 'sort', p.sort)
+  if (p.tags) saveJSON(k + 'tags', p.tags)
+  if (p.tagSource) saveString(k + 'tagSource', p.tagSource)
+  if (p.htags) saveJSON(k + 'htags', p.htags)
 }
 
 /**
  * Order for "next/previous work" of a work opened from bookmarks. Follows the group selected on the Bookmarks screen
  * (the tag in the tag view) and its sort order (if the work is not in it, searches all bookmarks). group is the group actually used.
  */
-export function bookmarkSequence(all: Bookmark[], currentKey: string): { list: Bookmark[]; group: string } {
-  const { pane, by, group, sort, tags, tagSource, htags } = loadPrefs()
+export function bookmarkSequence(all: Bookmark[], currentKey: string, space = 'bookmarks'): { list: Bookmark[]; group: string } {
+  const { pane, by, group, sort, tags, tagSource, htags } = loadPrefs(space)
   const shown =
     pane === 'tags' ? (tagSource === 'work' ? filterByWorkTags(all, htags) : filterByTags(all, tags)) : membersOf(all, by, group)
   if (pane === 'tags' && shown?.some((b) => b.key === currentKey)) return { list: sortBookmarks(shown, sort), group: '__all' }

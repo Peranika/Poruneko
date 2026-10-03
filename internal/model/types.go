@@ -129,11 +129,12 @@ type GalleryDetail struct {
 }
 
 type ListQuery struct {
-	Query    string `json:"query"`
-	Language string `json:"language"`
-	// date | popular-today | popular-week | popular-month | popular-year
-	Sort string `json:"sort"`
-	Page int    `json:"page"`
+	// Site is the site listed (the first site if empty)
+	Site  SiteID `json:"site,omitempty"`
+	Query string `json:"query"`
+	// Filters are the values of the site plugin's filters (BrowseSpec), such as its sort order and language
+	Filters map[string]string `json:"filters"`
+	Page    int               `json:"page"`
 	// MinPages / MaxPages filter by page count (0 for no limit).
 	// The source list's paging is kept and non-matching works are removed within each page
 	MinPages int `json:"minPages,omitempty"`
@@ -219,6 +220,8 @@ type Series struct {
 	CreatedAt int64  `json:"createdAt"`
 	// Keys are the keys of the works in the series (in display order)
 	Keys []string `json:"keys"`
+	// Folder is the subfolder the series was made from (relative path of a library folder); new archives in it join
+	Folder string `json:"folder,omitempty"`
 }
 
 // values of DownloadState.Status
@@ -269,6 +272,17 @@ type Bookmark struct {
 	CustomThumb *ThumbSpec `json:"customThumb,omitempty"`
 	// CustomTitle is the title the user gave the work ("" for the work's own title)
 	CustomTitle string `json:"customTitle,omitempty"`
+}
+
+// LocalDir is a folder of the user's own archives, shown as a tab of its own. The id stays the same for as long as
+// the folder is in the list
+type LocalDir struct {
+	ID   int    `json:"id"`
+	Path string `json:"path"`
+	// Name is the tab's name (the folder's name by default)
+	Name string `json:"name"`
+	// Icon is the tab's icon: a built-in icon's name, or "file:<name>" for an image in the icons folder
+	Icon string `json:"icon"`
 }
 
 // Title is the title to show for a bookmark: the user's title if set, otherwise the work's
@@ -327,13 +341,14 @@ type ViewerSettings struct {
 
 type Settings struct {
 	LibraryDir string `json:"libraryDir"`
-	Language   string `json:"language"`
-	// Sort is the default list order (date | popular-today | popular-week | popular-month | popular-year)
-	Sort                    string `json:"sort"`
-	AutoDownload            bool   `json:"autoDownload"`
-	DeleteFilesOnUnbookmark bool   `json:"deleteFilesOnUnbookmark"`
-	DownloadConcurrency     int    `json:"downloadConcurrency"`
-	ImageFormat             string `json:"imageFormat"` // webp | avif
+	// PluginSettings are the site plugins' settings: plugin id -> filter id -> the value used by default
+	PluginSettings map[string]map[string]string `json:"pluginSettings"`
+	// SiteDirs are the save locations chosen for site plugins (site id -> folder). A site without one saves in
+	// LibraryDir/<site id>
+	SiteDirs                map[string]string `json:"siteDirs"`
+	AutoDownload            bool              `json:"autoDownload"`
+	DeleteFilesOnUnbookmark bool              `json:"deleteFilesOnUnbookmark"`
+	DownloadConcurrency     int               `json:"downloadConcurrency"`
 	// TempFiles is how pages saved while viewing (.parts) are handled (startup | viewerClose | pack)
 	TempFiles string `json:"tempFiles"`
 	// FontScale is the UI text size (%; 100 is normal)
@@ -368,6 +383,11 @@ type Settings struct {
 	// LibraryIgnored are the archives (relative to the library folder) the user removed from the library;
 	// scans skip them
 	LibraryIgnored []string `json:"libraryIgnored"`
+	// LocalDirs are the folders of the user's own archives, each a tab. Their works are keyed
+	// "file:@<id>/<path relative to the folder>"
+	LocalDirs []LocalDir `json:"localDirs"`
+	// FolderSeriesOff are the subfolders whose automatic series the user deleted; they are not made into series again
+	FolderSeriesOff []string `json:"folderSeriesOff"`
 	// FileNameFormat is the zip file name format ({title} {artist} {group} etc.; / makes folders)
 	FileNameFormat string `json:"fileNameFormat"`
 }
@@ -406,17 +426,73 @@ type SiteInfo struct {
 	Name string `json:"name"`
 	// Favorites reports whether the site can list works by several artists (the Favorites screen)
 	Favorites bool `json:"favorites"`
+	// Icon is the site's icon from its plugin (a data URL; "" for none)
+	Icon string `json:"icon"`
+	// Dir is where the site's works are saved
+	Dir string `json:"dir"`
+	// Browse is what the site's list screen offers (from its plugin; nil for none)
+	Browse *BrowseSpec `json:"browse"`
+}
+
+// Text is a text in each UI language ({"ja": ..., "en": ...})
+type Text map[string]string
+
+// BrowseSpec is what a site plugin's list screen offers: the search box's hint and the filters above the list.
+// The app draws them; their values go to the plugin as ListQuery.Filters (FavoritesQuery.Filters for Favorites)
+type BrowseSpec struct {
+	Placeholder Text         `json:"placeholder,omitempty"`
+	Filters     []FilterSpec `json:"filters"`
+	// Namespaces are the kinds of the site's tags ("female", "artist"...): how the app names and colors them
+	Namespaces []Namespace `json:"namespaces,omitempty"`
+}
+
+// Namespace is a kind of the site's tags
+type Namespace struct {
+	ID    string `json:"id"`
+	Label Text   `json:"label"`
+	// Suffix is added after its tags' names ("♀")
+	Suffix string `json:"suffix,omitempty"`
+	// Color is its tags' color (CSS)
+	Color string `json:"color,omitempty"`
+	// Translated: its tags have names in the plugin's tagNamesJa
+	Translated bool `json:"translated,omitempty"`
+}
+
+// FilterSpec is one filter: a choice of options
+type FilterSpec struct {
+	ID      string         `json:"id"`
+	Label   Text           `json:"label"`
+	Options []FilterOption `json:"options"`
+	// Default is the value until the user chooses another (the user's choice is kept as the plugin's setting)
+	Default string `json:"default"`
+	// In are the screens it is on: "browse" and / or "favorites" (browse only if empty), or "settings" for a setting
+	// of the plugin that is not a filter (the plugin reads it with pluginsdk.Setting)
+	In []string `json:"in,omitempty"`
+	// Multi lets several options be chosen (the value is them joined with ","; none chosen means all)
+	Multi bool `json:"multi,omitempty"`
+	// OnSearch is the value used while there is a search query (the setting comes back when it is cleared)
+	OnSearch string `json:"onSearch,omitempty"`
+}
+
+type FilterOption struct {
+	Value string `json:"value"`
+	Label Text   `json:"label"`
+	// Color is the option's color where works show it (their type, for the "type" filter)
+	Color string `json:"color,omitempty"`
+	// Spread: works of this type are manga, opened in spreads when the viewer setting asks for it
+	Spread bool `json:"spread,omitempty"`
 }
 
 type FavoritesQuery struct {
-	Language string `json:"language"`
-	Page     int    `json:"page"`
+	// Site is the site searched, with the names from its bookmarks (the first site if empty)
+	Site SiteID `json:"site,omitempty"`
+	// Filters are the values of the site plugin's filters for Favorites (BrowseSpec)
+	Filters map[string]string `json:"filters"`
+	Page    int               `json:"page"`
 	// Tag narrows it to that artist ("artist:xxx") or group ("group:yyy")
-	Tag           string `json:"tag"`
-	IncludeGroups bool   `json:"includeGroups"`
-	// Types filters by type (doujinshi, manga, artistcg, etc.; all if empty)
-	Types          []string `json:"types"`
-	HideBookmarked bool     `json:"hideBookmarked"`
+	Tag            string `json:"tag"`
+	IncludeGroups  bool   `json:"includeGroups"`
+	HideBookmarked bool   `json:"hideBookmarked"`
 	// ExcludeCollective leaves out bookmarked anthologies and magazines (works with many artists) as sources of names
 	ExcludeCollective bool `json:"excludeCollective"`
 	// MinPages / MaxPages filter by page count like the browse list (0 for no limit)

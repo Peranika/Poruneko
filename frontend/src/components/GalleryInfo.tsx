@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api, isFileKey, isLocalKey, thumbUrl } from '../api'
+import { api, isFileKey, isLocalKey, localDirOfKey, siteOfBookmark, thumbUrl } from '../api'
 import { DOWNLOAD_ACTION_ICON, downloadAction, hasSavedFiles, runDownloadAction, type DownloadAction } from '../bookmarkActions'
 import { downloadErrorText, errorText, t } from '../i18n'
-import { TYPE_LABEL, altTitle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
+import { optionLabel, tagStyle, typeStyle } from '../browseSpec'
+import { altTitle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
 import { searchQuery, tagToken, useApp } from '../state'
 import { loadPagePos, savePagePos } from '../storage'
 import type { Bookmark, GallerySummary } from '../types'
@@ -29,7 +30,7 @@ interface Props {
 
 /** Info panel on the left of the gallery page (work info, creator info, download, tags) */
 export function GalleryInfo({ galleryKey, s, summary }: Props) {
-  const { nav, settings, bookmarks, setEditCreatorKey, seriesOf, setSeriesDialogKey, toast } = useApp()
+  const { nav, bookmarks, setEditCreatorKey, seriesOf, setSeriesDialogKey, toast } = useApp()
   const inSeries = seriesOf.get(galleryKey)
   const isLocal = isLocalKey(galleryKey)
   const b = bookmarks.get(galleryKey)
@@ -54,7 +55,9 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
       .catch(() => {})
   }, [originKey])
 
-  const search = (token: string) => nav.go({ name: 'browse', q: searchQuery(token, settings?.language, settings?.sort) })
+  // a tag searches the work's site (a page range work: its source's)
+  const workSite = b ? siteOfBookmark(b) : galleryKey.slice(0, galleryKey.indexOf(':'))
+  const search = (token: string) => nav.go({ name: 'browse', q: searchQuery(token, undefined, workSite) })
   const links = (ns: string, names: string[]) =>
     names.map((n) => (
       <button key={n} className="link" onClick={() => search(tagToken(ns, n))}>
@@ -85,7 +88,7 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
         </div>
         <div className="info-head-main">
           <div className="type-row">
-            <span className={`type type-${s.type}`}>{TYPE_LABEL[s.type] ?? s.type}</span>
+            <span className="type" style={typeStyle(s.type)}>{optionLabel('type', s.type)}</span>
             {isLocal && <RangeChip saved={!!d && d.status !== 'none'} />}
           </div>
           {b ? <TitleEditor b={b} /> : <h2 className="title">{displayTitle(s)}</h2>}
@@ -190,7 +193,10 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
               <button
                 className="link"
                 title={t('gallery.openSeries')}
-                onClick={() => nav.go({ name: 'bookmarks', view: { mode: 'series', id: inSeries.series.id } })}
+                onClick={() => {
+                  const view = { mode: 'series' as const, id: inSeries.series.id }
+                  nav.go(isFileKey(galleryKey) ? { name: 'local', dir: localDirOfKey(galleryKey) ?? 0, view } : { name: 'bookmarks', site: workSite, view })
+                }}
               >
                 {inSeries.series.name}
               </button>
@@ -209,6 +215,7 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
             <span>{t('gallery.siteNames')}</span>
           </div>
           <SiteNamePicker
+            site={workSite}
             value={
               // older ones (with the typed creator name in the work info) start empty
               b.summary.origin?.tags ? { artists: b.summary.artists, groups: b.summary.groups } : { artists: [], groups: [] }
@@ -231,7 +238,7 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
       </dl>
       <div className="tags">
         {s.tags.map((t) => (
-          <button key={t.ns + t.name} className={`link tag tag-${t.ns}`} title={`${t.ns}:${t.name}`} onClick={() => search(tagToken(t.ns, t.name))}>
+          <button key={t.ns + t.name} className="link tag" style={tagStyle(t.ns)} title={`${t.ns}:${t.name}`} onClick={() => search(tagToken(t.ns, t.name))}>
             {tagLabel(t.ns, t.name)}
           </button>
         ))}

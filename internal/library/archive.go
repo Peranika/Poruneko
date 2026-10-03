@@ -28,7 +28,12 @@ type openZip struct {
 	files map[string]*zip.File
 	// order is the page images in reading order (pages[i] == order[i] unless numbered pages are missing)
 	order []*zip.File
+	// used is when it was last opened (an open file cannot be deleted or moved on Windows, so idle ones are closed)
+	used time.Time
 }
+
+// zipIdleClose is how long an unused zip stays open
+const zipIdleClose = 30 * time.Second
 
 // zipCache keeps open readers so zips are not reopened on every view
 type zipCache struct {
@@ -44,7 +49,21 @@ type zipCache struct {
 func newZipCache(max int) *zipCache {
 	c := &zipCache{max: max, m: map[string]*openZip{}, busy: map[string]int{}}
 	c.idle = sync.NewCond(&c.mu)
+	go c.closeIdle()
 	return c
+}
+
+// closeIdle closes the zips not opened for a while, so the user can delete or move the files while the app runs
+func (c *zipCache) closeIdle() {
+	for range time.Tick(zipIdleClose / 3) {
+		c.mu.Lock()
+		for p, z := range c.m {
+			if time.Since(z.used) > zipIdleClose {
+				c.closeLocked(p)
+			}
+		}
+		c.mu.Unlock()
+	}
 }
 
 // exclusive closes the zip and keeps it from being opened until release is called (used while rewriting, moving or deleting)
@@ -80,13 +99,14 @@ func (c *zipCache) open(path string) (*openZip, error) {
 		c.idle.Wait() // wait until the rewrite finishes
 	}
 	if z, ok := c.m[path]; ok {
+		z.used = time.Now()
 		return z, nil
 	}
 	rc, err := zip.OpenReader(path)
 	if err != nil {
 		return nil, err
 	}
-	z := &openZip{rc: rc, pages: map[int]*zip.File{}, files: map[string]*zip.File{}}
+	z := &openZip{rc: rc, pages: map[int]*zip.File{}, files: map[string]*zip.File{}, used: time.Now()}
 	// the app's own archives name pages 0001.webp etc. (the number is the page); other archives can name and nest
 	// them any way, so their images are the pages in natural name order (img2 before img10)
 	numbered := true
@@ -201,6 +221,9 @@ func isPageEntry(name string) bool {
 }
 
 // naturalCompare orders names with their digit runs compared as numbers (case-insensitive)
+// NaturalCompare compares names with the numbers in them by value ("2" before "10")
+func NaturalCompare(a, b string) int { return naturalCompare(a, b) }
+
 func naturalCompare(a, b string) int {
 	a, b = strings.ToLower(a), strings.ToLower(b)
 	for a != "" && b != "" {

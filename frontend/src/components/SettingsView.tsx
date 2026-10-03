@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { ACCENT_PRESETS, DEFAULT_ACCENT, FONT_SCALES } from '../display'
-import { t } from '../i18n'
-import { LANGUAGES, SORTS } from '../labels'
+import { errorText, t } from '../i18n'
+import { filtersOn, textOf } from '../browseSpec'
 import { useApp } from '../state'
-import type { PluginInfo, Settings, SortMode, ViewerSettings } from '../types'
+import type { LocalDir, PluginInfo, Settings, SiteInfo, ViewerSettings } from '../types'
 import { FileNameFormat } from './FileNameFormat'
+import { Icon } from './Icon'
+import { ImageIcon, TAB_ICONS, TabIcon } from './TabIcon'
 import { KeybindingSettings } from './KeybindingSettings'
-import { Options } from './ListControls'
 import { PredecodeSetting } from './PredecodeSetting'
 import { SlideCurveSetting } from './SlideCurveSetting'
 
@@ -32,10 +33,15 @@ function AccentPicker({ value, onChange }: { value: string; onChange(v: string):
   )
 }
 
-/** The plugins loaded at startup (they are added by putting .wasm files in a plugins folder) */
+/** The plugins loaded at startup (they are added by putting .wasm files in a plugins folder), and their settings */
 function PluginList() {
+  const { settings, updateSettings } = useApp()
   const [list, setList] = useState<PluginInfo[] | null>(null)
   useEffect(() => void api.plugins().then(setList), [])
+  const setDefault = (p: PluginInfo, filterId: string, value: string) => {
+    const all = settings?.pluginSettings ?? {}
+    updateSettings({ pluginSettings: { ...all, [p.id]: { ...all[p.id], [filterId]: value } } })
+  }
   return (
     <section>
       <h3>{t('settings.plugins')}</h3>
@@ -48,7 +54,7 @@ function PluginList() {
                 <small className="muted">
                   {p.kind === 'susie'
                     ? t('settings.pluginFormats', { formats: p.formats.join(' ') })
-                    : `${p.version} — ${t('settings.pluginHosts', { hosts: p.hosts.join(', ') })}`}
+                    : `${p.version} — ${t('settings.pluginHosts', { hosts: (p.displayHosts?.length ? p.displayHosts : p.hosts).join(', ') })}`}
                 </small>
               </span>
             ))
@@ -58,12 +64,39 @@ function PluginList() {
           <small className="muted">{t('settings.pluginsHint')}</small>
         </span>
       </div>
+      {/* a site plugin's settings: its own settings, and the values its filters start with (choosing one on the list
+          screen sets it too) */}
+      {list
+        ?.filter((p) => p.browse)
+        .map((p) =>
+          [...filtersOn('settings', { browse: p.browse } as SiteInfo), ...filtersOn('browse', { browse: p.browse } as SiteInfo)]
+            .filter((f) => !f.multi)
+            .map((f) => (
+              <label key={p.id + f.id} className="row-setting">
+                {f.in?.includes('settings') ? (
+                  <span>{t('settings.pluginSetting', { plugin: p.name, setting: textOf(f.label) })}</span>
+                ) : (
+                  <span>
+                    {t('settings.pluginDefault', { plugin: p.name, filter: textOf(f.label) })}
+                    <small className="muted">{t('settings.pluginDefaultHint')}</small>
+                  </span>
+                )}
+                <select value={settings?.pluginSettings?.[p.id]?.[f.id] ?? f.default} onChange={(e) => setDefault(p, f.id, e.target.value)}>
+                  {f.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {textOf(o.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))
+        )}
     </section>
   )
 }
 
 export function SettingsView() {
-  const { settings, updateSettings, toast, checkUpdate } = useApp()
+  const { settings, updateSettings, checkUpdate } = useApp()
   const [version, setVersion] = useState('')
   useEffect(() => void api.appVersion().then(setVersion), [])
   if (!settings) return null
@@ -128,33 +161,11 @@ export function SettingsView() {
           <section>
             <h3>{t('settings.browse')}</h3>
             <label className="row-setting">
-              <span>{t('settings.defaultLanguage')}</span>
-              <select value={s.language} onChange={(e) => updateSettings({ language: e.target.value })}>
-                <Options items={LANGUAGES} />
-              </select>
-            </label>
-            <label className="row-setting">
-              <span>
-                {t('settings.defaultSort')}
-                <small className="muted">{t('settings.defaultSortHint')}</small>
-              </span>
-              <select value={s.sort} onChange={(e) => updateSettings({ sort: e.target.value as SortMode })}>
-                <Options items={SORTS} />
-              </select>
-            </label>
-            <label className="row-setting">
               <span>
                 {t('settings.infiniteScroll')}
                 <small className="muted">{t('settings.infiniteScrollHint')}</small>
               </span>
               <input type="checkbox" checked={s.infiniteScroll} onChange={(e) => updateSettings({ infiniteScroll: e.target.checked })} />
-            </label>
-            <label className="row-setting">
-              <span>{t('settings.imageFormat')}</span>
-              <select value={s.imageFormat} onChange={(e) => updateSettings({ imageFormat: e.target.value as 'webp' | 'avif' })}>
-                <option value="webp">{t('settings.webp')}</option>
-                <option value="avif">{t('settings.avif')}</option>
-              </select>
             </label>
           </section>
 
@@ -232,28 +243,10 @@ export function SettingsView() {
               </select>
             </label>
             <FileNameFormat />
-            <div className="row-setting">
-              <span>
-                {t('settings.libraryDir')}
-                <small className="muted">{t('settings.libraryDirHint')}</small>
-              </span>
-              <div className="path-pick">
-                <code>{s.libraryDir}</code>
-                <button
-                  className="btn"
-                  onClick={async () => {
-                    const d = await api.chooseLibraryDir(t('settings.libraryDirDialog'))
-                    if (d) {
-                      updateSettings({ libraryDir: d })
-                      toast(t('settings.libraryDirChanged'))
-                    }
-                  }}
-                >
-                  {t('settings.change')}
-                </button>
-              </div>
-            </div>
+            <SiteDirs />
           </section>
+
+          <LocalDirs />
 
           <section>
             <h3>{t('settings.metaSources')}</h3>
@@ -345,5 +338,137 @@ export function SettingsView() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** The local folders, each a tab: add with a dialog, change the tab's name and icon, reorder, remove with their works */
+function LocalDirs() {
+  const { settings, refreshSettings, localIcons, reloadLocalIcons, toast } = useApp()
+  const dirs = settings?.localDirs ?? []
+  // the folder whose icon picker is open
+  const [picking, setPicking] = useState<number | null>(null)
+  const run = async (fn: () => Promise<unknown>) => {
+    try {
+      await fn()
+    } catch (e) {
+      toast(errorText(e))
+    }
+    await refreshSettings()
+  }
+  const add = () =>
+    run(async () => {
+      if (await api.addLocalDir(t('settings.localDirsDialog'))) toast(t('settings.localDirAdded'))
+    })
+  const remove = (d: LocalDir) => {
+    if (!confirm(t('settings.localDirRemoveConfirm', { name: d.name }))) return
+    void run(async () => {
+      await api.removeLocalDir(d.id)
+      toast(t('settings.localDirRemoved'))
+    })
+  }
+  const setIcon = (d: LocalDir, icon: string) => {
+    setPicking(null)
+    void run(() => api.setLocalDir(d.id, d.name, icon))
+  }
+  return (
+    <section>
+      <h3>{t('settings.localDirs')}</h3>
+      <p className="muted small">{t('settings.localDirsHint')}</p>
+      <ul className="local-dirs">
+        {dirs.map((d, i) => (
+          <li key={d.id}>
+            <div className="local-dir-row">
+              <button className="icon-btn" title={t('settings.localDirIcon')} onClick={() => setPicking(picking === d.id ? null : d.id)}>
+                <TabIcon icon={d.icon} />
+              </button>
+              <input
+                className="local-dir-name"
+                defaultValue={d.name}
+                key={d.name}
+                title={t('settings.localDirName')}
+                onBlur={(e) => e.target.value.trim() !== d.name && void run(() => api.setLocalDir(d.id, e.target.value, d.icon))}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+              />
+              <code title={d.path}>{d.path}</code>
+              <button className="icon-btn small" disabled={i === 0} title={t('settings.localDirUp')} onClick={() => void run(() => api.moveLocalDir(d.id, -1))}>
+                <Icon name="back" size={14} className="rot90" />
+              </button>
+              <button
+                className="icon-btn small"
+                disabled={i === dirs.length - 1}
+                title={t('settings.localDirDown')}
+                onClick={() => void run(() => api.moveLocalDir(d.id, 1))}
+              >
+                <Icon name="forward" size={14} className="rot90" />
+              </button>
+              <button className="btn ghost small" onClick={() => remove(d)}>
+                {t('settings.localDirRemove')}
+              </button>
+            </div>
+            {picking === d.id && (
+              <div className="icon-picker">
+                {TAB_ICONS.map((name) => (
+                  <button key={name} className={d.icon === name ? 'on' : ''} onClick={() => setIcon(d, name)}>
+                    <Icon name={name} size={20} />
+                  </button>
+                ))}
+                {localIcons.map((f) => (
+                  <button key={f.name} className={d.icon === 'file:' + f.name ? 'on' : ''} title={f.name} onClick={() => setIcon(d, 'file:' + f.name)}>
+                    <ImageIcon url={f.url} />
+                  </button>
+                ))}
+                <span className="icon-picker-actions">
+                  <button className="btn ghost small" onClick={() => void api.openIconsFolder().catch((e) => toast(errorText(e)))}>
+                    <Icon name="folder" size={14} /> {t('settings.iconsFolder')}
+                  </button>
+                  <button className="btn ghost small" onClick={reloadLocalIcons} title={t('settings.iconsReloadTitle')}>
+                    <Icon name="refresh" size={14} />
+                  </button>
+                </span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <button className="btn small" onClick={() => void add()}>
+        <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
+      </button>
+    </section>
+  )
+}
+
+/** Where each site plugin's works are saved */
+function SiteDirs() {
+  const { refreshSettings, toast } = useApp()
+  const [sites, setSites] = useState<SiteInfo[]>([])
+  const reload = () => void api.sites().then(setSites)
+  useEffect(reload, [])
+  const choose = async (site: SiteInfo) => {
+    try {
+      if (!(await api.chooseSiteDir(site.id, t('settings.siteDirDialog', { name: site.name })))) return
+      toast(t('settings.libraryDirChanged'))
+      reload()
+      await refreshSettings()
+    } catch (e) {
+      toast(errorText(e))
+    }
+  }
+  return (
+    <>
+      {sites.map((site) => (
+        <div key={site.id} className="row-setting">
+          <span>
+            {t('settings.siteDir', { name: site.name })}
+            <small className="muted">{t('settings.libraryDirHint')}</small>
+          </span>
+          <div className="path-pick">
+            <code title={site.dir}>{site.dir}</code>
+            <button className="btn" onClick={() => void choose(site)}>
+              {t('settings.change')}
+            </button>
+          </div>
+        </div>
+      ))}
+    </>
   )
 }

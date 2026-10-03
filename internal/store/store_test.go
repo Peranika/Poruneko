@@ -8,26 +8,20 @@ import (
 	"poruneko/internal/model"
 )
 
-func TestSortAndLanguagePersist(t *testing.T) {
+func TestPluginSettingsPersist(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := Open()
-	if s := st.Settings(); s.Sort != "date" || s.Language != "all" {
-		t.Fatalf("defaults: sort=%q language=%q", s.Sort, s.Language)
+	if s := st.Settings(); s.PluginSettings == nil {
+		t.Fatal("plugin settings should be an empty map")
 	}
 	s := st.Settings()
-	s.Sort, s.Language = "popular-week", "japanese"
+	s.PluginSettings = map[string]map[string]string{"site": {"sort": "popular-week", "language": "japanese"}}
 	st.SetSettings(s)
 	st.Flush()
 
 	// still there after a restart
-	if s := Open().Settings(); s.Sort != "popular-week" || s.Language != "japanese" {
-		t.Fatalf("after reopen: sort=%q language=%q", s.Sort, s.Language)
-	}
-
-	// invalid values revert to defaults
-	s.Sort, s.Language = "bogus", ""
-	if got := st.SetSettings(s); got.Sort != "date" || got.Language != "all" {
-		t.Fatalf("invalid values: sort=%q language=%q", got.Sort, got.Language)
+	if s := Open().Settings(); s.PluginSettings["site"]["sort"] != "popular-week" || s.PluginSettings["site"]["language"] != "japanese" {
+		t.Fatalf("after reopen: %v", s.PluginSettings)
 	}
 }
 
@@ -35,11 +29,11 @@ func TestMouseGesturesDefaultForOldSettings(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PORUNEKO_DATA_DIR", dir)
 	// an older settings file (without mouseGestures) still gets the default of enabled
-	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"language":"japanese"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"autoDownload":false}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if s := Open().Settings(); !s.MouseGestures || s.Language != "japanese" {
-		t.Fatalf("mouseGestures=%v language=%q", s.MouseGestures, s.Language)
+	if s := Open().Settings(); !s.MouseGestures || s.AutoDownload {
+		t.Fatalf("mouseGestures=%v autoDownload=%v", s.MouseGestures, s.AutoDownload)
 	}
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '../api'
+import { api, isFileKey, localDirOfKey, siteOfBookmark } from '../api'
+import { isSpreadType } from '../browseSpec'
 import { errorText, t } from '../i18n'
 import { buildKeymap } from '../keybindings'
 import { useApp } from '../state'
@@ -30,7 +31,6 @@ interface Props {
 }
 
 /** Work types that open in spreads with the "spreads for manga" setting */
-const MANGA_TYPES = ['manga', 'doujinshi']
 
 export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
   const { nav, settings, updateSettings, bookmarks, series, toggleBookmark, toast } = useApp()
@@ -63,7 +63,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         // else the one last used (shown before the viewer appears, so it does not switch after opening)
         const viewer = settingsRef.current?.viewer
         const mode =
-          loadWorkMode(galleryKey) ?? (viewer?.spreadForManga && MANGA_TYPES.includes(d.type) ? 'spread' : undefined)
+          loadWorkMode(galleryKey) ?? (viewer?.spreadForManga && isSpreadType(d.type) ? 'spread' : undefined)
         if (mode && mode !== viewer?.mode) updateSettings({ viewer: { mode } as ViewerSettings })
         setDetail(d)
         // the history lists every work opened in the viewer, with where it was opened from
@@ -112,12 +112,16 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
     async (dir: 1 | -1) => {
       if (moving.current) return
       moving.current = true
-      const src: WorkSource = from ?? { kind: 'bookmarks' }
+      const src: WorkSource =
+        from ??
+        (isFileKey(galleryKey)
+          ? { kind: 'local', dir: localDirOfKey(galleryKey) ?? 0 }
+          : { kind: 'bookmarks', site: b ? siteOfBookmark(b) : galleryKey.slice(0, galleryKey.indexOf(':')) })
       try {
         const next = await neighborWork(src, [...bookmarks.values()], series, galleryKey, dir)
         if (next === undefined) return toast(t('gallery.notInList'))
         if (next === 'end') {
-          if (src.kind === 'bookmarks' && bookmarks.size === 0) return toast(t('gallery.noBookmarks'))
+          if (src.kind === 'bookmarks' && ![...bookmarks.keys()].some((k) => !isFileKey(k))) return toast(t('gallery.noBookmarks'))
           return toast(dir > 0 ? t('gallery.lastWork') : t('gallery.firstWork'))
         }
         carryImmersive = immRef.current
@@ -129,7 +133,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         moving.current = false
       }
     },
-    [from, bookmarks, series, galleryKey, nav, toast]
+    [from, b, bookmarks, series, galleryKey, nav, toast]
   )
 
   // when the gallery page closes, drop the unfinished loads (prefetching all pages)

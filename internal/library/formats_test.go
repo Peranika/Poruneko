@@ -30,7 +30,7 @@ func TestPluginFormat(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close)
@@ -43,17 +43,17 @@ func TestPluginFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	found := lib.FindArchives()
-	if len(found) != 1 || found[0] != "a.fake" {
+	if len(found) != 1 || found[0] != "@1/a.fake" {
 		t.Fatalf("found %v", found)
 	}
-	d, err := lib.ArchiveDetail("a.fake")
+	d, err := lib.ArchiveDetail("@1/a.fake")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if d.JapaneseTitle != "Fake Book" || len(d.Artists) != 1 || len(d.Pages) != 3 || d.Pages[2].Name != "p10.png" {
 		t.Fatalf("%+v %+v", d.GallerySummary, d.Pages)
 	}
-	st.Put(model.Bookmark{Key: d.Key, ArchiveFile: "a.fake"})
+	st.Put(model.Bookmark{Key: d.Key, ArchiveFile: "@1/a.fake"})
 	if b, _, ok := lib.ReadPage(d.Key, 1); !ok || !bytes.Equal(b, p2) {
 		t.Fatal("page 2")
 	}
@@ -75,13 +75,13 @@ func TestPluginFormatUnreadable(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close)
 	RegisterFormat(&brokenFormat{fakeFormat{files: map[string][]byte{"p1.png": pngBytes(t, 5, 5)}}})
 	_ = os.WriteFile(filepath.Join(dir, "b.broken"), []byte("x"), 0o644)
-	if _, err := lib.ArchiveDetail("b.broken"); err == nil {
+	if _, err := lib.ArchiveDetail("@1/b.broken"); err == nil {
 		t.Fatal("an unreadable archive became a work")
 	}
 }

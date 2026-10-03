@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
-import { t } from './i18n'
+import { errorText, t } from './i18n'
 import { BookmarksView } from './components/BookmarksView'
 import { BrowseView } from './components/BrowseView'
 import { FavoritesView } from './components/FavoritesView'
@@ -8,35 +8,49 @@ import { HistoryView } from './components/HistoryView'
 import { CreatorDialog } from './components/CreatorDialog'
 import { GalleryView } from './components/GalleryView'
 import { Icon } from './components/Icon'
+import { SiteTab } from './components/SiteTab'
+import { TabIcon } from './components/TabIcon'
 import { SeriesDialog } from './components/SeriesDialog'
 import { SettingsView } from './components/SettingsView'
 import { UpdateNotice } from './components/UpdateNotice'
-import { defaultQuery, useApp } from './state'
+import { useApp } from './state'
 import { useAutoReveal } from './useAutoReveal'
 import { useGlobalNavigation } from './useGlobalNavigation'
 import appIcon from './assets/icon.svg'
-import type { SiteInfo } from './types'
 
 export default function App() {
-  const { nav, settings, toasts, bookmarks, editCreatorKey, seriesDialogKey, update, dismissUpdate } = useApp()
+  const { nav, settings, sites, refreshSettings, toast, toasts, editCreatorKey, seriesDialogKey, update, dismissUpdate } = useApp()
   const [immersive, setImmersive] = useState(false)
 
   useGlobalNavigation(settings, nav.back, nav.forward)
 
   const r = nav.route
-  // the site from a site plugin (undefined while loading, null without one)
-  const [site, setSite] = useState<SiteInfo | null | undefined>(undefined)
-  useEffect(() => void api.sites().then((list) => setSite(list[0] ?? null)), [])
-  // without a site, the first screen is the library
+  // without a site, the first screen is the first local folder
+  const dirs = settings?.localDirs ?? []
   useEffect(() => {
-    if (site === null && (r.name === 'browse' || r.name === 'favorites')) nav.replace({ name: 'bookmarks' })
-  }, [site, r.name]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (sites?.length === 0 && (r.name === 'browse' || r.name === 'favorites')) nav.replace({ name: 'local', dir: dirs[0]?.id ?? 0 })
+  }, [sites, r.name]) // eslint-disable-line react-hooks/exhaustive-deps
+  // a local tab whose folder is gone (or a screen remembered from before) shows the first folder
+  useEffect(() => {
+    if (r.name === 'local' && dirs.length && !dirs.some((d) => d.id === r.dir)) nav.replace({ name: 'local', dir: dirs[0].id })
+  }, [r, dirs]) // eslint-disable-line react-hooks/exhaustive-deps
+  // add a local folder from the sidebar and open its tab
+  const addDir = async () => {
+    try {
+      if (!(await api.addLocalDir(t('settings.localDirsDialog')))) return
+      await refreshSettings()
+      const s = await api.getSettings()
+      const d = s.localDirs[s.localDirs.length - 1]
+      if (d) nav.go({ name: 'local', dir: d.id })
+    } catch (e) {
+      toast(errorText(e))
+    }
+  }
 
   // on the gallery page the viewer uses the full height, so the title bar only overlays it when the cursor is at the top edge
   const autoChrome = r.name === 'gallery' && !immersive
   const titlebarRef = useRef<HTMLElement>(null)
   const titlebarVisible = useAutoReveal(autoChrome, titlebarRef, (e) => e.clientY < 56)
-  const downloading = [...bookmarks.values()].filter((b) => ['downloading', 'queued'].includes(b.download.status)).length
 
   return (
     <div className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''}`}>
@@ -69,32 +83,25 @@ export default function App() {
 
       <div className="body">
         <nav className="sidebar">
-          {/* the site tab and Favorites come from a site plugin; the base app is the local library */}
-          {site && (
+          {/* the local folders first, each a tab; then what the site plugins add */}
+          {dirs.map((d) => (
             <button
-              className={r.name === 'browse' ? 'active' : ''}
-              onClick={() => nav.openTab({ name: 'browse', q: defaultQuery(settings?.language, settings?.sort) })}
-              title={site.name}
+              key={d.id}
+              className={r.name === 'local' && r.dir === d.id ? 'active' : ''}
+              onClick={() => nav.go({ name: 'local', dir: d.id })}
+              title={`${d.name}\n${d.path}`}
             >
-              <Icon name="globe" size={20} />
-              <span>{site.name}</span>
+              <TabIcon icon={d.icon} />
+              <span>{d.name}</span>
             </button>
-          )}
-          <button className={r.name === 'bookmarks' ? 'active' : ''} onClick={() => nav.go({ name: 'bookmarks' })} title={t('app.bookmarks')}>
-            <Icon name="bookmark" size={20} />
-            <span>{t('app.bookmarks')}</span>
-            {downloading > 0 && <em className="badge">{downloading}</em>}
+          ))}
+          <button className="add-tab" onClick={() => void addDir()} title={t('settings.localDirAdd')}>
+            <Icon name="plus" size={16} />
           </button>
-          {site?.favorites && (
-            <button
-              className={r.name === 'favorites' ? 'active' : ''}
-              onClick={() => nav.openTab({ name: 'favorites', page: 1, tag: '' })}
-              title={t('app.favoritesTitle')}
-            >
-              <Icon name="heart" size={20} />
-              <span>{t('app.favorites')}</span>
-            </button>
-          )}
+          {/* each site is one tab: its list, bookmarks and Favorites pop up from it */}
+          {!!sites?.length && <div className="sidebar-sep" />}
+          {sites?.map((s) => <SiteTab key={s.id} site={s} />)}
+          {!!sites?.length && <div className="sidebar-sep" />}
           <button className={r.name === 'history' ? 'active' : ''} onClick={() => nav.go({ name: 'history' })} title={t('app.historyTitle')}>
             <Icon name="history" size={20} />
             <span>{t('app.history')}</span>
@@ -114,9 +121,20 @@ export default function App() {
           ) : r.name === 'gallery' ? (
             <GalleryView key={r.key} galleryKey={r.key} summary={r.summary} from={r.from} onImmersive={setImmersive} />
           ) : r.name === 'bookmarks' ? (
-            <BookmarksView key={nav.entryId} view={r.view} />
+            <BookmarksView key={nav.entryId} view={r.view} site={r.site ?? sites?.[0]?.id} />
+          ) : r.name === 'local' ? (
+            dirs.some((d) => d.id === r.dir) ? (
+              <BookmarksView key={nav.entryId} view={r.view} scope="local" dir={r.dir} />
+            ) : (
+              <div className="center muted">
+                <p>{t('library.noDirs')}</p>
+                <button className="btn" onClick={() => void addDir()}>
+                  <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
+                </button>
+              </div>
+            )
           ) : r.name === 'favorites' ? (
-            <FavoritesView page={r.page} tag={r.tag} />
+            <FavoritesView key={r.site} site={r.site ?? sites?.[0]?.id} page={r.page} tag={r.tag} />
           ) : r.name === 'history' ? (
             <HistoryView />
           ) : (

@@ -8,6 +8,8 @@ export function AddBookmark(arg1:model.GallerySummary):Promise<model.Bookmark>;
 
 export function AddHistory(arg1:model.GallerySummary,arg2:string):Promise<void>;
 
+export function AddLocalDir(arg1:string):Promise<string>;
+
 export function AddToSeries(arg1:string,arg2:Array<string>):Promise<model.Series>;
 
 export function AppVersion():Promise<string>;
@@ -24,7 +26,7 @@ export function CandidateFromURL(arg1:string):Promise<model.CreatorCandidate>;
 
 export function CheckUpdate():Promise<update.Release>;
 
-export function ChooseLibraryDir(arg1:string):Promise<string>;
+export function ChooseSiteDir(arg1:string,arg2:string):Promise<string>;
 
 export function ClearCustomThumb(arg1:string):Promise<model.Bookmark>;
 
@@ -52,9 +54,15 @@ export function IsBookmarked(arg1:string):Promise<boolean>;
 
 export function List(arg1:model.ListQuery):Promise<model.ListResult>;
 
+export function LocalIcons():Promise<Array<main.IconFile>>;
+
+export function MoveLocalDir(arg1:number,arg2:number):Promise<void>;
+
 export function OpenExternal(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
+
+export function OpenIconsFolder():Promise<void>;
 
 export function PauseDownload(arg1:string):Promise<void>;
 
@@ -64,9 +72,13 @@ export function PreviewFileName(arg1:string,arg2:string):Promise<string>;
 
 export function RemoveBookmark(arg1:string):Promise<void>;
 
+export function RemoveFromLibrary(arg1:string):Promise<void>;
+
 export function RemoveFromSeries(arg1:string):Promise<void>;
 
 export function RemoveHistory(arg1:string):Promise<void>;
+
+export function RemoveLocalDir(arg1:number):Promise<void>;
 
 export function RenameSeries(arg1:string,arg2:string):Promise<model.Series>;
 
@@ -94,6 +106,8 @@ export function SetCustomThumb(arg1:string,arg2:model.ThumbSpec,arg3:string):Pro
 
 export function SetFullscreen(arg1:boolean):Promise<void>;
 
+export function SetLocalDir(arg1:number,arg2:string,arg3:string):Promise<void>;
+
 export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):Promise<model.Bookmark>;
 
 export function SetSettings(arg1:model.Settings):Promise<model.Settings>;
@@ -102,7 +116,7 @@ export function Sites():Promise<Array<model.SiteInfo>>;
 
 export function StartDownload(arg1:string):Promise<void>;
 
-export function Suggest(arg1:string):Promise<Array<model.Suggestion>>;
+export function Suggest(arg1:string,arg2:string):Promise<Array<model.Suggestion>>;
 
 export function TagNamesJa():Promise<Record<string, string>>;
 

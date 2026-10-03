@@ -223,11 +223,24 @@ func (a *App) isBuilding(key string) bool {
 // ---------------------------------------------------------------- Viewing
 
 // browseSite is the site the browse screens use
-func browseSite() (site.Provider, error) {
+// browseSite is the site with this id (the first site if empty)
+func browseSite(id model.SiteID) (site.Provider, error) {
+	if id != "" {
+		return site.Get(id)
+	}
 	if p := site.Default(); p != nil {
 		return p, nil
 	}
 	return nil, apperr.New("site.none", "no site plugin is installed")
+}
+
+// siteOfBookmark is the site a bookmark belongs to: its key's site, or for a page range work its source's site
+func siteOfBookmark(b *model.Bookmark) model.SiteID {
+	s, _, _ := model.ParseKey(b.Key)
+	if s == model.SiteLocal && b.Summary.Origin != nil {
+		s, _, _ = model.ParseKey(b.Summary.Origin.Key)
+	}
+	return s
 }
 
 // Sites returns the available sites (the frontend shows the browse screens only when there is one)
@@ -235,7 +248,11 @@ func (a *App) Sites() []model.SiteInfo {
 	out := []model.SiteInfo{}
 	for _, p := range site.All() {
 		_, any := p.(site.AnyLister)
-		out = append(out, model.SiteInfo{ID: p.ID(), Name: p.Name(), Favorites: any})
+		info := model.SiteInfo{ID: p.ID(), Name: p.Name(), Favorites: any, Dir: a.st.SiteDir(p.ID())}
+		if pi := pluginInfo(p.ID()); pi != nil {
+			info.Icon, info.Browse = pi.Icon, pi.Browse
+		}
+		out = append(out, info)
 	}
 	return out
 }
@@ -244,7 +261,7 @@ func (a *App) Sites() []model.SiteInfo {
 func (a *App) WebURL(key string) string { return site.WebURL(key) }
 
 func (a *App) List(q model.ListQuery) (*model.ListResult, error) {
-	p, err := browseSite()
+	p, err := browseSite(q.Site)
 	if err != nil {
 		return nil, err
 	}
@@ -259,8 +276,8 @@ func (a *App) Gallery(key string) (*model.GalleryDetail, error) {
 	return a.lib.Detail(a.ctx, key)
 }
 
-func (a *App) Suggest(term string) ([]model.Suggestion, error) {
-	p, err := browseSite()
+func (a *App) Suggest(siteID, term string) ([]model.Suggestion, error) {
+	p, err := browseSite(siteID)
 	if err != nil {
 		return nil, err
 	}

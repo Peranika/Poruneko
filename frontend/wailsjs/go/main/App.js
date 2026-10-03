@@ -10,6 +10,10 @@ export function AddHistory(arg1, arg2) {
   return window['go']['main']['App']['AddHistory'](arg1, arg2);
 }
 
+export function AddLocalDir(arg1) {
+  return window['go']['main']['App']['AddLocalDir'](arg1);
+}
+
 export function AddToSeries(arg1, arg2) {
   return window['go']['main']['App']['AddToSeries'](arg1, arg2);
 }
@@ -42,8 +46,8 @@ export function CheckUpdate() {
   return window['go']['main']['App']['CheckUpdate']();
 }
 
-export function ChooseLibraryDir(arg1) {
-  return window['go']['main']['App']['ChooseLibraryDir'](arg1);
+export function ChooseSiteDir(arg1, arg2) {
+  return window['go']['main']['App']['ChooseSiteDir'](arg1, arg2);
 }
 
 export function ClearCustomThumb(arg1) {
@@ -98,12 +102,24 @@ export function List(arg1) {
   return window['go']['main']['App']['List'](arg1);
 }
 
+export function LocalIcons() {
+  return window['go']['main']['App']['LocalIcons']();
+}
+
+export function MoveLocalDir(arg1, arg2) {
+  return window['go']['main']['App']['MoveLocalDir'](arg1, arg2);
+}
+
 export function OpenExternal(arg1) {
   return window['go']['main']['App']['OpenExternal'](arg1);
 }
 
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
+export function OpenIconsFolder() {
+  return window['go']['main']['App']['OpenIconsFolder']();
 }
 
 export function PauseDownload(arg1) {
@@ -122,12 +138,20 @@ export function RemoveBookmark(arg1) {
   return window['go']['main']['App']['RemoveBookmark'](arg1);
 }
 
+export function RemoveFromLibrary(arg1) {
+  return window['go']['main']['App']['RemoveFromLibrary'](arg1);
+}
+
 export function RemoveFromSeries(arg1) {
   return window['go']['main']['App']['RemoveFromSeries'](arg1);
 }
 
 export function RemoveHistory(arg1) {
   return window['go']['main']['App']['RemoveHistory'](arg1);
+}
+
+export function RemoveLocalDir(arg1) {
+  return window['go']['main']['App']['RemoveLocalDir'](arg1);
 }
 
 export function RenameSeries(arg1, arg2) {
@@ -182,6 +206,10 @@ export function SetFullscreen(arg1) {
   return window['go']['main']['App']['SetFullscreen'](arg1);
 }
 
+export function SetLocalDir(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetLocalDir'](arg1, arg2, arg3);
+}
+
 export function SetRangeTags(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetRangeTags'](arg1, arg2, arg3);
 }
@@ -198,8 +226,8 @@ export function StartDownload(arg1) {
   return window['go']['main']['App']['StartDownload'](arg1);
 }
 
-export function Suggest(arg1) {
-  return window['go']['main']['App']['Suggest'](arg1);
+export function Suggest(arg1, arg2) {
+  return window['go']['main']['App']['Suggest'](arg1, arg2);
 }
 
 export function TagNamesJa() {

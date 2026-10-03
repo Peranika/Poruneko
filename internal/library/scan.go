@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	_ "golang.org/x/image/bmp"
@@ -31,9 +32,63 @@ func Owned(key string) bool { return !model.IsFileKey(key) }
 // FileKey is the work key of an archive at this path relative to the library folder
 func FileKey(rel string) string { return model.MakeKey(model.SiteFile, filepath.ToSlash(rel)) }
 
-// FindArchives returns the paths of every cbz / zip under the library folder, relative to it (slash-separated)
+// The other folders listed in the Local tab (Settings.LocalDirs) are marked in the relative paths: "@<id>/<path>"
+
+// LocalDirRel is the relative path of a file in a local folder
+func LocalDirRel(id int, rel string) string { return fmt.Sprintf("@%d/%s", id, filepath.ToSlash(rel)) }
+
+// LocalDirOf is the id of the local folder a relative path is in (false for the save location)
+func LocalDirOf(rel string) (int, bool) {
+	head, _, ok := strings.Cut(rel, "/")
+	if !ok || !strings.HasPrefix(head, "@") {
+		return 0, false
+	}
+	id, err := strconv.Atoi(head[1:])
+	return id, err == nil
+}
+
+// absPath is the file at a relative path: in the save location, or in a local folder ("" if that folder is not set)
+func (l *Library) absPath(rel string) string {
+	if id, ok := LocalDirOf(rel); ok {
+		for _, d := range l.st.Settings().LocalDirs {
+			if d.ID == id {
+				_, rest, _ := strings.Cut(rel, "/")
+				return filepath.Join(d.Path, toOS(rest))
+			}
+		}
+	}
+	return "" // not a local folder (any more)
+}
+
+// RootAvailable reports whether the local folder a relative path is in can be read. When it cannot (a drive that is
+// not connected, say), its files are not known to be gone. A folder no longer in the list counts as readable
+func (l *Library) RootAvailable(rel string) bool {
+	root := ""
+	if id, ok := LocalDirOf(rel); ok {
+		for _, d := range l.st.Settings().LocalDirs {
+			if d.ID == id {
+				root = d.Path
+			}
+		}
+	}
+	if root == "" {
+		return true
+	}
+	fi, err := os.Stat(root)
+	return err == nil && fi.IsDir()
+}
+
+// FindArchives returns the paths of every archive under the local folders, relative to them (slash-separated; see
+// LocalDirRel). The save location holds the site plugins' downloads and is not read
 func (l *Library) FindArchives() []string {
-	root := l.root()
+	var out []string
+	for _, d := range l.st.Settings().LocalDirs {
+		out = append(out, findArchives(d.Path, func(rel string) string { return LocalDirRel(d.ID, rel) })...)
+	}
+	return out
+}
+
+func findArchives(root string, relOf func(rel string) string) []string {
 	if root == "" {
 		return nil
 	}
@@ -50,7 +105,7 @@ func (l *Library) FindArchives() []string {
 		}
 		if isArchive(p) {
 			if rel, err := filepath.Rel(root, p); err == nil {
-				out = append(out, filepath.ToSlash(rel))
+				out = append(out, relOf(filepath.ToSlash(rel)))
 			}
 		}
 		return nil
@@ -62,7 +117,7 @@ func (l *Library) FindArchives() []string {
 // work info when the archive was made by it, otherwise ComicInfo.xml if any, or the file name. Page sizes come from
 // the image headers (0 when the format cannot be read)
 func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
-	abs := filepath.Join(l.root(), toOS(rel))
+	abs := l.absPath(rel)
 	if f := formatFor(abs); f != nil {
 		return l.pluginArchiveDetail(rel, abs, f)
 	}
@@ -172,7 +227,7 @@ func imageSize(f *zip.File) (int, int) {
 
 // ArchiveModTime is the archive's modification time in Unix milliseconds (0 if unknown)
 func (l *Library) ArchiveModTime(rel string) int64 {
-	if fi, err := os.Stat(filepath.Join(l.root(), toOS(rel))); err == nil {
+	if fi, err := os.Stat(l.absPath(rel)); err == nil {
 		return fi.ModTime().UnixMilli()
 	}
 	return 0

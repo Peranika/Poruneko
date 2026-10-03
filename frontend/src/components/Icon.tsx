@@ -39,6 +39,11 @@ const PATHS: Record<string, string> = {
   display: 'M3 4h18v12H3zM8 20h8M12 16v4',
   trash: 'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15',
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  // tab icons of the local folders
+  books: 'M4 4h4v16H4zM10 4h4v16h-4zM15.6 5.2l3.4-.9 3.1 14.6-3.4.9z',
+  image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
+  star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z',
+  archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
   external: 'M14 3h7v7M21 3l-9 9M19 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6',
   fullscreen: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
   exitFullscreen: 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',

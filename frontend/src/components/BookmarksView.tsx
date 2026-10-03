@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
-import { api, isFileKey, isLocalKey, thumbUrl } from '../api'
+import { api, isBookmarked, isFileKey, isLocalKey, localDirOfKey, siteOfBookmark, thumbUrl } from '../api'
 import {
   type TagSource,
   allTags,
@@ -13,6 +13,9 @@ import {
   filterByWorkTags,
   type GroupBy,
   groupLabel,
+  inScope,
+  type ListScope,
+  spaceOf,
   loadPrefs,
   matchingNames,
   membersOf,
@@ -38,7 +41,7 @@ import {
 import { downloadErrorText, errorText, t, tx } from '../i18n'
 import { artistsBesideCircle, bookmarkTitle } from '../labels'
 import { collapseSeries, collapsesSeriesIn, loadSeriesId, recentWeights, saveSeriesId, shuffledPlaylist, sortSeriesByName, type GridItem } from '../series'
-import { actionTargets, useApp, type BookmarkView } from '../state'
+import { actionTargets, useApp, type BookmarkView, type Route } from '../state'
 import { loadString, saveString } from '../storage'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { useScrollMemory } from '../useScrollMemory'
@@ -51,21 +54,31 @@ import { SeriesCard, SeriesList, SeriesMain } from './SeriesPanel'
 import { WorkTagList, SeriesTagPopover, TagList, TagPopover } from './TagEditor'
 
 /**
- * The Bookmarks screen. The left pane switches between groups (by circle / by artist), series and tags.
+ * The Bookmarks screen, and the Local screen (every work in the library folder) which works the same way.
+ * The left pane switches between groups (by circle / by artist), series and tags.
  * What is shown is recorded in the history entry (the route's view); opening a series or filtering by a name or tag
  * makes a new entry (going back returns to the previous view and scroll position).
  * Without a view (opened from the sidebar) it opens what was shown last time.
  */
-export function BookmarksView({ view }: { view?: BookmarkView }) {
+/** dir: the local folder of a local tab; site: the site of a bookmarks tab */
+export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?: BookmarkView; scope?: ListScope; dir?: number; site?: string }) {
   const { nav, bookmarks, series, seriesOf, toast } = useApp()
-  const [prefs] = useState(loadPrefs)
+  // each local folder's tab remembers its own view
+  const id = scope === 'local' ? dir : site
+  const space = spaceOf(scope, id)
+  const [prefs] = useState(() => loadPrefs(space))
+  // the Local tab has no circle grouping and no site (work) tags
+  const localTab = scope === 'local'
+  // the route of this screen with another view, and where opened works come from
+  const routeTo = (v: BookmarkView): Route => (localTab ? { name: 'local', dir: dir ?? 0, view: v } : { name: 'bookmarks', site, view: v })
+  const source: WorkSource = localTab ? { kind: 'local', dir: dir ?? 0 } : { kind: 'bookmarks', site }
   const [pane, setPane] = useState<BookmarkPane>(view?.mode ?? prefs.pane)
-  const [by, setBy] = useState<GroupBy>(view?.mode === 'groups' ? view.by : prefs.by)
+  const [by, setBy] = useState<GroupBy>(localTab ? 'artist' : view?.mode === 'groups' ? view.by : prefs.by)
   const [group, setGroup] = useState(view?.mode === 'groups' ? view.group : prefs.group)
   const [sort, setSort] = useState<BookmarkSort>(prefs.sort)
   // tags filtered by in the tag view: local tags or work tags (one button switches between them)
   const viewTags = view?.mode === 'tags' ? view : undefined
-  const [tagSource, setTagSource] = useState<TagSource>(viewTags ? (viewTags.source ?? 'local') : prefs.tagSource)
+  const [tagSource, setTagSource] = useState<TagSource>(localTab ? 'local' : viewTags ? (viewTags.source ?? 'local') : prefs.tagSource)
   const [tags, setTags] = useState<string[]>(viewTags && viewTags.source !== 'work' ? viewTags.tags : prefs.tags)
   const [htags, setHtags] = useState<string[]>(viewTags?.source === 'work' ? viewTags.tags : prefs.htags)
   // search query (while typing, searches all bookmarks regardless of the group). Also kept in the history entry for going back
@@ -76,15 +89,28 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
   const searching = filter.trim() !== ''
   const searchInput = useRef<HTMLInputElement>(null)
   const switcher = useRef<HTMLDivElement>(null)
-  const [thumbSize, setThumbSize] = useThumbSize('bookmarks')
+  const [thumbSize, setThumbSize] = useThumbSize(scope)
   const thumbSlider = <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
   const labelsHidden = useLabelsOverflow(switcher)
   // series view (shows search results while searching)
   const seriesOpen = pane === 'series'
-  const [seriesId, setSeriesId] = useState(view?.mode === 'series' ? view.id : loadSeriesId)
+  const [seriesId, setSeriesId] = useState(() => (view?.mode === 'series' ? view.id : loadSeriesId(space)))
   const showSeries = seriesOpen && !searching
-  const seriesList = useMemo(() => sortSeriesByName(series), [series])
-  const currentSeries = series.find((s) => s.id === seriesId)
+  // series with works on this screen
+  const seriesList = useMemo(
+    () =>
+      sortSeriesByName(
+        series.filter((s) =>
+          s.keys.some((k) => {
+            const b = bookmarks.get(k)
+            return !!b && inScope(b, scope, id)
+          })
+        )
+      ),
+    [series, bookmarks, scope, id]
+  )
+  // only a series with works on this screen (the other screen's last series is not shown here)
+  const currentSeries = seriesList.find((s) => s.id === seriesId)
   const pickSeries = (id: string) => setSeriesId(id)
 
   // reset works whose cbz was deleted outside the app to unsaved (changes reach the list via notifications)
@@ -100,26 +126,27 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
             ? { mode: 'tags', tags: htags, source: 'work' }
             : { mode: 'tags', tags }
           : { mode: 'groups', by, group }
-    savePrefs({ pane, by, group, tags, tagSource, htags })
-    if (pane === 'series') saveSeriesId(seriesId)
-    const cur = nav.route.name === 'bookmarks' ? nav.route.view : undefined
-    if (JSON.stringify(cur) !== JSON.stringify(v)) nav.replace({ name: 'bookmarks', view: v })
+    savePrefs({ pane, by, group, tags, tagSource, htags }, space)
+    if (pane === 'series') saveSeriesId(seriesId, space)
+    const cur = nav.route.name === scope ? nav.route.view : undefined
+    if (JSON.stringify(cur) !== JSON.stringify(v)) nav.replace(routeTo(v))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pane, seriesId, by, group, tags, tagSource, htags])
 
   // open the group of a circle or artist name on a card (going back returns to the unfiltered view)
-  const showGroup = (v: GroupBy, g: string) => nav.go({ name: 'bookmarks', view: { mode: 'groups', by: v, group: g } })
+  // (a circle name on a card in the Local tab searches for it instead)
+  const showGroup = (v: GroupBy, g: string) => (localTab && v === 'circle' ? setFilter(g) : nav.go(routeTo({ mode: 'groups', by: v, group: g })))
   // open the bookmarks with a tag clicked on a card (going back returns to the previous view)
-  const showTag = (tag: string) => nav.go({ name: 'bookmarks', view: { mode: 'tags', tags: [tag] } })
+  const showTag = (tag: string) => nav.go(routeTo({ mode: 'tags', tags: [tag] }))
   // open the series from a series card (going back returns to the view before opening it)
-  const openSeries = (id: string) => nav.go({ name: 'bookmarks', view: { mode: 'series', id } })
+  const openSeries = (id: string) => nav.go(routeTo({ mode: 'series', id }))
   // if the selected series is gone, select the first one
   useEffect(() => {
     if (seriesOpen && !currentSeries && seriesList.length) pickSeries(seriesList[0].id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesOpen, currentSeries, seriesList])
 
-  const all = useMemo(() => [...bookmarks.values()], [bookmarks])
+  const all = useMemo(() => [...bookmarks.values()].filter((b) => inScope(b, scope, id)), [bookmarks, scope, id])
   const groups = useMemo(() => buildGroups(all, by), [all, by])
   const specials = useMemo(() => specialGroups(all), [all])
   const selected = useMemo(
@@ -209,19 +236,20 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
           {/* by circle / by artist is one button; pressing it again while selected toggles it */}
           <button
             className={pane === 'groups' ? 'active' : ''}
-            title={by === 'circle' ? t('bookmarks.byCircleToggle') : t('bookmarks.byArtistToggle')}
+            title={localTab ? t('common.artist') : by === 'circle' ? t('bookmarks.byCircleToggle') : t('bookmarks.byArtistToggle')}
             onClick={() => {
               if (pane !== 'groups') {
                 setPane('groups')
                 return
               }
+              if (localTab) return
               setBy(by === 'circle' ? 'artist' : 'circle')
               if (!group.startsWith('__')) pick('__all')
             }}
           >
             <Icon name={by === 'circle' ? 'users' : 'user'} size={16} />
             <span className="seg-label">{by === 'circle' ? t('common.circle') : t('common.artist')}</span>
-            <TwoStates second={by === 'artist'} />
+            {!localTab && <TwoStates second={by === 'artist'} />}
           </button>
           <button className={pane === 'series' ? 'active' : ''} onClick={() => setPane('series')} title={t('bookmarks.seriesTitle')}>
             <Icon name="book" size={16} />
@@ -230,19 +258,19 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
           {/* local tags / work tags is one button too; pressing it again while selected toggles it */}
           <button
             className={pane === 'tags' ? 'active' : ''}
-            title={tagSource === 'work' ? t('bookmarks.workTagsToggle') : t('bookmarks.localTagsToggle')}
+            title={localTab ? t('tags.title') : tagSource === 'work' ? t('bookmarks.workTagsToggle') : t('bookmarks.localTagsToggle')}
             onClick={() => {
               if (pane !== 'tags') {
                 setPane('tags')
                 return
               }
-              setTagSource(tagSource === 'work' ? 'local' : 'work')
+              if (!localTab) setTagSource(tagSource === 'work' ? 'local' : 'work')
             }}
           >
             <Icon name="tag" size={16} />
             <span className="seg-label">{tagSource === 'work' ? t('bookmarks.workTags') : t('tags.title')}</span>
             {/* left: work tags, right: local tags */}
-            <TwoStates second={tagSource === 'local'} />
+            {!localTab && <TwoStates second={tagSource === 'local'} />}
           </button>
         </div>
         <div className="bm-search">
@@ -292,7 +320,7 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
             {specials.map(([k, list]) =>
               k === '__all' || list.length > 0 ? (
                 <li key={k} className={`special ${group === k ? 'active' : ''}`} onClick={() => pick(k)}>
-                  <span>{SPECIAL_LABEL[k]}</span>
+                  <span>{localTab && k === '__downloading' ? t('library.missingGroup') : SPECIAL_LABEL[k]}</span>
                   <em>{list.length}</em>
                 </li>
               ) : null
@@ -320,21 +348,23 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
                 ) : pane === 'tags' ? (
                   tags.length ? tags.map((x) => (x === UNTAGGED ? t('tags.untagged') : x)).join(' + ') : t('bookmarkList.special.all')
                 ) : (
-                  <GroupName k={group} />
+                  <GroupName k={group} localTab={localTab} />
                 )}
               </h2>
               <span className="muted">{t('common.items', { n: selected.length })}</span>
               <div className="spacer" />
               {/* read the library folder again (new archives become works, missing ones are marked) */}
-              <button
-                className="btn small"
-                onClick={() =>
-                  void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
-                }
-                title={t('library.rescanTitle')}
-              >
-                <Icon name="refresh" size={14} /> {t('library.rescan')}
-              </button>
+              {scope === 'local' && (
+                <button
+                  className="btn small"
+                  onClick={() =>
+                    void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
+                  }
+                  title={t('library.rescanTitle')}
+                >
+                  <Icon name="refresh" size={14} /> {t('library.rescan')}
+                </button>
+              )}
               {/* shuffle play; hovering shows its option */}
               <div className="shuffle-ctl">
                 <button className="btn small" onClick={() => void playShuffled()} disabled={!selected.length} title={t('bookmarks.shuffleTitle')}>
@@ -365,10 +395,10 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
                 onChange={(e) => {
                   const v = e.target.value as BookmarkSort
                   setSort(v)
-                  savePrefs({ sort: v })
+                  savePrefs({ sort: v }, space)
                 }}
               >
-                {BOOKMARK_SORTS.map(([v, label]) => (
+                {BOOKMARK_SORTS.filter(([v]) => !(localTab && v === 'circle')).map(([v, label]) => (
                   <option key={v} value={v}>
                     {label}
                   </option>
@@ -377,12 +407,19 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
             </div>
             <div className="scroll" ref={gridScroll}>
               {all.length === 0 ? (
-                <div className="center muted">
-                  <p>{t('bookmarks.empty')}</p>
-                  <p className="small">{tx('bookmarks.emptyHint', { icon: <Icon name="bookmark" size={14} /> })}</p>
-                </div>
+                scope === 'local' ? (
+                  <div className="center muted">
+                    <p>{t('library.empty')}</p>
+                    <p className="small">{t('library.emptyHint')}</p>
+                  </div>
+                ) : (
+                  <div className="center muted">
+                    <p>{t('bookmarks.empty')}</p>
+                    <p className="small">{tx('bookmarks.emptyHint', { icon: <Icon name="bookmark" size={14} /> })}</p>
+                  </div>
+                )
               ) : searching && selected.length === 0 ? (
-                <div className="center muted">{t('bookmarks.noResults', { query: filter.trim() })}</div>
+                <div className="center muted">{t(scope === 'local' ? 'library.noResults' : 'bookmarks.noResults', { query: filter.trim() })}</div>
               ) : (
                 <div className="results grid">
                   {items.map((it) =>
@@ -395,7 +432,7 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
                         onShowTag={showTag}
                       />
                     ) : (
-                      <BookmarkCard key={it.b.key} b={it.b} onShowGroup={showGroup} onShowTag={showTag} />
+                      <BookmarkCard key={it.b.key} b={it.b} from={source} onShowGroup={showGroup} onShowTag={showTag} />
                     )
                   )}
                 </div>
@@ -409,8 +446,9 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
 }
 
 /** Group name. When substituting a name of a different kind, the kind is added in small text */
-function GroupName({ k }: { k: string }) {
-  const { name, alt } = groupLabel(k)
+function GroupName({ k, localTab = false }: { k: string; localTab?: boolean }) {
+  // in the Local tab the download group only holds works whose file is missing
+  const { name, alt } = localTab && k === '__downloading' ? { name: t('library.missingGroup'), alt: undefined } : groupLabel(k)
   return (
     <span className="group-name">
       {name}
@@ -441,7 +479,7 @@ interface CardProps {
   onShowTag?(tag: string): void
 }
 
-export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, className = '', drag, onShowGroup, onShowTag }: CardProps) {
+export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGroup, onShowTag }: CardProps) {
   const { nav, bookmarks, setEditCreatorKey, setSeriesDialogKey, seriesOf, selected, setSelected, toast } = useApp()
   const inSeries = seriesOf.get(b.key)
   // selecting: Ctrl+click toggles and Shift+click selects a range (a plain click clears the selection; see SelectionBar)
@@ -458,6 +496,8 @@ export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, classN
   const isLocal = isLocalKey(b.key)
   const isFile = isFileKey(b.key)
   const action = downloadAction(b)
+  // a work in the library folder is taken out of the library instead of unbookmarked
+  const source: WorkSource = from ?? (isFile ? { kind: 'local', dir: localDirOfKey(b.key) ?? 0 } : { kind: 'bookmarks', site: siteOfBookmark(b) })
   const [tagOpen, setTagOpen] = useState(false)
   const closeTags = useCallback(() => setTagOpen(false), [])
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -474,7 +514,7 @@ export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, classN
       onClick={(e) => {
         if (e.shiftKey) return setSelected(selectRange(selected, b.key))
         if (e.ctrlKey || e.metaKey) return toggleSelected()
-        nav.go({ name: 'gallery', key: b.key, summary: b.summary, from })
+        nav.go({ name: 'gallery', key: b.key, summary: b.summary, from: source })
       }}
       {...drag}
     >
@@ -537,24 +577,39 @@ export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, classN
               <Icon name="trash" size={15} />
             </button>
           )}
-          <button
-            className="danger"
-            title={isFile ? t('library.remove') : t('bookmarkCard.unbookmark')}
-            onClick={stop(async () => {
-              const ranges = targetBookmarks.some(hasRangeFile)
-              const files = targetBookmarks.some((x) => isFileKey(x.key))
-              const note = (ranges ? '\n' + UNBOOKMARK_RANGE_CONFIRM : '') + (files ? '\n' + t('library.removeNote') : '')
-              const ok = multi
-                ? confirm(t('selection.unbookmarkConfirm', { n: targetBookmarks.length }) + note)
-                : confirm(isFile ? t('library.removeConfirm') : ranges ? UNBOOKMARK_RANGE_CONFIRM : t('bookmarkCard.unbookmarkConfirm'))
-              if (!ok) return
-              for (const x of targetBookmarks) await api.removeBookmark(x.key).catch((e) => toast(errorText(e)))
-              toast(multi ? t('selection.unbookmarked', { n: targetBookmarks.length }) : t('toasts.unbookmarked'))
-              if (multi) setSelected([])
-            })}
-          >
-            <Icon name="close" size={15} />
-          </button>
+          {isFile ? (
+            <button
+              className="danger"
+              title={t('library.remove')}
+              onClick={stop(async () => {
+                const list = targetBookmarks.filter((x) => isFileKey(x.key))
+                if (!confirm(multi ? t('library.removeManyConfirm', { n: list.length }) : t('library.removeConfirm'))) return
+                for (const x of list) await api.removeFromLibrary(x.key).catch((e) => toast(errorText(e)))
+                toast(multi ? t('library.removedN', { n: list.length }) : t('library.removed'))
+                if (multi) setSelected([])
+              })}
+            >
+              <Icon name="close" size={15} />
+            </button>
+          ) : (
+            <button
+              className="danger"
+              title={t('bookmarkCard.unbookmark')}
+              onClick={stop(async () => {
+                const list = targetBookmarks.filter(isBookmarked)
+                const ranges = list.some(hasRangeFile)
+                const ok = multi
+                  ? confirm(t('selection.unbookmarkConfirm', { n: list.length }) + (ranges ? '\n' + UNBOOKMARK_RANGE_CONFIRM : ''))
+                  : confirm(ranges ? UNBOOKMARK_RANGE_CONFIRM : t('bookmarkCard.unbookmarkConfirm'))
+                if (!ok) return
+                for (const x of list) await api.removeBookmark(x.key).catch((e) => toast(errorText(e)))
+                toast(multi ? t('selection.unbookmarked', { n: list.length }) : t('toasts.unbookmarked'))
+                if (multi) setSelected([])
+              })}
+            >
+              <Icon name="close" size={15} />
+            </button>
+          )}
         </div>
       </div>
       <div className="card-body">
@@ -690,8 +745,11 @@ function StatusIcons({ b, seriesNo }: { b: Bookmark; seriesNo?: number }) {
   const d = b.download
   const inSeries = seriesOf.get(b.key)
   const icons: ReactNode[] = []
-  if (d.status === 'done') icons.push(<span key="dl" className="status-icon ok" title={t('download.doneTitle')}><Icon name="check" size={15} /></span>)
-  else if (d.status === 'downloading' || d.status === 'queued')
+  // a work in the library folder is always on disk
+  const isFile = isFileKey(b.key)
+  if (d.status === 'done') {
+    if (!isFile) icons.push(<span key="dl" className="status-icon ok" title={t('download.doneTitle')}><Icon name="check" size={15} /></span>)
+  } else if (d.status === 'downloading' || d.status === 'queued')
     icons.push(
       <span key="dl" className="status-icon progress" title={d.status === 'queued' ? t('download.queued') : t('download.downloading')}>
         <Icon name="download" size={15} />

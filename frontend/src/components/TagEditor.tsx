@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api } from '../api'
+import { tagStyle } from '../browseSpec'
 import { allTags, commonTags, normalizeText, UNTAGGED } from '../bookmarkList'
 import { errorText, t } from '../i18n'
 import { tagLabel } from '../labels'
@@ -214,7 +215,8 @@ export function WorkTagList({
         {shown.map(([k, n]) => (
           <li
             key={k}
-            className={`tag-item tag-${k.slice(0, k.indexOf(':'))} ${selected.includes(k) ? 'active' : ''}`}
+            className={`tag-item ${selected.includes(k) ? 'active' : ''}`}
+            style={tagStyle(k.slice(0, k.indexOf(':')))}
             onClick={() => toggle(k)}
             title={k}
           >

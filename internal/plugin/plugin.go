@@ -9,8 +9,9 @@
 //	poruneko_call(ptr u32, len u32) u64   handles one call: the JSON request at ptr, len; returns the JSON
 //	                                      response as (ptr << 32 | len), which the host frees afterwards
 //
-// A request is {"method": "...", "params": {...}} and a response is {"result": ...} or
-// {"error": {"code": "...", "message": "..."}}. Every plugin answers "info" (see Info).
+// A request is {"method": "...", "params": {...}, "settings": {...}} and a response is {"result": ...} or
+// {"error": {"code": "...", "message": "..."}}. settings are the plugin's settings (the values the user chose for
+// the filters and settings in its info's browse spec). Every plugin answers "info" (see Info).
 //
 // The host gives the guest these functions, in the import module "poruneko":
 //
@@ -43,6 +44,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 
+	"poruneko/internal/model"
 	"poruneko/internal/netx"
 )
 
@@ -64,8 +66,14 @@ type Info struct {
 	Version string `json:"version"`
 	// Hosts the plugin may fetch from ("example.com" also allows its subdomains)
 	Hosts []string `json:"hosts"`
+	// DisplayHosts are the hosts shown in the settings (Hosts if empty), e.g. the site without its content servers
+	DisplayHosts []string `json:"displayHosts,omitempty"`
 	// Capabilities are optional methods the plugin answers ("listAny", "webURL", "tagNamesJa")
 	Capabilities []string `json:"capabilities"`
+	// Icon is the plugin's icon as a data URL (an SVG is drawn in the text color like the app's own icons)
+	Icon string `json:"icon,omitempty"`
+	// Browse is what a site plugin's list screen offers (its filters and the search box's hint)
+	Browse *model.BrowseSpec `json:"browse,omitempty"`
 }
 
 // Has reports whether the plugin answers an optional method
@@ -107,6 +115,8 @@ const maxInstances = 4
 type Plugin struct {
 	Info Info
 	Path string
+	// Settings returns the plugin's settings, sent with every call (nil for none)
+	Settings func() map[string]string
 
 	rt       wazero.Runtime
 	compiled wazero.CompiledModule
@@ -216,10 +226,15 @@ func Load(path, cacheDir string) (*Plugin, error) {
 
 // Call calls a method of the plugin: params is sent as JSON and the result is decoded into out (if not nil)
 func (p *Plugin) Call(ctx context.Context, method string, params, out any) error {
+	var settings map[string]string
+	if p.Settings != nil {
+		settings = p.Settings()
+	}
 	req, err := json.Marshal(struct {
-		Method string `json:"method"`
-		Params any    `json:"params,omitempty"`
-	}{method, params})
+		Method   string            `json:"method"`
+		Params   any               `json:"params,omitempty"`
+		Settings map[string]string `json:"settings,omitempty"`
+	}{method, params, settings})
 	if err != nil {
 		return err
 	}

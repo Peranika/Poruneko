@@ -38,6 +38,14 @@ func (a *App) DeleteSeries(id string) error {
 	if !ok {
 		return apperr.New("series.notFound", "series not found")
 	}
+	// a series made from a subfolder is not made again
+	if x.Folder != "" {
+		s := a.st.Settings()
+		if !slices.Contains(s.FolderSeriesOff, x.Folder) {
+			s.FolderSeriesOff = append(slices.Clone(s.FolderSeriesOff), x.Folder)
+			a.st.SetSettings(s)
+		}
+	}
 	a.seriesChanged(x.Keys)
 	return nil
 }

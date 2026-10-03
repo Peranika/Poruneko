@@ -1,4 +1,4 @@
-import { bookmarkSequence } from './bookmarkList'
+import { bookmarkSequence, inScope, spaceOf } from './bookmarkList'
 import { collapseSeries, collapsesSeriesIn, expandSeries, indexSeries } from './series'
 import type { Bookmark, GallerySummary, ListResult, Series } from './types'
 
@@ -9,7 +9,12 @@ import type { Bookmark, GallerySummary, ListResult, Series } from './types'
  */
 
 /** The list a work was opened from */
-export type WorkSource = { kind: 'bookmarks' } | { kind: 'series'; id: string } | { kind: 'playlist'; keys: string[] } | ListSource
+export type WorkSource =
+  | { kind: 'bookmarks'; site?: string }
+  | { kind: 'local'; dir: number }
+  | { kind: 'series'; id: string }
+  | { kind: 'playlist'; keys: string[] }
+  | ListSource
 
 interface ListSource {
   kind: 'list'
@@ -39,6 +44,7 @@ export function listSource(
 /** Where a work opened with this source came from, for the history ('' keeps the origin recorded before) */
 export function historyOrigin(src: WorkSource | undefined): string {
   if (!src) return ''
+  if (src.kind === 'local') return 'local'
   if (src.kind !== 'list') return 'bookmarks'
   return src.origin === 'history' ? '' : (src.origin ?? '')
 }
@@ -114,8 +120,13 @@ export async function neighborWork(
       const byKey = new Map(bookmarks.map((b) => [b.key, b]))
       seq = src.keys.map((k) => byKey.get(k)).filter((b): b is Bookmark => !!b)
     } else {
-      // same order as the Bookmarks screen. In lists with series collapsed, read the series' works in order at its position
-      const { list, group } = bookmarkSequence(bookmarks, currentKey)
+      // same order as the Bookmarks (or Local) screen. In lists with series collapsed, read the series' works in order at its position
+      const id = src.kind === 'local' ? src.dir : src.site
+      const { list, group } = bookmarkSequence(
+        bookmarks.filter((b) => inScope(b, src.kind, id)),
+        currentKey,
+        spaceOf(src.kind, id)
+      )
       seq = collapsesSeriesIn(group) ? expandSeries(collapseSeries(list, indexSeries(series))) : list
     }
     if (!seq.length) return 'end'

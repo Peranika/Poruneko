@@ -62,12 +62,12 @@ export interface GalleryDetail extends GallerySummary {
   pages: PageInfo[]
 }
 
-export type SortMode = 'date' | 'popular-today' | 'popular-week' | 'popular-month' | 'popular-year'
-
 export interface ListQuery {
+  /** The site listed (the first site if absent) */
+  site?: string
   query: string
-  language: string
-  sort: SortMode
+  /** Values of the site plugin's filters (its sort order, language and so on) */
+  filters: Record<string, string>
   page: number
   /** Page count filter (no limit if unset) */
   minPages?: number
@@ -131,6 +131,8 @@ export interface Series {
   createdAt: number
   /** Keys of the works in it (in display order) */
   keys: string[]
+  /** The subfolder it was made from (works added to the folder join it) */
+  folder?: string
 }
 
 /** A newer version released on GitHub */
@@ -183,10 +185,53 @@ export interface PluginInfo {
   kind: string
   /** Hosts it may fetch from */
   hosts: string[]
+  /** The hosts shown in the settings (hosts if absent) */
+  displayHosts?: string[]
   /** The plugin file (.wasm, or .sph for a Susie archive plug-in) */
   file: string
   /** Archive formats a Susie plug-in reads (".rar") */
   formats: string[]
+  /** What a site plugin's list screen offers */
+  browse?: BrowseSpec | null
+}
+
+/** A text in each UI language */
+export type Text = Record<string, string>
+
+/** What a site plugin's list screen offers: the search box's hint and the filters above the list */
+export interface BrowseSpec {
+  placeholder?: Text
+  filters: FilterSpec[]
+  /** The kinds of the site's tags: how they are named and colored */
+  namespaces?: Namespace[]
+}
+
+/** A kind of the site's tags ("female", "artist"...) */
+export interface Namespace {
+  id: string
+  label: Text
+  /** Added after its tags' names ("♀") */
+  suffix?: string
+  /** Its tags' color (CSS) */
+  color?: string
+  /** Its tags have Japanese names (tagNamesJa) */
+  translated?: boolean
+}
+
+/** One filter of a site plugin: a choice of options */
+export interface FilterSpec {
+  id: string
+  label: Text
+  /** color: shown where works have the value (their type); spread: works of this type open in spreads if so set */
+  options: { value: string; label: Text; color?: string; spread?: boolean }[]
+  /** The value until the user chooses another (the user's choice is kept as the plugin's setting) */
+  default: string
+  /** The screens it is on ("browse" if absent), or "settings" for a setting of the plugin that is not a filter */
+  in?: ('browse' | 'favorites' | 'settings')[]
+  /** Several options at once (joined with ","; none means all) */
+  multi?: boolean
+  /** The value used while there is a search query */
+  onSearch?: string
 }
 
 /** A site from a site plugin */
@@ -195,6 +240,12 @@ export interface SiteInfo {
   name: string
   /** Whether it can list works by several artists (the Favorites screen) */
   favorites: boolean
+  /** The site's icon from its plugin (a data URL; "" for none) */
+  icon: string
+  /** Where the site's works are saved */
+  dir: string
+  /** What the site's list screen offers (from its plugin) */
+  browse: BrowseSpec | null
 }
 
 export interface ViewerSettings {
@@ -226,15 +277,33 @@ export interface ViewerSettings {
   barLocked: boolean
 }
 
+/** A folder of the user's own archives, shown as a tab of its own */
+export interface LocalDir {
+  id: number
+  path: string
+  /** The tab's name */
+  name: string
+  /** The tab's icon: a built-in icon's name, or "file:<name>" for an image in the icons folder */
+  icon: string
+}
+
+/** An image in the icons folder */
+export interface IconFile {
+  name: string
+  /** data URL */
+  url: string
+}
+
 export interface Settings {
-  libraryDir: string
-  language: string
-  /** Default list sort order */
-  sort: SortMode
+  /** Save locations chosen for the site plugins (site id -> folder; see SiteInfo.dir) */
+  siteDirs: Record<string, string>
+  /** The folders of the user's own archives, each a tab (changed with addLocalDir / setLocalDir / removeLocalDir) */
+  localDirs: LocalDir[]
+  /** The site plugins' settings: plugin id -> filter id -> the value used by default */
+  pluginSettings: Record<string, Record<string, string>>
   autoDownload: boolean
   deleteFilesOnUnbookmark: boolean
   downloadConcurrency: number
-  imageFormat: 'webp' | 'avif'
   /** How pages saved while viewing (.parts) are handled */
   tempFiles: 'startup' | 'viewerClose' | 'pack'
   /** Text size (%; 100 is normal) */
@@ -275,14 +344,15 @@ export interface DownloadProgress {
 // ---------------------------------------------------------------- Favorites
 
 export interface FavoritesQuery {
-  language: string
+  /** The site searched, with the names from its bookmarks */
+  site?: string
+  /** Values of the site plugin's filters for Favorites */
+  filters: Record<string, string>
   page: number
   /** Artist or group to narrow to ("artist:xxx" / "group:yyy"; all if empty) */
   tag: string
   includeGroups: boolean
   hideBookmarked: boolean
-  /** Types (doujinshi, manga, artistcg, etc.). All if empty */
-  types: string[]
   /** Leave out artists who appear only in bookmarks with many artists (anthologies, magazines) */
   excludeCollective?: boolean
   /** Page count filter (no limit if unset) */

@@ -14,12 +14,13 @@ import { LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useListLayout, useThumbS
 const ORIGIN: Record<string, { icon: string; title: string }> = {
   browse: { icon: 'globe', title: t('history.fromBrowse') },
   favorites: { icon: 'heart', title: t('history.fromFavorites') },
-  bookmarks: { icon: 'bookmark', title: t('history.fromBookmarks') }
+  bookmarks: { icon: 'bookmark', title: t('history.fromBookmarks') },
+  local: { icon: 'folder', title: t('history.fromLocal') }
 }
 
 /** History: every work opened in the viewer, newest first, marked with where it was opened from */
 export function HistoryView() {
-  const { nav, settings, bookmarks, toast } = useApp()
+  const { nav, bookmarks, toast } = useApp()
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null)
   const [filter, setFilter] = useState('')
   const [layout, setLayout] = useListLayout()
@@ -52,7 +53,7 @@ export function HistoryView() {
     const r = asList()
     nav.go({ name: 'gallery', key: e.key, summary: e.summary, from: listSource(`history:${filter}`, async () => r, 1, r, 'history') })
   }
-  const search = (token: string) => nav.go({ name: 'browse', q: searchQuery(token, settings?.language, settings?.sort) })
+  const search = (token: string, site?: string) => nav.go({ name: 'browse', q: searchQuery(token, undefined, site) })
 
   const badge = (e: HistoryEntry) => {
     const o = ORIGIN[e.origin]

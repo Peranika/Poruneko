@@ -166,7 +166,7 @@ export function RangePanel({ source, session, onChange, onClose }: Props) {
       </div>
       <div className="range-tags">
         <span className="muted small">{t('range.siteNames')}</span>
-        <SiteNamePicker value={tags} onChange={setTags} candidates={{ artists: source.artists, groups: source.groups }} />
+        <SiteNamePicker value={tags} onChange={setTags} candidates={{ artists: source.artists, groups: source.groups }} site={source.site} />
       </div>
       <datalist id="range-artists">
         {known.artists.map((a) => (

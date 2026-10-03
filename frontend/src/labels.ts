@@ -1,6 +1,7 @@
 // Display names and choices
+import { namespaceOf } from './browseSpec'
 import { language, t } from './i18n'
-import type { Bookmark, GallerySummary, SortMode } from './types'
+import type { Bookmark, GallerySummary } from './types'
 
 /** The title to display: the Japanese title first, or the site's title with the English UI */
 export const displayTitle = (s: GallerySummary): string =>
@@ -12,15 +13,6 @@ export const bookmarkTitle = (b: Bookmark): string => b.customTitle || displayTi
 /** The other title shown under the display title ('' if there is none) */
 export const altTitle = (s: GallerySummary): string =>
   !s.japaneseTitle || s.japaneseTitle === s.title ? '' : language() === 'en' ? s.japaneseTitle : s.title
-
-export const TYPE_LABEL: Record<string, string> = {
-  doujinshi: t('labels.types.doujinshi'),
-  manga: t('labels.types.manga'),
-  artistcg: t('labels.types.artistcg'),
-  gamecg: t('labels.types.gamecg'),
-  imageset: t('labels.types.imageset'),
-  anime: t('labels.types.anime')
-}
 
 /** Creator info sources */
 export const SOURCE_LABEL: Record<string, string> = {
@@ -40,24 +32,6 @@ export const sourceLabel = (source: string | undefined): string => SOURCE_LABEL[
 /** Class of a creator info source chip (src-dlsite etc.; unlisted ones look like the work's own info) */
 export const sourceClass = (source: string | undefined): string => `src src-${source && source in SOURCE_LABEL ? source : 'site'}`
 
-/** List languages */
-export const LANGUAGES: [string, string][] = [
-  ['all', t('labels.allLanguages')],
-  ['japanese', '日本語'],
-  ['english', 'English'],
-  ['chinese', '中文'],
-  ['korean', '한국어']
-]
-
-/** List sort orders */
-export const SORTS: [SortMode, string][] = [
-  ['date', t('labels.sorts.date')],
-  ['popular-today', t('labels.sorts.popularToday')],
-  ['popular-week', t('labels.sorts.popularWeek')],
-  ['popular-month', t('labels.sorts.popularMonth')],
-  ['popular-year', t('labels.sorts.popularYear')]
-]
-
 /** What the site calls artists and groups */
 export const SITE_NAME_LABEL = { artist: t('labels.siteArtist'), group: t('labels.siteGroup') }
 
@@ -68,8 +42,6 @@ export const splitNames = (s: string): string[] =>
     .map((x) => x.trim())
     .filter(Boolean)
 
-/** Namespaces of work tags that can have Japanese names */
-const TAG_NS = new Set(['female', 'male', 'tag'])
 
 /** Japanese names of work tags (English name -> Japanese), supplied by a site plugin; none in the base app */
 let TAG_NAMES_JA: Record<string, string> = {}
@@ -78,13 +50,13 @@ export function setTagNamesJa(names: Record<string, string>): void {
 }
 
 /**
- * Label of a work tag. With the Japanese UI it is the Japanese name (English if there is none),
- * with ♀ / ♂ for female / male tags. Other namespaces (artist, series...) and the English UI keep the name as it is.
+ * Label of a work tag. With the Japanese UI, a tag of a kind the plugin translates has its Japanese name (English if
+ * there is none) and the kind's suffix (♀...). Other kinds (artist, series...) and the English UI keep the name.
  */
 export function tagLabel(ns: string, name: string): string {
-  if (language() !== 'ja' || !TAG_NS.has(ns)) return name
-  const label = TAG_NAMES_JA[name] ?? name
-  return ns === 'female' ? label + '♀' : ns === 'male' ? label + '♂' : label
+  const kind = namespaceOf(ns)
+  if (language() !== 'ja' || !kind?.translated) return name
+  return (TAG_NAMES_JA[name] ?? name) + (kind.suffix ?? '')
 }
 
 /** The English names of tags whose Japanese name contains the text (for suggestions from Japanese input) */

@@ -35,6 +35,9 @@ export const en: Dict = {
     maximize: 'Maximize',
     browse: 'Site',
     bookmarks: 'Bookmarks',
+    siteList: 'List',
+    local: 'Local',
+    localTitle: 'Works in the library folder (bookmarked or not)',
     favorites: 'Favorites',
     history: 'History',
     historyTitle: 'Works opened in the viewer',
@@ -43,37 +46,10 @@ export const en: Dict = {
   },
 
   labels: {
-    types: {
-      doujinshi: 'Doujinshi',
-      manga: 'Manga',
-      artistcg: 'Artist CG',
-      gamecg: 'Game CG',
-      imageset: 'Image Set',
-      anime: 'Anime'
-    },
     siteSource: 'Work info',
     manualSource: 'Manual',
-    allLanguages: 'All languages',
-    sorts: {
-      date: 'Newest',
-      popularToday: 'Popular (today)',
-      popularWeek: 'Popular (week)',
-      popularMonth: 'Popular (month)',
-      popularYear: 'Popular (year)'
-    },
     siteArtist: 'Artist',
     siteGroup: 'Group',
-    ns: {
-      female: 'Female',
-      male: 'Male',
-      tag: 'Tag',
-      artist: 'Artist',
-      group: 'Group',
-      series: 'Series',
-      character: 'Character',
-      type: 'Type',
-      language: 'Language'
-    }
   },
 
   meta: {
@@ -148,8 +124,8 @@ export const en: Dict = {
     renamePrompt: 'New name for "{tag}" (merged if a local tag with that name exists)',
     renamed: 'Renamed "{from}" to "{to}" ({n} works)',
     noTags: 'No local tags yet (add them with + on a card or on the gallery page)',
-    showTag: 'Show bookmarks with the local tag "{tag}"',
-    hint: 'Your own tags for filtering. You can filter by them on the bookmarks screen'
+    showTag: 'Show works with the local tag "{tag}"',
+    hint: 'Your own tags for filtering. You can filter by them on the Bookmarks screen and in the Local tab'
   },
 
   bookmarkCard: {
@@ -206,6 +182,7 @@ export const en: Dict = {
     selectHint: 'Select a series on the left or create a new one',
     namePrompt: 'Series name',
     deleteConfirm: 'Delete the series "{name}"?\nThe bookmarks in it will remain.',
+    deleteFolderNote: 'This series was made from a folder automatically. Once deleted, the folder is not made into a series again.',
     rename: 'Rename the series',
     delete: 'Delete the series',
     empty: 'This series has no works yet',
@@ -280,10 +257,8 @@ export const en: Dict = {
     artists: 'Favorite artists',
     noArtists: 'Your bookmarked works have no artist info',
     bookmarkCount: '{n} bookmarks',
-    category: 'Category',
     multiSelect: 'You can select more than one',
     newest: 'New from favorites',
-    language: 'Language',
     includeGroups: 'Include groups',
     excludeCollective: 'Hide artists only in anthologies',
     excludeCollectiveTitle: 'Removes artists who appear only in bookmarks with many artists (anthologies, magazines) from this list and the search',
@@ -304,6 +279,7 @@ export const en: Dict = {
     fromBrowse: 'Opened from the site',
     fromFavorites: 'Opened from Favorites',
     fromBookmarks: 'Opened from Bookmarks',
+    fromLocal: 'Opened from Local',
     openedAt: 'Opened {date}'
   },
 
@@ -493,7 +469,14 @@ export const en: Dict = {
     noNew: 'No new works',
     remove: 'Remove from the library',
     removeConfirm: 'Remove this from the library? (The file is not deleted and does not come back when rescanning)',
-    removeNote: 'Your own files are only removed from the library, not deleted'
+    removed: 'Removed from the library',
+    removedN: 'Removed {n} works from the library',
+    removeManyConfirm: 'Remove {n} works from the library? (The files are not deleted and do not come back when rescanning)',
+    noResults: 'No works match "{query}"',
+    noDirs: 'No local folders yet. Each folder you add becomes a tab listing its works',
+    missingGroup: 'Missing files',
+    empty: 'No works in the library folder',
+    emptyHint: 'Put cbz / zip files and the like in the folder set as "Save location" in the settings, then press "Rescan"'
   },
   predecode: {
     title: 'Pages to decode in advance',
@@ -531,7 +514,7 @@ export const en: Dict = {
   },
 
   search: {
-    placeholder: 'Search (e.g. female:sole_female artist:xxx -male:yaoi word)',
+    placeholder: 'Search',
     clear: 'Clear',
     submit: 'Search (Enter)'
   },
@@ -539,17 +522,11 @@ export const en: Dict = {
   settings: {
     title: 'Settings',
     browse: 'Site',
-    defaultLanguage: 'Default language',
-    defaultSort: 'Default sort order',
-    defaultSortHint: 'Changing the language or sort order on the site screen also saves it here',
     infiniteScroll: 'Load the next page automatically when scrolling',
     infiniteScrollHint: 'When off, shows one page at a time with page navigation at the bottom',
-    imageFormat: 'Image format',
-    webp: 'WebP (compatible)',
-    avif: 'AVIF (smaller)',
     viewer: 'Viewer',
-    spreadForManga: 'Open manga and doujinshi in spreads',
-    spreadForMangaHint: 'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, manga and doujinshi open in spreads instead',
+    spreadForManga: 'Open manga in spreads',
+    spreadForMangaHint: 'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads instead',
     autoFullscreen: 'Open works in full screen',
     autoFullscreenHint: 'Press Esc or the full screen button to return. Moving to the next/previous work keeps the current mode',
     downloads: 'Bookmarks & downloads',
@@ -565,10 +542,24 @@ export const en: Dict = {
     tempFilesStartup: 'Delete at startup',
     tempFilesViewerClose: 'Delete when closing the viewer',
     tempFilesPack: 'Make a cbz when all pages are saved',
-    libraryDir: 'Save location',
+    siteDir: 'Save location ({name})',
     libraryDirHint: 'Existing files are not moved when you change it',
-    libraryDirDialog: 'Choose the save folder',
+    siteDirDialog: 'Choose the save folder for {name}',
     libraryDirChanged: 'Changed the save location',
+    localDirs: 'Local folders',
+    localDirsHint: 'Each folder becomes a tab listing its cbz / zip files and the like (subfolders included). The files are only read, never changed. Click an icon to change it',
+    localDirsDialog: 'Choose a folder for a tab',
+    localDirName: 'Tab name',
+    localDirIcon: 'Tab icon',
+    localDirUp: 'Up',
+    localDirDown: 'Down',
+    iconsFolder: 'Open the icons folder',
+    iconsReloadTitle: 'Read the icons folder again (png, svg, webp and the like)',
+    localDirAdd: 'Add a folder',
+    localDirAdded: 'Added the folder. Reading its works',
+    localDirRemove: 'Remove',
+    localDirRemoveConfirm: 'Remove the tab "{name}"?\nIts works leave the lists with their tags and series (the files are not deleted)',
+    localDirRemoved: 'Removed the folder',
     change: 'Change',
     metaSources: 'Sources of creator info',
     metaSourcesHint: 'Searches the titles of bookmarked works to get artist and group names. Sources higher in the list take priority. If nothing is found, the work info is used for now. Only Japanese works (and works without a language) are looked up; translated works use site artist and group names as they are.',
@@ -584,6 +575,9 @@ export const en: Dict = {
     noPlugins: 'No plugins loaded',
     pluginHosts: 'connects to: {hosts}',
     pluginFormats: 'Susie archive plug-in ({formats})',
+    pluginDefault: '{plugin}: default {filter}',
+    pluginSetting: '{plugin}: {setting}',
+    pluginDefaultHint: 'Changing it on the site screen saves it here too',
     pluginsHint: 'Plugins (.wasm) and Susie 64-bit archive plug-ins (.sph) in a "plugins" folder next to Poruneko.exe or in the data folder are loaded at the next start. A .wasm plugin can connect only to the hosts it lists, through the app. Susie plug-ins run directly inside the app, so add only ones you trust',
     window: 'Window',
     rememberWindow: 'Remember the window position and size',
@@ -758,6 +752,9 @@ export const en: Dict = {
       pageMissing: 'Page {page} is missing'
     },
     library: {
+      dirOverlapsSave: 'This folder overlaps the save location of a site ({path})',
+      dirOverlapsLocal: 'This folder overlaps a local folder ({path})',
+      dirOverlaps: 'This folder overlaps a folder already added ({path})',
       missing: 'The file is not in the library folder (fixed by itself when it is back)',
       noInfo: 'The gallery info is missing'
     },

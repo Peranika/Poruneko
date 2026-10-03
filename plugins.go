@@ -28,8 +28,9 @@ var (
 	loadedSusie []*susie.Plugin
 )
 
-// loadPlugins loads the plugins and registers the site plugins as sites (the first id found wins)
-func loadPlugins() {
+// loadPlugins loads the plugins and registers the site plugins as sites (the first id found wins). Each call to a
+// plugin carries its settings from st
+func loadPlugins(st *store.Store) {
 	cache := filepath.Join(store.DataDir(), "plugincache")
 	seen := map[string]bool{}
 	for _, dir := range pluginDirs() {
@@ -38,6 +39,8 @@ func loadPlugins() {
 				continue
 			}
 			seen[p.Info.ID] = true
+			id := p.Info.ID
+			p.Settings = func() map[string]string { return st.Settings().PluginSettings[id] }
 			loaded = append(loaded, p)
 			if p.Info.Kind == plugin.KindSite {
 				site.Register(plugin.Provider(p))
@@ -83,6 +86,16 @@ func (f susieFormat) Entries(path string) ([]library.ArchiveEntry, error) {
 
 func (f susieFormat) Read(path string, e library.ArchiveEntry) ([]byte, error) {
 	return f.p.Read(path, susie.Entry{Name: e.Name, Size: e.Size, Pos: e.Pos})
+}
+
+// pluginInfo is the info of the loaded plugin with this id (nil if none)
+func pluginInfo(id string) *plugin.Info {
+	for _, p := range loaded {
+		if p.Info.ID == id {
+			return &p.Info
+		}
+	}
+	return nil
 }
 
 // PluginInfo is a loaded plugin, for the settings screen

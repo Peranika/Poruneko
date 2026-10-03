@@ -1,15 +1,16 @@
 import { memo, type ReactNode } from 'react'
-import { isFileKey, thumbUrl } from '../api'
+import { isBookmarked, isFileKey, thumbUrl } from '../api'
 import { downloadErrorText, t } from '../i18n'
-import { TYPE_LABEL, altTitle, artistsBesideCircle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
+import { optionLabel, tagStyle, typeStyle } from '../browseSpec'
+import { altTitle, artistsBesideCircle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
 import { tagToken, useApp } from '../state'
 import type { Bookmark, GallerySummary } from '../types'
 import { Icon } from './Icon'
 
 export function BookmarkButton({ s, large = false }: { s: GallerySummary; large?: boolean }) {
   const { bookmarks, toggleBookmark } = useApp()
-  if (isFileKey(s.key)) return null
-  const on = bookmarks.has(s.key)
+  if (isFileKey(s.key)) return null // works in the library folder are not bookmarked
+  const on = isBookmarked(bookmarks.get(s.key))
   return (
     <button
       className={`bookmark-btn ${on ? 'on' : ''} ${large ? 'large' : ''}`}
@@ -64,7 +65,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
   const { bookmarks } = useApp()
   const b = bookmarks.get(s.key)
   const link = (ns: string, name: string, cls = '') => (
-    <button key={ns + name} className={`link ${cls}`} title={`${ns}:${name}`} onClick={(e) => { e.stopPropagation(); onSearch(tagToken(ns, name)) }}>
+    <button key={ns + name} className={`link ${cls}`} style={cls ? tagStyle(ns) : undefined} title={`${ns}:${name}`} onClick={(e) => { e.stopPropagation(); onSearch(tagToken(ns, name)) }}>
       {tagLabel(ns, name)}
     </button>
   )
@@ -89,6 +90,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
     )
   }
 
+  // tags of a kind (female, male...) before plain ones
   const femaleMale = s.tags.filter((t) => t.ns !== 'tag')
   const plain = s.tags.filter((t) => t.ns === 'tag')
   return (
@@ -99,7 +101,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
       <div className="row-body">
         <div className="row-head">
           {badge}
-          <span className={`type type-${s.type}`}>{TYPE_LABEL[s.type] ?? s.type}</span>
+          <span className="type" style={typeStyle(s.type)}>{optionLabel('type', s.type)}</span>
           <h3 className="title">{b ? bookmarkTitle(b) : displayTitle(s)}</h3>
           <BookmarkButton s={s} />
         </div>
@@ -127,7 +129,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
           {s.characters.length > 0 && (<><dt>{t('meta.characters')}</dt><dd>{s.characters.slice(0, 6).map((c) => link('character', c))}</dd></>)}
         </dl>
         <div className="tags">
-          {[...femaleMale, ...plain].slice(0, 18).map((t) => link(t.ns === 'tag' ? 'tag' : t.ns, t.name, `tag tag-${t.ns}`))}
+          {[...femaleMale, ...plain].slice(0, 18).map((t) => link(t.ns, t.name, 'tag'))}
         </div>
         <div className="row-foot">
           <span>{s.languageLocal || s.language || '—'}</span>

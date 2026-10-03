@@ -241,7 +241,7 @@ func TestWorkDirs(t *testing.T) {
 		t.Fatalf("after delete: %v", keys)
 	}
 	// do not leave an empty .parts folder either
-	if _, err := os.Stat(filepath.Join(lib.root(), partsDir)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(lib.rootFor(d.Key), partsDir)); !os.IsNotExist(err) {
 		t.Fatalf(".parts should be removed: %v", err)
 	}
 }

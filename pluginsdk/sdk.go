@@ -6,7 +6,8 @@
 //	GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o myplugin.wasm .
 //
 // The handler gets the method name and its JSON parameters, and returns the result (encoded as JSON) or an error.
-// Returning an *Error keeps its code; other errors become code "plugin.error".
+// Returning an *Error keeps its code; other errors become code "plugin.error". The plugin's settings (the values the
+// user chose for its filters and settings) come with every call; read them with Setting.
 package pluginsdk
 
 import (
@@ -26,10 +27,16 @@ type Error struct {
 
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
 
-var handler Handler
+var (
+	handler  Handler
+	settings map[string]string
+)
 
 // Serve sets the handler (call it from init)
 func Serve(h Handler) { handler = h }
+
+// Setting is the value of one of the plugin's settings during a call ("" when the user has not chosen one)
+func Setting(id string) string { return settings[id] }
 
 // buffers handed to the host stay referenced here until the host frees them
 var buffers = map[uint32][]byte{}
@@ -53,11 +60,14 @@ func free(ptr uint32) { delete(buffers, ptr) }
 func call(ptr, size uint32) uint64 {
 	req := buffers[ptr][:size]
 	var r struct {
-		Method string          `json:"method"`
-		Params json.RawMessage `json:"params"`
+		Method   string            `json:"method"`
+		Params   json.RawMessage   `json:"params"`
+		Settings map[string]string `json:"settings"`
 	}
+	err := json.Unmarshal(req, &r)
+	settings = r.Settings
 	var out []byte
-	if err := json.Unmarshal(req, &r); err != nil {
+	if err != nil {
 		out = errorJSON(&Error{Code: "plugin.badRequest", Message: err.Error()})
 	} else if handler == nil {
 		out = errorJSON(&Error{Code: "plugin.noHandler", Message: "Serve was not called"})

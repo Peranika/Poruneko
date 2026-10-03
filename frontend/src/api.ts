@@ -3,6 +3,7 @@ import * as Go from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 import type {
   Bookmark,
+  IconFile,
   CreatorCandidate,
   DownloadProgress,
   FavoritesQuery,
@@ -35,13 +36,15 @@ export const api = {
   webURL: (key: string): Promise<string> => go.WebURL(key),
   list: (q: ListQuery): Promise<ListResult> => go.List(q),
   gallery: (key: string): Promise<GalleryDetail> => go.Gallery(key),
-  suggest: (term: string): Promise<Suggestion[]> => go.Suggest(term),
+  suggest: (site: string, term: string): Promise<Suggestion[]> => go.Suggest(site, term),
   /** Works by bookmarked artists (Favorites) */
   favorites: (q: FavoritesQuery): Promise<FavoritesResult> => go.Favorites(q),
 
   bookmarks: (): Promise<Bookmark[]> => go.Bookmarks(),
   addBookmark: (s: GallerySummary): Promise<Bookmark> => go.AddBookmark(s),
   removeBookmark: (key: string): Promise<void> => go.RemoveBookmark(key),
+  /** Take a work in the library folder out of the app (the file stays; it does not come back when rescanning) */
+  removeFromLibrary: (key: string): Promise<void> => go.RemoveFromLibrary(key),
   /** Bookmark only the given page range (req.download chooses whether to make a cbz) */
   bookmarkRange: (req: RangeRequest): Promise<Bookmark> => go.BookmarkRange(req),
   /** Set the artists and groups of a page range bookmark as written on the source site */
@@ -96,7 +99,17 @@ export const api = {
   getSettings: (): Promise<Settings> => go.GetSettings(),
   setSettings: (s: Settings): Promise<Settings> => go.SetSettings(s),
   /** Dialog to choose the save location (title is the dialog title) */
-  chooseLibraryDir: (title: string): Promise<string> => go.ChooseLibraryDir(title),
+  /** Choose where a site's works are saved ("" if cancelled) */
+  chooseSiteDir: (site: string, title: string): Promise<string> => go.ChooseSiteDir(site, title),
+  /** Choose a folder to add to the Local tab ("" if cancelled) */
+  addLocalDir: (title: string): Promise<string> => go.AddLocalDir(title),
+  removeLocalDir: (id: number): Promise<void> => go.RemoveLocalDir(id),
+  setLocalDir: (id: number, name: string, icon: string): Promise<void> => go.SetLocalDir(id, name, icon),
+  /** Move a local folder's tab up (-1) or down (1) */
+  moveLocalDir: (id: number, dir: number): Promise<void> => go.MoveLocalDir(id, dir),
+  /** The images in the icons folder, for the tab icons */
+  localIcons: (): Promise<IconFile[]> => go.LocalIcons(),
+  openIconsFolder: (): Promise<void> => go.OpenIconsFolder(),
   /** Placeholders of the file name format (descriptions are in fileName.placeholders) */
   fileNamePlaceholders: (): Promise<string[]> => go.FileNamePlaceholders(),
   /** Example of the format (sampleSeries is the series name for the example when no work is in a series) */
@@ -130,6 +143,19 @@ const parseKey = (key: string): [string, string] => {
 export const isLocalKey = (key: string): boolean => key.startsWith('local:')
 /** Whether the key is of a cbz / zip of the user's own in the library folder (the app never changes the file) */
 export const isFileKey = (key: string): boolean => key.startsWith('file:')
+/** The site a bookmark belongs to: its key's site, or for a page range work its source's site */
+export function siteOfBookmark(b: Bookmark): string {
+  const key = b.key.startsWith('local:') && b.summary.origin?.key ? b.summary.origin.key : b.key
+  return key.slice(0, key.indexOf(':'))
+}
+
+/** The local folder a work of the user's own is in ("file:@<id>/..."; undefined for other works) */
+export const localDirOfKey = (key: string): number | undefined => {
+  const m = /^file:@(\d+)\//.exec(key)
+  return m ? Number(m[1]) : undefined
+}
+/** Whether a work's record is a bookmark (works in the library folder have records but are never bookmarks) */
+export const isBookmarked = (b: Bookmark | undefined): b is Bookmark => !!b && !isFileKey(b.key)
 
 /** Page image URL (served by imgserver on the Go side; from local files if downloaded) */
 export const imageUrl = (key: string, index: number): string => {

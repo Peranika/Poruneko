@@ -32,7 +32,7 @@ export function LayoutToggle({ value, onChange }: { value: ListLayout; onChange(
 
 // ---------------------------------------------------------------- Thumbnail size (remembered per tab)
 
-export type ThumbTab = 'browse' | 'favorites' | 'bookmarks' | 'history'
+export type ThumbTab = 'browse' | 'favorites' | 'bookmarks' | 'local' | 'history'
 
 const THUMB_DEFAULT = 180
 const THUMB_MIN = 120

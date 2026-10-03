@@ -26,8 +26,6 @@
   --ok: #4cc38a;
   --warn: #f5b84a;
   --err: #ff5d5d;
-  --female: #ff7aa8;
-  --male: #5aa9ff;
   /* text colors of labels (sources, types, tags) */
   --t-blue: #84bdff;
   --t-red: #ff8b8b;
@@ -76,8 +74,6 @@
   --ok: #1d9a60;
   --warn: #b97700;
   --err: #d63a3a;
-  --female: #d9407a;
-  --male: #2f78d6;
   --t-blue: #2f6cc8;
   --t-red: #cf3b3b;
   --t-pink: #d4436a;
@@ -234,8 +230,6 @@ select { cursor: pointer; }
 .suggestions li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; cursor: pointer; color: var(--text); }
 .suggestions li.sel, .suggestions li:hover { background: var(--bg-3); }
 .suggestions .ns { font-size: 0.7857rem; min-width: 56px; text-align: center; padding: 1px 6px; border-radius: 4px; background: var(--bg-3); color: var(--text-2); }
-.suggestions .ns-female { color: var(--female); }
-.suggestions .ns-male { color: var(--male); }
 .suggestions .name { flex: 1; }
 .suggestions .count { color: var(--text-3); font-size: 0.8571rem; }
 
@@ -272,9 +266,6 @@ select { cursor: pointer; }
 .row-foot { display: flex; align-items: center; gap: 14px; color: var(--text-3); font-size: 0.8571rem; margin-top: auto; }
 
 .type { flex-shrink: 0; font-size: 0.7857rem; padding: 2px 8px; border-radius: 6px; background: var(--bg-3); color: var(--text-2); margin-top: 2px; display: inline-block; }
-.type-doujinshi { background: rgba(255, 107, 139, 0.15); color: var(--t-pink); }
-.type-manga { background: rgba(90, 169, 255, 0.15); color: var(--t-blue); }
-.type-artistcg, .type-gamecg { background: rgba(167, 120, 255, 0.15); color: var(--t-purple); }
 
 .meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 2px 0; font-size: 0.8929rem; }
 .meta dt { color: var(--text-3); }
@@ -284,8 +275,6 @@ select { cursor: pointer; }
 .tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .tag { font-size: 0.8214rem; padding: 2px 8px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); color: var(--text-2); }
 .tag:hover { text-decoration: none; border-color: var(--accent); }
-.tag-female { color: var(--female); border-color: rgba(255, 122, 168, 0.25); }
-.tag-male { color: var(--male); border-color: rgba(90, 169, 255, 0.25); }
 
 .card { cursor: pointer; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .card .thumb { position: relative; aspect-ratio: 0.7; border-radius: var(--radius); overflow: hidden; background: var(--bg-2); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
@@ -484,6 +473,10 @@ select { cursor: pointer; }
 .row-setting input[type='number'] { width: 80px; }
 .row-setting .inline { display: flex; align-items: center; gap: 10px; }
 .path-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.local-dirs { list-style: none; margin: 8px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.local-dir-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.local-dir-name { width: 160px; flex: none; }
+.local-dirs code { flex: 1 1 auto; flex: 0 1 auto; min-width: 0; font-size: 0.8571rem; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .path-pick code { font-size: 0.8571rem; color: var(--text-2); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; }
 
 /* ---------------------------------------------------------------- Toasts */
@@ -761,7 +754,7 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .thumb-pager input { width: 70px; }
 .thumb-preview canvas { width: 160px; aspect-ratio: 0.7; border-radius: var(--radius); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); background: var(--bg-2); }
 
-/* work tag list in the left pane of the Bookmarks screen (female / male tags keep their colors from .tag-female / .tag-male) */
+/* work tag list in the left pane of the Bookmarks screen (tags of a kind the plugin colors keep their colors) */
 .tag-list-filter { width: 100%; flex-shrink: 0; }
 
 /* the product page creator info is linked to, with a button to remove the link (creator info dialog) */
@@ -1017,3 +1010,38 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 
 /* settings: loaded plugins */
 .plugin-row { display: block; }
+
+/* ---------------------------------------------------------------- Tab icons */
+.image-icon { display: inline-block; flex: none; object-fit: contain; }
+.image-icon.mask { background: currentColor; }
+.sidebar .add-tab { min-height: 0; padding: 4px 0; opacity: 0.6; }
+.sidebar .add-tab:hover { opacity: 1; }
+.sidebar-sep { height: 1px; margin: 6px 12px; background: var(--line); flex: none; }
+.icon-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0 4px 36px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-1); }
+.icon-picker > button { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; border: 1px solid transparent; color: var(--text-2); }
+.icon-picker > button:hover { color: var(--text); background: var(--bg-3); }
+.icon-picker > button.on { color: var(--accent); border-color: var(--accent); }
+.icon-picker-actions { display: flex; gap: 4px; margin-left: auto; }
+.rot90 { transform: rotate(90deg); }
+
+/* ---------------------------------------------------------------- A site's tab and its popup */
+.site-tab { position: relative; display: flex; flex-direction: column; }
+.site-icon { position: relative; display: inline-flex; }
+/* the screen a click opens, marked at the icon's corner */
+.site-last { position: absolute; right: -9px; bottom: -5px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: var(--bg-2); color: var(--text-2); }
+.sidebar button.active .site-last { color: var(--accent); }
+.site-pop {
+  position: absolute; left: calc(100% + 4px); top: 0; z-index: 200; width: max-content; min-width: 170px; padding: 6px; white-space: nowrap;
+  display: flex; flex-direction: column; gap: 2px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+/* a bridge over the gap to the tab, so the pointer can move into the popup */
+.site-pop::before { content: ''; position: absolute; left: -8px; top: 0; bottom: 0; width: 8px; }
+.site-pop-head { padding: 2px 8px 4px; font-size: 0.7857rem; color: var(--text-3); }
+.sidebar .site-pop button {
+  flex-direction: row; justify-content: flex-start; gap: 8px; padding: 7px 8px; border-radius: 7px; font-size: 0.8929rem; color: var(--text-2);
+}
+.sidebar .site-pop button:hover { background: var(--bg-3); color: var(--text); }
+.sidebar .site-pop button.on { background: var(--accent-bg); color: var(--accent); }
+.sidebar .site-pop em { margin-left: auto; font-style: normal; font-size: 0.7143rem; color: var(--text-3); }
+.sidebar .site-pop em.badge { position: static; margin-left: 4px; color: var(--on-accent); }

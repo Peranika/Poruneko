@@ -32,7 +32,7 @@ func TestArchiveDetailOfUserArchive(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close) // Windows cannot delete the zip while it is open
@@ -60,14 +60,14 @@ func TestArchiveDetailOfUserArchive(t *testing.T) {
 	_ = f.Close()
 
 	found := lib.FindArchives()
-	if len(found) != 1 || found[0] != "sub/My Book.zip" {
+	if len(found) != 1 || found[0] != "@1/sub/My Book.zip" {
 		t.Fatalf("found %v", found)
 	}
 	d, err := lib.ArchiveDetail(found[0])
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Key != "file:sub/My Book.zip" || d.Site != model.SiteFile || d.JapaneseTitle != "本のタイトル" {
+	if d.Key != "file:@1/sub/My Book.zip" || d.Site != model.SiteFile || d.JapaneseTitle != "本のタイトル" {
 		t.Fatalf("summary %+v", d.GallerySummary)
 	}
 	if len(d.Artists) != 2 || d.Artists[1] != "作者B" || len(d.Groups) != 1 || d.Groups[0] != "サークルC" || len(d.Tags) != 2 || d.Tags[0].NS != "female" {
@@ -82,7 +82,7 @@ func TestArchiveDetailOfUserArchive(t *testing.T) {
 	}
 	// the second page is the second image in natural order (the scan records where the work's file is)
 	st.Put(model.Bookmark{Key: d.Key, ArchiveFile: found[0]})
-	b, _, ok := lib.ReadPage("file:sub/My Book.zip", 1)
+	b, _, ok := lib.ReadPage("file:@1/sub/My Book.zip", 1)
 	if !ok || !bytes.Equal(b, pngBytes(t, 20, 10)) {
 		t.Fatalf("page 2 not the second image")
 	}
@@ -98,7 +98,7 @@ func TestArchiveDetailWithoutInfo(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close)
@@ -108,7 +108,7 @@ func TestArchiveDetailWithoutInfo(t *testing.T) {
 	_, _ = fw.Write(pngBytes(t, 8, 8))
 	_ = w.Close()
 	_ = f.Close()
-	d, err := lib.ArchiveDetail("Plain Book.cbz")
+	d, err := lib.ArchiveDetail("@1/Plain Book.cbz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestFileThumbShrinks(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close)
@@ -156,8 +156,8 @@ func TestFileThumbShrinks(t *testing.T) {
 	_, _ = fw.Write(pngBytes(t, 1200, 1700))
 	_ = w.Close()
 	_ = f.Close()
-	st.Put(model.Bookmark{Key: FileKey("Big.cbz"), ArchiveFile: "Big.cbz"})
-	b, ok := lib.FileThumb(FileKey("Big.cbz"), 0, true)
+	st.Put(model.Bookmark{Key: FileKey("@1/Big.cbz"), ArchiveFile: "@1/Big.cbz"})
+	b, ok := lib.FileThumb(FileKey("@1/Big.cbz"), 0, true)
 	if !ok {
 		t.Fatal("no thumbnail")
 	}
@@ -165,7 +165,7 @@ func TestFileThumbShrinks(t *testing.T) {
 	if err != nil || format != "jpeg" || cfg.Width != 480 || cfg.Height != 680 {
 		t.Fatalf("%s %dx%d %v", format, cfg.Width, cfg.Height, err)
 	}
-	if b2, ok := lib.FileThumb(FileKey("Big.cbz"), 0, true); !ok || !bytes.Equal(b, b2) {
+	if b2, ok := lib.FileThumb(FileKey("@1/Big.cbz"), 0, true); !ok || !bytes.Equal(b, b2) {
 		t.Fatal("not cached")
 	}
 }
@@ -176,7 +176,7 @@ func TestJPEGAndBMPPages(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := store.Open()
 	s := st.Settings()
-	s.LibraryDir = dir
+	s.LocalDirs = []model.LocalDir{{ID: 1, Path: dir}}
 	st.SetSettings(s)
 	lib := New(st)
 	t.Cleanup(lib.Close)
@@ -196,11 +196,57 @@ func TestJPEGAndBMPPages(t *testing.T) {
 	}
 	_ = w.Close()
 	_ = f.Close()
-	d, err := lib.ArchiveDetail("Mixed.zip")
+	d, err := lib.ArchiveDetail("@1/Mixed.zip")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(d.Pages) != 2 || d.Pages[0].Name != "page01.JPEG" || d.Pages[1].Width != 12 || d.Pages[1].Height != 34 {
 		t.Fatalf("%+v", d.Pages)
+	}
+}
+
+// archives in the local folders are found with the folder's id, and their works are read from that folder
+func TestLocalDirs(t *testing.T) {
+	saveDir, other := t.TempDir(), t.TempDir()
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := store.Open()
+	s := st.Settings()
+	s.LibraryDir = saveDir
+	s.LocalDirs = []model.LocalDir{{ID: 3, Path: other}}
+	st.SetSettings(s)
+	lib := New(st)
+	t.Cleanup(lib.Close)
+
+	write := func(path string) {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		f, _ := os.Create(path)
+		w := zip.NewWriter(f)
+		fw, _ := w.Create("01.png")
+		_, _ = fw.Write(pngBytes(t, 10, 10))
+		_ = w.Close()
+		_ = f.Close()
+	}
+	// the save location holds the site plugins' downloads and is not read
+	write(filepath.Join(saveDir, "a.cbz"))
+	write(filepath.Join(other, "sub", "[Circle] b.zip"))
+
+	got := strings.Join(lib.FindArchives(), ",")
+	if got != "@3/sub/[Circle] b.zip" {
+		t.Fatalf("FindArchives = %s", got)
+	}
+	d, err := lib.ArchiveDetail("@3/sub/[Circle] b.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Key != "file:@3/sub/[Circle] b.zip" || d.PageCount != 1 || d.JapaneseTitle != "b" {
+		t.Fatalf("detail = %s %d %q", d.Key, d.PageCount, d.JapaneseTitle)
+	}
+	if id, ok := LocalDirOf("@3/sub/x.zip"); !ok || id != 3 {
+		t.Fatalf("LocalDirOf = %d %t", id, ok)
+	}
+	if _, ok := LocalDirOf("sub/@3/x.zip"); ok {
+		t.Fatal("LocalDirOf matched a folder deeper down")
 	}
 }

@@ -1,22 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import { namespaceLabel, tagStyle } from '../browseSpec'
 import { t } from '../i18n'
 import { tagLabel, tagNamesForJa } from '../labels'
 import { tagToken } from '../state'
 import type { Suggestion } from '../types'
 import { Icon } from './Icon'
-
-const NS_LABEL: Record<string, string> = {
-  female: t('labels.ns.female'),
-  male: t('labels.ns.male'),
-  tag: t('labels.ns.tag'),
-  artist: t('labels.ns.artist'),
-  group: t('labels.ns.group'),
-  series: t('labels.ns.series'),
-  character: t('labels.ns.character'),
-  type: t('labels.ns.type'),
-  language: t('labels.ns.language')
-}
 
 const toToken = (s: Suggestion): string => tagToken(s.ns, s.name)
 
@@ -30,10 +19,10 @@ type Sug = Suggestion & { words: number }
  * Suggestions for a term. Japanese input is matched against the Japanese tag names
  * and looked up by their English names (the site only knows those)
  */
-async function suggestFor(term: string): Promise<Suggestion[]> {
+async function suggestFor(site: string, term: string): Promise<Suggestion[]> {
   const names = tagNamesForJa(term)
-  if (!names.length) return api.suggest(term)
-  const lists = await Promise.all(names.map((n) => api.suggest(n).then((r) => r.filter((s) => s.name === n))))
+  if (!names.length) return api.suggest(site, term)
+  const lists = await Promise.all(names.map((n) => api.suggest(site, n).then((r) => r.filter((s) => s.name === n))))
   return lists.flat().sort((a, b) => b.count - a.count)
 }
 
@@ -55,7 +44,7 @@ function trailingTerms(text: string): { term: string; words: number }[] {
   return out
 }
 
-export function SearchBar({ value, onSubmit }: { value: string; onSubmit(q: string): void }) {
+export function SearchBar({ value, onSubmit, placeholder, site = '' }: { value: string; onSubmit(q: string): void; placeholder?: string; site?: string }) {
   const [text, setText] = useState(value)
   const [sugs, setSugs] = useState<Sug[]>([])
   const [sel, setSel] = useState(-1)
@@ -73,7 +62,7 @@ export function SearchBar({ value, onSubmit }: { value: string; onSubmit(q: stri
     }
     const my = ++seq.current
     const t = setTimeout(() => {
-      Promise.all(terms.map(({ term, words }) => suggestFor(term).then((r) => r.map((s) => ({ ...s, words })))))
+      Promise.all(terms.map(({ term, words }) => suggestFor(site, term).then((r) => r.map((s) => ({ ...s, words })))))
         .then((lists) => {
           if (my !== seq.current) return
           const seen = new Set<string>()
@@ -84,7 +73,7 @@ export function SearchBar({ value, onSubmit }: { value: string; onSubmit(q: stri
         .catch(() => {})
     }, 180)
     return () => clearTimeout(t)
-  }, [text])
+  }, [text, site])
 
   // replace the words the suggestion was made from with its token
   const apply = (s: Sug) => {
@@ -104,7 +93,7 @@ export function SearchBar({ value, onSubmit }: { value: string; onSubmit(q: stri
     <div className="searchbar">
       <input
         value={text}
-        placeholder={t('search.placeholder')}
+        placeholder={placeholder ?? t('search.placeholder')}
         onChange={(e) => {
           setText(e.target.value)
           setOpen(true)
@@ -139,7 +128,7 @@ export function SearchBar({ value, onSubmit }: { value: string; onSubmit(q: stri
         <ul className="suggestions">
           {sugs.map((s, i) => (
             <li key={s.ns + s.name} className={i === sel ? 'sel' : ''} onMouseDown={(e) => { e.preventDefault(); apply(s) }}>
-              <span className={`ns ns-${s.ns}`}>{NS_LABEL[s.ns] ?? s.ns}</span>
+              <span className="ns" style={tagStyle(s.ns, site)}>{namespaceLabel(s.ns, site)}</span>
               <span className="name">
                 {tagLabel(s.ns, s.name)}
                 {tagLabel(s.ns, s.name) !== s.name && <small className="muted"> {s.name}</small>}

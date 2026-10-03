@@ -35,6 +35,9 @@ export const ja = {
     maximize: '最大化',
     browse: 'サイト',
     bookmarks: 'ブックマーク',
+    siteList: '一覧',
+    local: 'ローカル',
+    localTitle: 'ライブラリのフォルダの作品（ブックマークしていないものも含む）',
     favorites: 'お気に入り',
     favoritesTitle: 'お気に入り検索（ブックマークしたアーティストの作品）',
     history: '履歴',
@@ -43,38 +46,10 @@ export const ja = {
   },
 
   labels: {
-    types: {
-      doujinshi: '同人誌',
-      manga: 'マンガ',
-      artistcg: 'CG集',
-      gamecg: 'ゲームCG',
-      imageset: '画像集',
-      anime: 'アニメ'
-    },
     siteSource: '作品の情報',
     manualSource: '手動',
-    allLanguages: 'すべての言語',
-    sorts: {
-      date: '新着順',
-      popularToday: '人気（今日）',
-      popularWeek: '人気（週間）',
-      popularMonth: '人気（月間）',
-      popularYear: '人気（年間）'
-    },
     siteArtist: 'アーティスト',
     siteGroup: 'グループ',
-    /** Tag kinds offered as search suggestions */
-    ns: {
-      female: '女性',
-      male: '男性',
-      tag: 'タグ',
-      artist: '作者',
-      group: 'サークル',
-      series: 'シリーズ',
-      character: 'キャラ',
-      type: '種別',
-      language: '言語'
-    }
   },
 
   /** Work info (list rows and the gallery page) */
@@ -151,8 +126,8 @@ export const ja = {
     renamePrompt: '「{tag}」の新しい名前（同じ名前のローカルタグがあればまとめます）',
     renamed: '「{from}」を「{to}」に変えました（{n} 作品）',
     noTags: 'ローカルタグはまだありません（作品ページやカードの + から付けられます）',
-    showTag: 'ローカルタグ「{tag}」のブックマークを表示',
-    hint: '自分で付ける絞り込み用のタグです。ブックマーク画面で絞り込めます'
+    showTag: 'ローカルタグ「{tag}」の作品を表示',
+    hint: '自分で付ける絞り込み用のタグです。ブックマーク画面やローカルタブで絞り込めます'
   },
 
   bookmarkCard: {
@@ -210,6 +185,7 @@ export const ja = {
     selectHint: '左の一覧からシリーズを選ぶか、新しいシリーズを作ってください',
     namePrompt: 'シリーズ名',
     deleteConfirm: 'シリーズ「{name}」を削除しますか？\n入っている作品のブックマークは残ります。',
+    deleteFolderNote: 'フォルダから自動で作ったシリーズです。削除すると、このフォルダはもうシリーズになりません。',
     rename: 'シリーズ名を変更',
     delete: 'シリーズを削除',
     empty: 'このシリーズにはまだ作品がありません',
@@ -284,10 +260,8 @@ export const ja = {
     artists: 'お気に入りのアーティスト',
     noArtists: 'ブックマークした作品にアーティスト情報がありません',
     bookmarkCount: 'ブックマーク {n} 件',
-    category: 'カテゴリ',
     multiSelect: '複数選べます',
     newest: 'お気に入りの新着',
-    language: '言語',
     includeGroups: 'グループ（サークル）も含める',
     excludeCollective: '多数参加作品の作者を除く',
     excludeCollectiveTitle: 'アンソロジーや雑誌など、アーティストが多数いるブックマークにしか出てこない作者を、この一覧と検索から外します',
@@ -312,6 +286,7 @@ export const ja = {
     fromBrowse: 'サイトから開いた',
     fromFavorites: 'お気に入りから開いた',
     fromBookmarks: 'ブックマークから開いた',
+    fromLocal: 'ローカルから開いた',
     openedAt: '{date} に開いた'
   },
 
@@ -497,7 +472,14 @@ export const ja = {
     noNew: '新しい作品はありません',
     remove: 'ライブラリから外す',
     removeConfirm: 'ライブラリから外しますか？（ファイルは削除されず、読み込み直しても戻りません）',
-    removeNote: '自分のファイルはライブラリから外すだけで、削除はしません'
+    removed: 'ライブラリから外しました',
+    removedN: '{n} 作品をライブラリから外しました',
+    removeManyConfirm: '{n} 作品をライブラリから外しますか？（ファイルは削除されず、読み込み直しても戻りません）',
+    noResults: '「{query}」に一致する作品はありません',
+    noDirs: 'ローカルのフォルダがまだありません。フォルダを追加すると、タブになって中の作品が並びます',
+    missingGroup: 'ファイルがない作品',
+    empty: 'ライブラリのフォルダに作品がありません',
+    emptyHint: '設定の「保存先」のフォルダに cbz / zip などを置いて、「読み込み直す」を押してください'
   },
   predecode: {
     title: '前もってデコードするページ数',
@@ -535,7 +517,7 @@ export const ja = {
   },
 
   search: {
-    placeholder: '検索（例: female:sole_female artist:xxx -male:yaoi 単語）',
+    placeholder: '検索',
     clear: 'クリア',
     submit: '検索 (Enter)'
   },
@@ -543,17 +525,11 @@ export const ja = {
   settings: {
     title: '設定',
     browse: 'サイト',
-    defaultLanguage: '既定の言語',
-    defaultSort: '既定の並び順',
-    defaultSortHint: 'サイトの画面で言語・並び順を変えると、ここにも保存されます',
     infiniteScroll: 'スクロールで次のページを自動で読み込む',
     infiniteScrollHint: 'オフにすると 1 ページずつ表示し、下にページ切り替えを出します',
-    imageFormat: '画像形式',
-    webp: 'WebP（互換性重視）',
-    avif: 'AVIF（高圧縮）',
     viewer: 'ビューア',
-    spreadForManga: '漫画・同人誌は見開きで開く',
-    spreadForMangaHint: '単ページ・見開き・スクロールの切り替えは作品ごとに記憶されます。まだ切り替えたことのない作品は、直前に使った表示で開きますが、これをオンにすると漫画と同人誌は見開きで開きます',
+    spreadForManga: '漫画は見開きで開く',
+    spreadForMangaHint: '単ページ・見開き・スクロールの切り替えは作品ごとに記憶されます。まだ切り替えたことのない作品は、直前に使った表示で開きますが、これをオンにするとサイトのプラグインが漫画とする種別（同人誌など）は見開きで開きます',
     autoFullscreen: '作品を開いたら自動で全画面にする',
     autoFullscreenHint: 'Esc や全画面ボタンで通常表示に戻せます。次/前のブックマークへの移動では今の表示を引き継ぎます',
     downloads: 'ブックマーク・ダウンロード',
@@ -569,10 +545,24 @@ export const ja = {
     tempFilesStartup: '起動時に削除',
     tempFilesViewerClose: 'ビューアを閉じたら削除',
     tempFilesPack: '全ページ揃ったら cbz にする',
-    libraryDir: '保存先',
+    siteDir: '保存先（{name}）',
     libraryDirHint: '変更しても既存のファイルは移動されません',
-    libraryDirDialog: '保存先フォルダを選択',
+    siteDirDialog: '{name} の保存先フォルダを選択',
     libraryDirChanged: '保存先を変更しました',
+    localDirs: 'ローカルのフォルダ',
+    localDirsHint: 'フォルダごとにタブができ、中の cbz / zip など（サブフォルダも含む）が並びます。ファイルは読むだけで、変更しません。アイコンを押すと変えられます',
+    localDirsDialog: 'タブにするフォルダを選択',
+    localDirName: 'タブの名前',
+    localDirIcon: 'タブのアイコン',
+    localDirUp: '上へ',
+    localDirDown: '下へ',
+    iconsFolder: 'アイコンのフォルダを開く',
+    iconsReloadTitle: 'アイコンのフォルダを読み込み直す（png・svg・webp などを置けます）',
+    localDirAdd: 'フォルダを追加',
+    localDirAdded: 'フォルダを追加しました。作品を読み込んでいます',
+    localDirRemove: '外す',
+    localDirRemoveConfirm: '「{name}」のタブを外しますか？\nこのフォルダの作品は、タグやシリーズと一緒に一覧から消えます（ファイルは削除されません）',
+    localDirRemoved: 'フォルダを外しました',
     change: '変更',
     metaSources: '作者情報の取得元',
     metaSourcesHint: 'ブックマークした作品のタイトルで検索し、作者名・サークル名を取得します。上にあるものが優先されます。見つからない場合は作品の情報を仮に使用します。日本語の作品（と言語の無い作品）だけが対象で、翻訳された作品はサイトのアーティスト名・グループ名をそのまま使います。',
@@ -588,6 +578,9 @@ export const ja = {
     noPlugins: '読み込まれたプラグインはありません',
     pluginHosts: '接続先: {hosts}',
     pluginFormats: 'Susie 書庫プラグイン（{formats}）',
+    pluginDefault: '{plugin}: 既定の{filter}',
+    pluginSetting: '{plugin}: {setting}',
+    pluginDefaultHint: 'サイトの画面で変えると、ここにも保存されます',
     pluginsHint: 'プラグイン（.wasm）と Susie 64bit 書庫プラグイン（.sph）は、Poruneko.exe と同じ場所かデータフォルダの plugins フォルダに置くと、次の起動で読み込まれます。.wasm のプラグインは指定した接続先にだけ、アプリを通して接続できます。Susie プラグインはアプリの中で直接動くので、信頼できるものだけを入れてください',
     window: 'ウィンドウ',
     rememberWindow: 'ウィンドウの位置と大きさを記憶する',
@@ -763,6 +756,9 @@ export const ja = {
       pageMissing: 'ページ {page} がありません'
     },
     library: {
+      dirOverlapsSave: 'このフォルダはサイトの保存先（{path}）と重なっています',
+      dirOverlapsLocal: 'このフォルダはローカルのフォルダ（{path}）と重なっています',
+      dirOverlaps: 'このフォルダは追加済みのフォルダ（{path}）と重なっています',
       missing: 'ライブラリのフォルダにファイルがありません（戻すと自動で直ります）',
       noInfo: '作品情報がありません'
     },

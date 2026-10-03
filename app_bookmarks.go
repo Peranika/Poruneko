@@ -37,10 +37,13 @@ func notDownloaded(b *model.Bookmark) model.DownloadState {
 	return model.DownloadState{Status: model.DownloadNone, Total: b.Summary.PageCount}
 }
 
-func (a *App) IsBookmarked(key string) bool { return a.st.Has(key) }
+// Works in the library folders have records like bookmarks (for their tags, series and creator info) but are not
+// bookmarks: they are listed in the Local tab only and cannot be bookmarked
+
+func (a *App) IsBookmarked(key string) bool { return a.st.Has(key) && !model.IsFileKey(key) }
 
 func (a *App) AddBookmark(s model.GallerySummary) model.Bookmark {
-	if b, ok := a.st.Bookmark(s.Key); ok {
+	if b, ok := a.st.Bookmark(s.Key); ok || model.IsFileKey(s.Key) {
 		return b
 	}
 	b := model.Bookmark{
@@ -60,7 +63,7 @@ func (a *App) AddBookmark(s model.GallerySummary) model.Bookmark {
 }
 
 func (a *App) RemoveBookmark(key string) error {
-	if !a.st.Has(key) {
+	if !a.st.Has(key) || model.IsFileKey(key) {
 		return nil
 	}
 	a.dl.Pause(key)
@@ -68,14 +71,6 @@ func (a *App) RemoveBookmark(key string) error {
 	// leaving its series changes the numbers of the remaining works
 	if x, _, ok := a.st.SeriesOf(key); ok {
 		defer a.seriesChanged(slices.DeleteFunc(x.Keys, func(k string) bool { return k == key }))
-	}
-	// the user's own archive stays on disk; it just leaves the library (and does not come back at the next scan)
-	if model.IsFileKey(key) {
-		a.forgetArchive(key)
-		a.lib.DeleteWork(key)
-		a.lib.DeleteCustomThumb(key)
-		a.st.Remove(key)
-		return nil
 	}
 	// a local work made from a page range exists only as its cbz, so delete it with the bookmark
 	if model.IsLocalKey(key) || a.st.Settings().DeleteFilesOnUnbookmark {

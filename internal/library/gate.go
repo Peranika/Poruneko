@@ -108,8 +108,9 @@ type pendingFetch struct {
 // When every caller's ctx is done the fetch itself is canceled (e.g. the gallery page was closed).
 // Congestion (503/429) is retried with backoff; expired URLs (403/404) are retried after refetching gg.js etc.
 func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, index int, pr Priority) ([]byte, string, error) {
-	format := l.st.Settings().ImageFormat
-	key := fmt.Sprintf("%s/%s/%d/%s", p.ID(), id, index, format)
+	// the image format is the plugin's own setting
+	format := ""
+	key := fmt.Sprintf("%s/%s/%d", p.ID(), id, index)
 
 	l.pmu.Lock()
 	pf := l.pending[key]
