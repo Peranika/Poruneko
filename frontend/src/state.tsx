@@ -1,0 +1,342 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { api, isLocalKey, setRangeThumbSetting, setThumbVersions } from './api'
+import type { GroupBy } from './bookmarkList'
+import { UNBOOKMARK_RANGE_CONFIRM, hasRangeFile } from './bookmarkActions'
+import { applyFontScale, applyTheme } from './display'
+import { errorText, t } from './i18n'
+import { indexSeries } from './series'
+import { loadJSON, loadSkippedVersion, saveJSON } from './storage'
+import type { Bookmark, GallerySummary, ListQuery, Series, Settings, SortMode, UpdateRelease } from './types'
+import type { WorkSource } from './workSequence'
+
+// ---------------------------------------------------------------- Routing
+
+export type Route =
+  | { name: 'browse'; q: ListQuery }
+  /** from: the list it was opened from (followed by next/previous work; bookmarks if absent) */
+  | { name: 'gallery'; key: string; summary?: GallerySummary; from?: WorkSource }
+  /** view: the group or series to show (if absent, what was last shown on the Bookmarks screen) */
+  | { name: 'bookmarks'; view?: BookmarkView }
+  | { name: 'favorites'; page: number; tag: string }
+  | { name: 'history' }
+  | { name: 'settings' }
+
+/** What the Bookmarks screen shows: a group (by circle / by artist) or a series */
+export type BookmarkView =
+  | { mode: 'groups'; by: GroupBy; group: string }
+  | { mode: 'series'; id: string }
+  /** source: which tags (local tags if absent) */
+  | { mode: 'tags'; tags: string[]; source?: 'local' | 'work' }
+
+/** A history entry. s is the screen's saved state (scroll position etc.), id is a number unique to each entry */
+interface Entry {
+  id: number
+  r: Route
+  s: Record<string, unknown>
+}
+
+let entrySeq = 0
+const newEntry = (r: Route, s: Record<string, unknown> = {}): Entry => ({ id: ++entrySeq, r, s })
+
+/** Maximum number of history entries kept */
+const MAX_HISTORY = 100
+
+/** Push e after the current entry (dropping the forward entries) */
+const pushEntry = (h: { stack: Entry[]; i: number }, e: Entry) => {
+  const stack = [...h.stack.slice(0, h.i + 1), e].slice(-MAX_HISTORY)
+  return { stack, i: stack.length - 1 }
+}
+
+interface Nav {
+  route: Route
+  go(r: Route): void
+  /**
+   * Open a sidebar tab, returning to the screen last shown in it (query, page and scroll position).
+   * When already on that tab, reopen it fresh
+   */
+  openTab(fresh: Route): void
+  replace(r: Route): void
+  back(): void
+  forward(): void
+  canBack: boolean
+  canForward: boolean
+  /** Saved state tied to the current history entry (scroll position etc.) */
+  entryState: Record<string, unknown>
+  /** Number of the current history entry (changes when back/forward moves to another entry, not on replace) */
+  entryId: number
+}
+
+// ---------------------------------------------------------------- App state
+
+interface AppState {
+  nav: Nav
+  settings: Settings | null
+  updateSettings(patch: Partial<Settings>): void
+  bookmarks: Map<string, Bookmark>
+  toggleBookmark(s: GallerySummary, confirmed?: boolean): Promise<void>
+  toast(msg: string): void
+  toasts: { id: number; msg: string }[]
+  editCreatorKey: string | null
+  setEditCreatorKey(k: string | null): void
+  /** Series (in creation order) */
+  series: Series[]
+  /** The series each work is in and its position (0-based) */
+  seriesOf: Map<string, { series: Series; index: number }>
+  /** Works handled by the add-to-series dialog (null when closed) */
+  seriesDialogKey: string | null
+  setSeriesDialogKey(k: string | null): void
+  /** Bookmarks selected on the Bookmarks screen (in the order they were selected) */
+  selected: string[]
+  setSelected(keys: string[]): void
+  /** The newer version being announced (null if none) */
+  update: UpdateRelease | null
+  /** Check for a newer version. If manual, also announces skipped versions and says so when up to date */
+  checkUpdate(manual: boolean): Promise<void>
+  dismissUpdate(): void
+}
+
+const Ctx = createContext<AppState | null>(null)
+
+export const useApp = (): AppState => {
+  const v = useContext(Ctx)
+  if (!v) throw new Error('AppProvider missing')
+  return v
+}
+
+/** Page count filter for browsing (carries over the last one set) */
+export type PageRange = Pick<ListQuery, 'minPages' | 'maxPages'>
+export const loadPageRange = (): PageRange => {
+  const r = loadJSON<PageRange>('browse.pages', {})
+  return { minPages: r.minPages || undefined, maxPages: r.maxPages || undefined }
+}
+
+export const defaultQuery = (language = 'all', sort: SortMode = 'date'): ListQuery => ({ query: '', language, sort, page: 1, ...loadPageRange() })
+
+/**
+ * The bookmarks an action on key applies to: all the selected ones when key is one of several selected,
+ * otherwise just key
+ */
+export const actionTargets = (key: string, selected: string[]): string[] =>
+  selected.length > 1 && selected.includes(key) ? selected : [key]
+
+/** Search token (in the form "artist:foo_bar") */
+export const tagToken = (ns: string, name: string): string => `${ns}:${name.replace(/ /g, '_')}`
+
+/** Temporarily sort newest first while there is a search query (back to the default when cleared; the default is unchanged) */
+export const searchQuery = (query: string, language = 'all', defaultSort: SortMode = 'date'): ListQuery => ({
+  ...defaultQuery(language, query.trim() ? 'date' : defaultSort),
+  query
+})
+
+// ---------------------------------------------------------------- The screen at the last exit
+
+const LAST_SCREEN_KEY = 'nav.last'
+
+/**
+ * Save the shown screen so the next start can open it again. A work keeps where it was opened from when that is plain
+ * data (bookmarks, a series, a shuffle playlist with its order); a list opened from Browse or Favorites is not kept,
+ * so next / previous work then follows the bookmarks
+ */
+function saveLastScreen(r: Route) {
+  saveJSON(LAST_SCREEN_KEY, r.name === 'gallery' && r.from?.kind === 'list' ? { ...r, from: undefined } : r)
+}
+
+function loadLastScreen(): Route | null {
+  const r = loadJSON<Route | null>(LAST_SCREEN_KEY, null)
+  return r && typeof r === 'object' && typeof r.name === 'string' ? r : null
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  // history
+  const [hist, setHist] = useState<{ stack: Entry[]; i: number }>({
+    stack: [newEntry({ name: 'browse', q: defaultQuery() })],
+    i: 0
+  })
+  const go = useCallback((r: Route) => {
+    setHist((h) => pushEntry(h, newEntry(r)))
+  }, [])
+  const replace = useCallback((r: Route) => {
+    setHist((h) => {
+      const stack = [...h.stack]
+      stack[h.i] = { ...stack[h.i], r }
+      return { ...h, stack }
+    })
+  }, [])
+  // the history entry last shown in each tab
+  const lastOfTab = useRef<Partial<Record<Route['name'], Entry>>>({})
+  const openTab = useCallback((fresh: Route) => {
+    setHist((h) => {
+      const last = lastOfTab.current[fresh.name]
+      return pushEntry(h, h.stack[h.i].r.name !== fresh.name && last ? newEntry(last.r, { ...last.s }) : newEntry(fresh))
+    })
+  }, [])
+  const back = useCallback(() => setHist((h) => ({ ...h, i: Math.max(0, h.i - 1) })), [])
+  const forward = useCallback(() => setHist((h) => ({ ...h, i: Math.min(h.stack.length - 1, h.i + 1) })), [])
+  const entry = hist.stack[hist.i]
+  // the screen is saved only after the first screen is decided (the default one shown before that would overwrite it)
+  const firstScreenSet = useRef(false)
+  useEffect(() => {
+    lastOfTab.current[entry.r.name] = entry
+    if (firstScreenSet.current) saveLastScreen(entry.r)
+  }, [entry])
+  const nav: Nav = {
+    route: entry.r,
+    go,
+    openTab,
+    replace,
+    back,
+    forward,
+    canBack: hist.i > 0,
+    canForward: hist.i < hist.stack.length - 1,
+    entryState: entry.s,
+    entryId: entry.id
+  }
+
+  // settings
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const settingsRef = useRef<Settings | null>(null)
+  useEffect(() => {
+    api.getSettings().then((s) => {
+      setRangeThumbSetting(s.rangeThumb)
+      settingsRef.current = s
+      setSettings(s)
+      // the first screen: the one shown at the last exit if remembered, otherwise Browse with the default query
+      const last = s.rememberScreen ? loadLastScreen() : null
+      firstScreenSet.current = true
+      setHist((h) =>
+        h.stack.length === 1 && h.stack[0].r.name === 'browse'
+          ? { stack: [newEntry(last ?? { name: 'browse', q: defaultQuery(s.language, s.sort) })], i: 0 }
+          : h
+      )
+    })
+  }, [])
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
+    const cur = settingsRef.current
+    if (!cur) return
+    const next = { ...cur, ...patch, viewer: { ...cur.viewer, ...patch.viewer } }
+    setRangeThumbSetting(next.rangeThumb)
+    applyFontScale(next.fontScale)
+    applyTheme(next.theme, next.accent)
+    settingsRef.current = next
+    setSettings(next)
+    api.setSettings(next).catch(() => {})
+  }, [])
+
+  // bookmarks
+  const [bookmarks, setBookmarks] = useState<Map<string, Bookmark>>(new Map())
+  const reload = useCallback(() => {
+    api.bookmarks().then((list) => {
+      // pass the chosen thumbnail versions to thumbUrl before the list renders
+      setThumbVersions(new Map(list.filter((b) => b.customThumb).map((b) => [b.key, b.customThumb!.updatedAt])))
+      setBookmarks(new Map(list.map((b) => [b.key, b])))
+    })
+  }, [])
+  useEffect(() => {
+    reload()
+    const off1 = api.onBookmarksChanged(reload)
+    const off2 = api.onDownloadProgress(({ key, state }) => {
+      setBookmarks((m) => {
+        const b = m.get(key)
+        if (!b) return m
+        const n = new Map(m)
+        n.set(key, { ...b, download: state })
+        return n
+      })
+    })
+    return () => {
+      off1()
+      off2()
+    }
+  }, [reload])
+
+  // toasts
+  const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([])
+  const toast = useCallback((msg: string) => {
+    const id = Date.now() + Math.random()
+    setToasts((t) => [...t, { id, msg }])
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000)
+  }, [])
+
+  const toggleBookmark = useCallback(
+    async (s: GallerySummary, confirmed = false) => {
+      const isLocal = isLocalKey(s.key)
+      if (bookmarks.has(s.key)) {
+        // a work made from a page range exists only as its cbz, so confirm before removing it
+        const b = bookmarks.get(s.key)
+        if (b && hasRangeFile(b) && !confirmed && !confirm(UNBOOKMARK_RANGE_CONFIRM)) return
+        await api.removeBookmark(s.key)
+        toast(t('toasts.unbookmarked'))
+      } else if (isLocal) {
+        toast(t('toasts.rangeGone'))
+      } else {
+        await api.addBookmark(s)
+        toast(settingsRef.current?.autoDownload ? t('toasts.bookmarkedDownloading') : t('toasts.bookmarked'))
+      }
+    },
+    [bookmarks, toast]
+  )
+
+  const [editCreatorKey, setEditCreatorKey] = useState<string | null>(null)
+
+  // series
+  const [series, setSeries] = useState<Series[]>([])
+  useEffect(() => {
+    const reload = () => void api.seriesList().then(setSeries)
+    reload()
+    return api.onSeriesChanged(reload)
+  }, [])
+  const seriesOf = useMemo(() => indexSeries(series), [series])
+  const [seriesDialogKey, setSeriesDialogKey] = useState<string | null>(null)
+  // the selection is per screen, so moving to another history entry clears it
+  const [selected, setSelected] = useState<string[]>([])
+  useEffect(() => setSelected([]), [entry.id])
+
+  // newer version notice
+  const [update, setUpdate] = useState<UpdateRelease | null>(null)
+  const checkUpdate = useCallback(
+    async (manual: boolean) => {
+      try {
+        const rel = await api.checkUpdate()
+        if (rel && (manual || rel.version !== loadSkippedVersion())) setUpdate(rel)
+        else if (manual) toast(t('update.upToDate'))
+      } catch (e) {
+        if (manual) toast(errorText(e))
+      }
+    },
+    [toast]
+  )
+  const dismissUpdate = useCallback(() => setUpdate(null), [])
+  // check at startup (can be turned off in the settings)
+  const checkedAtStart = useRef(false)
+  useEffect(() => {
+    if (!settings || checkedAtStart.current) return
+    checkedAtStart.current = true
+    if (settings.updateCheck !== 'off') void checkUpdate(false)
+  }, [settings, checkUpdate])
+
+  const value = useMemo<AppState>(
+    () => ({
+      nav,
+      settings,
+      updateSettings,
+      bookmarks,
+      toggleBookmark,
+      toast,
+      toasts,
+      editCreatorKey,
+      setEditCreatorKey,
+      series,
+      seriesOf,
+      seriesDialogKey,
+      setSeriesDialogKey,
+      selected,
+      setSelected,
+      update,
+      checkUpdate,
+      dismissUpdate
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hist, settings, updateSettings, bookmarks, toggleBookmark, toast, toasts, editCreatorKey, series, seriesOf, seriesDialogKey, selected, update, checkUpdate, dismissUpdate]
+  )
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
