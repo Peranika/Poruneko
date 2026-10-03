@@ -14,9 +14,11 @@
 //
 // The host gives the guest these functions, in the import module "poruneko":
 //
-//	http_fetch(ptr u32, len u32) u32   fetches the JSON HTTPRequest at ptr, len; the JSON HTTPResponse is kept
-//	                                   by the host and its length returned
-//	take(ptr u32)                      copies the kept response to ptr (the guest allocates that many bytes)
+//	http_fetch(ptr u32, len u32) u32       fetches the JSON HTTPRequest at ptr, len; the JSON HTTPResponse is kept
+//	                                       by the host and its length returned
+//	http_fetch_many(ptr u32, len u32) u32  the same for a JSON array of requests, fetched in parallel; the kept
+//	                                       answer is the array of responses in the same order
+//	take(ptr u32)                          copies the kept response to ptr (the guest allocates that many bytes)
 //	log(ptr u32, len u32)              writes a line to the app's log
 //
 // A guest has no file system or network of its own: it fetches only through http_fetch, and only from the hosts
@@ -149,6 +151,7 @@ func sharedRuntime(cacheDir string) (wazero.Runtime, error) {
 		wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 		_, err := rt.NewHostModuleBuilder("poruneko").
 			NewFunctionBuilder().WithFunc(hostFetch).Export("http_fetch").
+			NewFunctionBuilder().WithFunc(hostFetchMany).Export("http_fetch_many").
 			NewFunctionBuilder().WithFunc(hostTake).Export("take").
 			NewFunctionBuilder().WithFunc(hostLog).Export("log").
 			Instantiate(ctx)
@@ -345,6 +348,34 @@ func hostFetch(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
 		}
 	}
 	in.pending, _ = json.Marshal(res)
+	return uint32(len(in.pending))
+}
+
+// manyLimit is how many requests of one http_fetch_many run at the same time
+const manyLimit = 8
+
+// hostFetchMany fetches several requests in parallel (a guest waits for each fetch, so batching saves time)
+func hostFetchMany(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
+	inst, _ := byModule.Load(m.Name())
+	owner, _ := ownerOf.Load(m.Name())
+	if inst == nil || owner == nil {
+		return 0
+	}
+	var reqs []HTTPRequest
+	b, ok := m.Memory().Read(ptr, size)
+	if !ok || json.Unmarshal(b, &reqs) != nil {
+		reqs = nil
+	}
+	out := make([]HTTPResponse, len(reqs))
+	netx.ParallelEach(reqs, manyLimit, func(i int, req HTTPRequest) {
+		if err := owner.(*Plugin).allowed(req.URL); err != nil {
+			out[i].Error = err.Error()
+			return
+		}
+		fetch(ctx, &req, &out[i])
+	})
+	in := inst.(*instance)
+	in.pending, _ = json.Marshal(out)
 	return uint32(len(in.pending))
 }
 

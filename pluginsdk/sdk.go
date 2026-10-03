@@ -89,6 +89,9 @@ func errorJSON(e *Error) []byte {
 //go:wasmimport poruneko http_fetch
 func hostFetch(ptr, size uint32) uint32
 
+//go:wasmimport poruneko http_fetch_many
+func hostFetchMany(ptr, size uint32) uint32
+
 //go:wasmimport poruneko take
 func hostTake(ptr uint32)
 
@@ -136,6 +139,28 @@ func Fetch(req Request) (*Response, error) {
 		return &res, &HTTPError{Status: res.Status, Message: res.Error}
 	}
 	return &res, nil
+}
+
+// FetchMany makes several HTTP GETs through the host, which runs them in parallel. Each response has its own
+// Error ("" when it succeeded)
+func FetchMany(reqs []Request) ([]Response, error) {
+	if len(reqs) == 0 {
+		return nil, nil
+	}
+	b, err := json.Marshal(reqs)
+	if err != nil {
+		return nil, err
+	}
+	n := hostFetchMany(uint32(uintptr(unsafe.Pointer(&b[0]))), uint32(len(b)))
+	out := make([]byte, n)
+	if n > 0 {
+		hostTake(uint32(uintptr(unsafe.Pointer(&out[0]))))
+	}
+	var res []Response
+	if err := json.Unmarshal(out, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Log writes a line to the app's log

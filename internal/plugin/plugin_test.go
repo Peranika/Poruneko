@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"poruneko/internal/model"
 )
@@ -127,5 +129,36 @@ func TestSiteAdapter(t *testing.T) {
 	// no tagNamesJa capability: an empty map, without calling
 	if n := s.(*Site).TagNamesJa(); len(n) != 0 {
 		t.Fatalf("tag names %v", n)
+	}
+}
+
+// a batch fetch keeps the order, runs in parallel, and refuses hosts outside the list per request
+func TestPluginFetchMany(t *testing.T) {
+	p := loadTestPlugin(t)
+	var running, peak atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := running.Add(1)
+		for {
+			old := peak.Load()
+			if n <= old || peak.CompareAndSwap(old, n) {
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+		running.Add(-1)
+		_, _ = w.Write([]byte(r.URL.Path))
+	}))
+	defer srv.Close()
+	other := strings.Replace(srv.URL, "127.0.0.1", "localhost", 1)
+	urls := []string{srv.URL + "/a", srv.URL + "/b", other + "/c", srv.URL + "/d"}
+	var out []string
+	if err := p.Call(context.Background(), "fetchMany", map[string]any{"urls": urls}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(out, ",") != "/a,/b,error,/d" {
+		t.Fatalf("got %v", out)
+	}
+	if peak.Load() < 2 {
+		t.Fatalf("not in parallel (peak %d)", peak.Load())
 	}
 }

@@ -29,6 +29,26 @@ func init() {
 			}
 			pluginsdk.Log("fetched " + p.URL)
 			return string(res.Body), nil
+		case "fetchMany":
+			var p struct{ URLs []string }
+			_ = json.Unmarshal(params, &p)
+			reqs := make([]pluginsdk.Request, len(p.URLs))
+			for i, u := range p.URLs {
+				reqs[i] = pluginsdk.Request{URL: u}
+			}
+			res, err := pluginsdk.FetchMany(reqs)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]string, len(res))
+			for i, r := range res {
+				if r.Error != "" {
+					out[i] = "error"
+				} else {
+					out[i] = string(r.Body)
+				}
+			}
+			return out, nil
 		case "list":
 			return map[string]any{"items": []map[string]any{{"id": "42", "title": "Work"}}, "total": 1, "page": 1}, nil
 		case "webURL":
