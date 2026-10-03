@@ -257,8 +257,12 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID,
 			return writeFile(w, p)
 		}
 	}
-	// the user's own archives: the page itself
+	// the user's own archives: a cached small thumbnail, or the page itself if it cannot be decoded
 	if siteID == model.SiteFile {
+		if b, ok := h.lib.FileThumb(key, index, big); ok {
+			writeImage(w, b, "jpeg")
+			return nil
+		}
 		if b, ext, ok := h.lib.ReadPage(key, index); ok {
 			writeImage(w, b, ext)
 			return nil

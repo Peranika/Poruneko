@@ -83,6 +83,7 @@ internal/
   netx/                  HTTP fetching with retries, TTL cache, singleflight
   site/                  abstraction of sites (Provider); sites come from plugins, the base app has none
   plugin/                runs plugins (.wasm) with wazero, and makes site plugins sites
+  susie/                 Susie 64-bit archive plug-ins (.sph) for more archive formats (Windows)
   meta/                  creator info from DLsite / FANZA, fallbacks (pawchive, DuckDuckGo), title matching
   library/               the library folder: the user's archives as works (scan), reading archives (archive),
                          cbz storage for works from sites (locate / naming / comicinfo), page range works (range),
@@ -117,6 +118,10 @@ GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o myplugin.wasm .
 ```
 
 `internal/plugin/testdata/testsite` is a minimal example (the plugin tests build it).
+
+Archive formats other than cbz / zip come from Susie 64-bit archive plug-ins (`.sph`, Windows only) in the same
+`plugins` folders: `internal/susie` calls them (TORO's 32bit / 64bit Plug-in specification) and
+`internal/library` (formats.go) uses them through `ArchiveFormat`.
 
 ## Conventions
 

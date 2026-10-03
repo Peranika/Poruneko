@@ -83,6 +83,10 @@ func TestArchiveDetailOfUserArchive(t *testing.T) {
 	if !ok || !bytes.Equal(b, pngBytes(t, 20, 10)) {
 		t.Fatalf("page 2 not the second image")
 	}
+	// thumbnails: small pages are used as they are
+	if b, ok := lib.FileThumb(d.Key, 0, true); !ok || !bytes.Equal(b, pngBytes(t, 10, 20)) {
+		t.Fatalf("small page thumbnail")
+	}
 }
 
 // an archive with nothing but images: the file name is the title and every list is empty, not nil
@@ -130,5 +134,35 @@ func TestParseFileName(t *testing.T) {
 		if title != c.title || circle != c.circle || strings.Join(artists, "|") != c.artists {
 			t.Errorf("%q: got %q %q %q", c.in, title, circle, artists)
 		}
+	}
+}
+
+// a large page is shrunk to a JPEG thumbnail and cached
+func TestFileThumbShrinks(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := store.Open()
+	s := st.Settings()
+	s.LibraryDir = dir
+	st.SetSettings(s)
+	lib := New(st)
+	t.Cleanup(lib.Close)
+	f, _ := os.Create(filepath.Join(dir, "Big.cbz"))
+	w := zip.NewWriter(f)
+	fw, _ := w.Create("001.png")
+	_, _ = fw.Write(pngBytes(t, 1200, 1700))
+	_ = w.Close()
+	_ = f.Close()
+	st.Put(model.Bookmark{Key: FileKey("Big.cbz"), ArchiveFile: "Big.cbz"})
+	b, ok := lib.FileThumb(FileKey("Big.cbz"), 0, true)
+	if !ok {
+		t.Fatal("no thumbnail")
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(b))
+	if err != nil || format != "jpeg" || cfg.Width != 480 || cfg.Height != 680 {
+		t.Fatalf("%s %dx%d %v", format, cfg.Width, cfg.Height, err)
+	}
+	if b2, ok := lib.FileThumb(FileKey("Big.cbz"), 0, true); !ok || !bytes.Equal(b, b2) {
+		t.Fatal("not cached")
 	}
 }

@@ -18,6 +18,7 @@ macOS and Linux are not distributed as builds, but you can build the app yoursel
 ### Library
 - Every cbz / zip in the library folder becomes a work: the title and creators come from ComicInfo.xml or the file name (`[Circle (Artist)] Title`)
 - Archives with any page names or nested folders are read in natural order
+- More archive formats (rar, 7z, etc.) with Susie 64-bit archive plug-ins (.sph) put in a `plugins` folder next to `Poruneko.exe`
 - Your files are only read: Poruneko never renames, rewrites or deletes them. Removing a work only takes it out of the library
 - Rescan at any time; missing files are marked and recover when they are back
 
@@ -70,6 +71,7 @@ macOS・Linux 向けのビルド済みファイルは配布していないが、
 ### ライブラリ
 - ライブラリのフォルダにある cbz / zip が、そのまま作品になる。タイトルと作者は ComicInfo.xml かファイル名（`[サークル (作者)] タイトル`）から読む
 - ページの名前やフォルダ分けが自由なアーカイブも、自然な順番で読める
+- Susie 64bit 書庫プラグイン（.sph）を `Poruneko.exe` の横の `plugins` フォルダに置くと、rar・7z などの形式も読める
 - 自分のファイルは読むだけで、名前の変更・書き換え・削除は一切しない。作品を外してもライブラリから外れるだけ
 - いつでも読み込み直せる。無くなったファイルには印が付き、戻すと元に戻る
 

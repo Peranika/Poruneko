@@ -119,6 +119,10 @@ func (l *Library) workPage(key string, index int) string {
 // HasPage reports whether a page is stored locally (cbz or work dir)
 func (l *Library) HasPage(key string, index int) bool {
 	if p := l.ArchivePath(key); p != "" {
+		if f := formatFor(p); f != nil {
+			a, err := openPlugin(p, f)
+			return err == nil && index >= 0 && index < len(a.pages)
+		}
 		if z, err := l.zips.open(p); err == nil {
 			_, ok := z.pages[index]
 			return ok
@@ -141,7 +145,11 @@ func (l *Library) countPages(key string, pages []model.PageInfo) int {
 // ReadPage reads a local page image (the cbz first, then the work dir)
 func (l *Library) ReadPage(key string, index int) (data []byte, ext string, ok bool) {
 	if p := l.ArchivePath(key); p != "" {
-		if data, ext, err := l.zips.readPage(p, index); err == nil {
+		if f := formatFor(p); f != nil {
+			if data, ext, err := readPluginPage(p, f, index); err == nil {
+				return data, ext, true
+			}
+		} else if data, ext, err := l.zips.readPage(p, index); err == nil {
 			return data, ext, true
 		}
 	}
@@ -164,7 +172,7 @@ func (l *Library) LocalThumb(key string) string {
 // LocalInfo reads the locally stored work details
 func (l *Library) LocalInfo(key string) *model.GalleryDetail {
 	var b []byte
-	if p := l.ArchivePath(key); p != "" {
+	if p := l.ArchivePath(key); p != "" && formatFor(p) == nil {
 		b, _ = l.zips.readEntry(p, metaEntry)
 	}
 	if b == nil {

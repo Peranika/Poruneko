@@ -9,6 +9,7 @@ export namespace main {
 	    hosts: string[];
 	    capabilities: string[];
 	    file: string;
+	    formats: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new PluginInfo(source);
@@ -24,6 +25,7 @@ export namespace main {
 	        this.hosts = source["hosts"];
 	        this.capabilities = source["capabilities"];
 	        this.file = source["file"];
+	        this.formats = source["formats"];
 	    }
 	}
 

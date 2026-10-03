@@ -33,7 +33,8 @@ func (l *Library) scanIndex() map[string]string {
 			}
 			return nil
 		}
-		if !isArchive(p) {
+		// only the app's own cbz / zip files hold its work info
+		if !isArchive(p) || formatFor(p) != nil {
 			return nil
 		}
 		if b, err := l.zips.readEntryNoWait(p, metaEntry); err == nil {
@@ -204,10 +205,10 @@ func (l *Library) FindMissing(keys []string) []string {
 	return missing
 }
 
-// isArchive reports whether a file is a work file (including .zip from older versions)
+// isArchive reports whether a file is a work file: cbz / zip, or a format from a plugin
 func isArchive(p string) bool {
 	ext := filepath.Ext(p)
-	return strings.EqualFold(ext, ArchiveExt) || strings.EqualFold(ext, ".zip")
+	return strings.EqualFold(ext, ArchiveExt) || strings.EqualFold(ext, ".zip") || formatFor(p) != nil
 }
 
 // RenameLegacyExt renames .zip files saved by older versions to .cbz (keeping the rest of the name)

@@ -44,7 +44,12 @@ function PluginList() {
           {list && list.length > 0 ? (
             list.map((p) => (
               <span key={p.id} className="plugin-row" title={p.file}>
-                {p.name} <small className="muted">{p.version} — {t('settings.pluginHosts', { hosts: p.hosts.join(', ') })}</small>
+                {p.name}{' '}
+                <small className="muted">
+                  {p.kind === 'susie'
+                    ? t('settings.pluginFormats', { formats: p.formats.join(' ') })
+                    : `${p.version} — ${t('settings.pluginHosts', { hosts: p.hosts.join(', ') })}`}
+                </small>
               </span>
             ))
           ) : (

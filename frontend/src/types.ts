@@ -183,8 +183,10 @@ export interface PluginInfo {
   kind: string
   /** Hosts it may fetch from */
   hosts: string[]
-  /** The .wasm file */
+  /** The plugin file (.wasm, or .sph for a Susie archive plug-in) */
   file: string
+  /** Archive formats a Susie plug-in reads (".rar") */
+  formats: string[]
 }
 
 /** A site from a site plugin */

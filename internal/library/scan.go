@@ -61,11 +61,13 @@ func (l *Library) FindArchives() []string {
 // the image headers (0 when the format cannot be read)
 func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 	abs := filepath.Join(l.root(), toOS(rel))
+	if f := formatFor(abs); f != nil {
+		return l.pluginArchiveDetail(rel, abs, f)
+	}
 	z, err := l.zips.open(abs)
 	if err != nil {
 		return nil, err
 	}
-	key := FileKey(rel)
 	d := &model.GalleryDetail{}
 	if f := z.files[metaEntry]; f != nil {
 		if b, err := readFile(f); err == nil {
@@ -73,8 +75,25 @@ func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 		}
 	}
 	if d.Title == "" && d.JapaneseTitle == "" {
-		fillFromComicInfo(d, z.files[comicInfoEntry])
+		if f := z.files[comicInfoEntry]; f != nil {
+			if b, err := readFile(f); err == nil {
+				fillFromComicInfoBytes(d, b)
+			}
+		}
 	}
+	l.finishDetail(d, rel, abs)
+	d.Pages = make([]model.PageInfo, len(z.order))
+	for i, f := range z.order {
+		w, h := imageSize(f)
+		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(f.Name), Width: w, Height: h}
+	}
+	d.PageCount = len(d.Pages)
+	return d, nil
+}
+
+// finishDetail fills in what the archive did not say: the title and creators from the file name, the work key,
+// and empty lists
+func (l *Library) finishDetail(d *model.GalleryDetail, rel, abs string) {
 	if d.Title == "" && d.JapaneseTitle == "" {
 		name := strings.TrimSuffix(filepath.Base(abs), filepath.Ext(abs))
 		title, circle, artists := parseFileName(name)
@@ -86,27 +105,13 @@ func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 			}
 		}
 	}
-	d.Key, d.Site, d.ID = key, model.SiteFile, filepath.ToSlash(rel)
+	d.Key, d.Site, d.ID = FileKey(rel), model.SiteFile, filepath.ToSlash(rel)
 	d.Origin = nil
 	fillLists(&d.GallerySummary)
-	d.Pages = make([]model.PageInfo, len(z.order))
-	for i, f := range z.order {
-		w, h := imageSize(f)
-		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(f.Name), Width: w, Height: h}
-	}
-	d.PageCount = len(d.Pages)
-	return d, nil
 }
 
-// fillFromComicInfo takes the title, creators, tags and language from ComicInfo.xml
-func fillFromComicInfo(d *model.GalleryDetail, f *zip.File) {
-	if f == nil {
-		return
-	}
-	b, err := readFile(f)
-	if err != nil {
-		return
-	}
+// fillFromComicInfoBytes takes the title, creators, tags and language from ComicInfo.xml
+func fillFromComicInfoBytes(d *model.GalleryDetail, b []byte) {
 	var ci comicInfoXML
 	if xml.Unmarshal(b, &ci) != nil {
 		return
@@ -250,4 +255,26 @@ func parseFileName(name string) (title, circle string, artists []string) {
 		}
 	}
 	return title, "", []string{inner}
+}
+
+// pluginArchiveDetail reads the details of an archive in a plugin format: ComicInfo.xml if any, or the file name.
+// Page sizes stay 0 (reading them would decompress every page)
+func (l *Library) pluginArchiveDetail(rel, abs string, f ArchiveFormat) (*model.GalleryDetail, error) {
+	a, err := openPlugin(abs, f)
+	if err != nil {
+		return nil, err
+	}
+	d := &model.GalleryDetail{}
+	if e, ok := a.files[comicInfoEntry]; ok {
+		if b, err := f.Read(abs, e); err == nil {
+			fillFromComicInfoBytes(d, b)
+		}
+	}
+	l.finishDetail(d, rel, abs)
+	d.Pages = make([]model.PageInfo, len(a.pages))
+	for i, e := range a.pages {
+		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(e.Name)}
+	}
+	d.PageCount = len(d.Pages)
+	return d, nil
 }
