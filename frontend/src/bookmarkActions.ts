@@ -1,5 +1,5 @@
 // Actions of a bookmark's download box. The Bookmarks screen cards and the gallery page use the same logic.
-import { api, isLocalKey } from './api'
+import { api, isFileKey, isLocalKey } from './api'
 import { errorText, t } from './i18n'
 import type { Bookmark } from './types'
 
@@ -18,6 +18,7 @@ export const DOWNLOAD_ACTION_ICON: Record<DownloadAction, string> = {
 }
 
 export function downloadAction(b: Bookmark): DownloadAction | null {
+  if (isFileKey(b.key)) return null // the user's own archive is already on disk
   const s = b.download.status
   if (isLocalKey(b.key)) return s === 'error' ? 'retryRange' : s === 'none' ? 'buildRange' : null
   if (s === 'downloading' || s === 'queued') return 'pause'
@@ -45,7 +46,8 @@ export const hasRangeFile = (b: Bookmark): boolean => isLocalKey(b.key) && b.dow
 export const hasSavedFiles = (b: Bookmark): boolean => b.download.status !== 'none'
 
 /** Whether the downloaded file can be deleted (page range bookmarks only once built; deleting turns them back into links) */
-export const canDeleteFiles = (b: Bookmark): boolean => (isLocalKey(b.key) ? b.download.status === 'done' : b.download.status !== 'none')
+export const canDeleteFiles = (b: Bookmark): boolean =>
+  isFileKey(b.key) ? false : isLocalKey(b.key) ? b.download.status === 'done' : b.download.status !== 'none'
 
 export const DELETE_FILES_CONFIRM = {
   range: t('bookmarkActions.deleteRangeConfirm'),

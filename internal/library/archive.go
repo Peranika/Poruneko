@@ -26,6 +26,8 @@ type openZip struct {
 	rc    *zip.ReadCloser
 	pages map[int]*zip.File // page number (0-based) -> entry
 	files map[string]*zip.File
+	// order is the page images in reading order (pages[i] == order[i] unless numbered pages are missing)
+	order []*zip.File
 }
 
 // zipCache keeps open readers so zips are not reopened on every view
@@ -85,11 +87,27 @@ func (c *zipCache) open(path string) (*openZip, error) {
 		return nil, err
 	}
 	z := &openZip{rc: rc, pages: map[int]*zip.File{}, files: map[string]*zip.File{}}
+	// the app's own archives name pages 0001.webp etc. (the number is the page); other archives can name and nest
+	// them any way, so their images are the pages in natural name order (img2 before img10)
+	numbered := true
 	for _, f := range rc.File {
 		z.files[f.Name] = f
+		if !isPageEntry(f.Name) {
+			continue
+		}
+		z.order = append(z.order, f)
 		base := strings.TrimSuffix(filepath.Base(f.Name), filepath.Ext(f.Name))
-		if n, err := strconv.Atoi(base); err == nil && n > 0 && isImage(f.Name) {
+		if n, err := strconv.Atoi(base); err == nil && n > 0 && !strings.Contains(f.Name, "/") {
 			z.pages[n-1] = f
+		} else {
+			numbered = false
+		}
+	}
+	slices.SortStableFunc(z.order, func(a, b *zip.File) int { return naturalCompare(a.Name, b.Name) })
+	if !numbered {
+		z.pages = map[int]*zip.File{}
+		for i, f := range z.order {
+			z.pages[i] = f
 		}
 	}
 	if len(c.order) >= c.max {
@@ -172,6 +190,46 @@ func (c *zipCache) readEntry(path, name string) ([]byte, error) {
 		return nil, os.ErrNotExist
 	}
 	return readFile(f)
+}
+
+// isPageEntry reports whether a zip entry is a page image (not folders, hidden files or macOS resource forks)
+func isPageEntry(name string) bool {
+	if strings.HasSuffix(name, "/") || strings.HasPrefix(name, "__MACOSX/") || strings.HasPrefix(filepath.Base(name), ".") {
+		return false
+	}
+	return isImage(name)
+}
+
+// naturalCompare orders names with their digit runs compared as numbers (case-insensitive)
+func naturalCompare(a, b string) int {
+	a, b = strings.ToLower(a), strings.ToLower(b)
+	for a != "" && b != "" {
+		da, db := digitRun(a), digitRun(b)
+		if da > 0 && db > 0 {
+			na, nb := strings.TrimLeft(a[:da], "0"), strings.TrimLeft(b[:db], "0")
+			if len(na) != len(nb) {
+				return len(na) - len(nb)
+			}
+			if c := strings.Compare(na, nb); c != 0 {
+				return c
+			}
+			a, b = a[da:], b[db:]
+			continue
+		}
+		if a[0] != b[0] {
+			return int(a[0]) - int(b[0])
+		}
+		a, b = a[1:], b[1:]
+	}
+	return len(a) - len(b)
+}
+
+func digitRun(s string) int {
+	n := 0
+	for n < len(s) && s[n] >= '0' && s[n] <= '9' {
+		n++
+	}
+	return n
 }
 
 func isImage(name string) bool {
@@ -297,6 +355,9 @@ func (l *Library) RefreshMeta(key string) error {
 // UpdateInfo rewrites the work info in the cbz (poruneko.json) and updates ComicInfo.xml and the file name to match.
 // If fn is nil the work info is kept and only creator info changes are applied.
 func (l *Library) UpdateInfo(key string, fn func(d *model.GalleryDetail)) error {
+	if !Owned(key) {
+		return nil
+	}
 	path := l.ArchivePath(key)
 	if path == "" {
 		return nil

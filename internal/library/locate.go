@@ -145,6 +145,9 @@ func (l *Library) removeEmptyDirs(dir string) {
 // Relocate moves a cbz to the name given by the current format and creator info
 func (l *Library) Relocate(key string) (string, error) {
 	cur := l.ArchivePath(key)
+	if !Owned(key) {
+		return cur, nil // the user's own archives stay where they are
+	}
 	if cur == "" {
 		return "", nil
 	}
@@ -210,6 +213,9 @@ func isArchive(p string) bool {
 // RenameLegacyExt renames .zip files saved by older versions to .cbz (keeping the rest of the name)
 func (l *Library) RenameLegacyExt() (renamed int) {
 	for _, b := range l.st.Bookmarks() {
+		if !Owned(b.Key) {
+			continue
+		}
 		cur := l.ArchivePath(b.Key)
 		if !strings.EqualFold(filepath.Ext(cur), ".zip") {
 			continue

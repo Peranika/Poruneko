@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import { thumbUrl } from '../api'
+import { isFileKey, thumbUrl } from '../api'
 import { downloadErrorText, t } from '../i18n'
 import { TYPE_LABEL, altTitle, artistsBesideCircle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
 import { tagToken, useApp } from '../state'
@@ -8,6 +8,7 @@ import { Icon } from './Icon'
 
 export function BookmarkButton({ s, large = false }: { s: GallerySummary; large?: boolean }) {
   const { bookmarks, toggleBookmark } = useApp()
+  if (isFileKey(s.key)) return null
   const on = bookmarks.has(s.key)
   return (
     <button

@@ -486,6 +486,15 @@ export const en: Dict = {
     factor: 'Multiplier',
     reset: 'Reset'
   },
+  library: {
+    rescan: 'Rescan',
+    rescanTitle: 'Read the library folder again (new cbz / zip files are added and missing files are marked)',
+    added: 'Added {n} works',
+    noNew: 'No new works',
+    remove: 'Remove from the library',
+    removeConfirm: 'Remove this from the library? (The file is not deleted and does not come back when rescanning)',
+    removeNote: 'Your own files are only removed from the library, not deleted'
+  },
   predecode: {
     title: 'Pages to decode in advance',
     description: 'Keeps the next {ahead} and previous {behind} pages ready to show, so turning pages has no wait.',
@@ -744,6 +753,7 @@ export const en: Dict = {
       pageMissing: 'Page {page} is missing'
     },
     library: {
+      missing: 'The file is not in the library folder (fixed by itself when it is back)',
       noInfo: 'The gallery info is missing'
     },
     tags: {

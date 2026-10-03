@@ -142,6 +142,14 @@ export function ResolveCreator(arg1) {
   return window['go']['main']['App']['ResolveCreator'](arg1);
 }
 
+export function RestoreIgnoredArchives() {
+  return window['go']['main']['App']['RestoreIgnoredArchives']();
+}
+
+export function ScanLibrary() {
+  return window['go']['main']['App']['ScanLibrary']();
+}
+
 export function SearchCreatorCandidates(arg1) {
   return window['go']['main']['App']['SearchCreatorCandidates'](arg1);
 }

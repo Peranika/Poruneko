@@ -490,6 +490,15 @@ export const ja = {
     factor: '倍率',
     reset: '初期値に戻す'
   },
+  library: {
+    rescan: '読み込み直す',
+    rescanTitle: 'ライブラリのフォルダを読み込み直す（新しい cbz / zip を追加し、無くなったファイルに印を付けます）',
+    added: '{n} 作品を追加しました',
+    noNew: '新しい作品はありません',
+    remove: 'ライブラリから外す',
+    removeConfirm: 'ライブラリから外しますか？（ファイルは削除されず、読み込み直しても戻りません）',
+    removeNote: '自分のファイルはライブラリから外すだけで、削除はしません'
+  },
   predecode: {
     title: '前もってデコードするページ数',
     description: '今のページの先 {ahead} 枚と前 {behind} 枚を表示できる状態にしておき、ページ送りの待ちをなくします。',
@@ -749,6 +758,7 @@ export const ja = {
       pageMissing: 'ページ {page} がありません'
     },
     library: {
+      missing: 'ライブラリのフォルダにファイルがありません（戻すと自動で直ります）',
       noInfo: '作品情報がありません'
     },
     tags: {

@@ -71,6 +71,8 @@ func (a *App) ApplyFileNameFormat() (int, error) {
 func (a *App) GetSettings() model.Settings { return a.st.Settings() }
 
 func (a *App) SetSettings(s model.Settings) model.Settings {
+	// the archives removed from the library are kept by the backend (the screen's copy of the settings may be older)
+	s.LibraryIgnored = a.st.Settings().LibraryIgnored
 	v := a.st.SetSettings(s)
 	model.SetUILanguage(resolveUILanguage(v.UILanguage))
 	return v
@@ -98,6 +100,7 @@ func (a *App) ChooseLibraryDir(title string) (string, error) {
 		return "", err
 	}
 	cur.LibraryDir = dir
+	defer func() { go a.ScanLibrary() }()
 	a.st.SetSettings(cur)
 	return dir, nil
 }

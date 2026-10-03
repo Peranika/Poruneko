@@ -1,27 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
-import { api, isLocalKey, thumbUrl } from '../api'
+import { api, isFileKey, isLocalKey, thumbUrl } from '../api'
 import {
-  BOOKMARK_SORTS,
-  NAME_KIND_LABEL,
-  SPECIAL_LABEL,
-  UNTAGGED,
-  allWorkTags,
+  type TagSource,
   allTags,
+  allWorkTags,
+  BOOKMARK_SORTS,
+  type BookmarkPane,
+  type BookmarkSort,
   buildGroups,
   filterBookmarks,
-  filterByWorkTags,
   filterByTags,
+  filterByWorkTags,
+  type GroupBy,
   groupLabel,
   loadPrefs,
   matchingNames,
   membersOf,
+  NAME_KIND_LABEL,
+  needsReview,
   savePrefs,
   sortBookmarks,
+  SPECIAL_LABEL,
   specialGroups,
-  type BookmarkPane,
-  type BookmarkSort,
-  type GroupBy,
-  type TagSource
+  UNTAGGED
 } from '../bookmarkList'
 import {
   DELETE_FILES_CONFIRM,
@@ -324,6 +325,16 @@ export function BookmarksView({ view }: { view?: BookmarkView }) {
               </h2>
               <span className="muted">{t('common.items', { n: selected.length })}</span>
               <div className="spacer" />
+              {/* read the library folder again (new archives become works, missing ones are marked) */}
+              <button
+                className="btn small"
+                onClick={() =>
+                  void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
+                }
+                title={t('library.rescanTitle')}
+              >
+                <Icon name="refresh" size={14} /> {t('library.rescan')}
+              </button>
               {/* shuffle play; hovering shows its option */}
               <div className="shuffle-ctl">
                 <button className="btn small" onClick={() => void playShuffled()} disabled={!selected.length} title={t('bookmarks.shuffleTitle')}>
@@ -445,6 +456,7 @@ export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, classN
   const multi = targetBookmarks.length > 1
   const c = b.creator
   const isLocal = isLocalKey(b.key)
+  const isFile = isFileKey(b.key)
   const action = downloadAction(b)
   const [tagOpen, setTagOpen] = useState(false)
   const closeTags = useCallback(() => setTagOpen(false), [])
@@ -527,12 +539,14 @@ export function BookmarkCard({ b, from = { kind: 'bookmarks' }, seriesNo, classN
           )}
           <button
             className="danger"
-            title={t('bookmarkCard.unbookmark')}
+            title={isFile ? t('library.remove') : t('bookmarkCard.unbookmark')}
             onClick={stop(async () => {
               const ranges = targetBookmarks.some(hasRangeFile)
+              const files = targetBookmarks.some((x) => isFileKey(x.key))
+              const note = (ranges ? '\n' + UNBOOKMARK_RANGE_CONFIRM : '') + (files ? '\n' + t('library.removeNote') : '')
               const ok = multi
-                ? confirm(t('selection.unbookmarkConfirm', { n: targetBookmarks.length }) + (ranges ? '\n' + UNBOOKMARK_RANGE_CONFIRM : ''))
-                : confirm(ranges ? UNBOOKMARK_RANGE_CONFIRM : t('bookmarkCard.unbookmarkConfirm'))
+                ? confirm(t('selection.unbookmarkConfirm', { n: targetBookmarks.length }) + note)
+                : confirm(isFile ? t('library.removeConfirm') : ranges ? UNBOOKMARK_RANGE_CONFIRM : t('bookmarkCard.unbookmarkConfirm'))
               if (!ok) return
               for (const x of targetBookmarks) await api.removeBookmark(x.key).catch((e) => toast(errorText(e)))
               toast(multi ? t('selection.unbookmarked', { n: targetBookmarks.length }) : t('toasts.unbookmarked'))
@@ -666,7 +680,6 @@ function SelectionBar() {
 }
 
 /** The creator info was not found or is not certain, so the user should check it */
-const needsReview = (b: Bookmark) => b.creator.status === 'uncertain' || b.creator.status === 'notfound'
 
 /**
  * Status icons at the bottom right of a bookmark card's thumbnail (download, page range, series, needs review),

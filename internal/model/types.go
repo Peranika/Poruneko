@@ -15,6 +15,15 @@ type SiteID = string
 // SiteLocal is a local work cut out from a page range (the cbz is the work; without a cbz the source gallery's pages are shown)
 const SiteLocal SiteID = "local"
 
+// SiteFile is a cbz / zip of the user's own in the library folder (the id is its path relative to the folder)
+const SiteFile SiteID = "file"
+
+// IsFileKey reports whether the key is of an archive of the user's own in the library folder
+func IsFileKey(key string) bool {
+	s, _, err := ParseKey(key)
+	return err == nil && s == SiteFile
+}
+
 // MakeKey makes the cross-site unique work key "site:id"
 func MakeKey(site SiteID, id string) string { return site + ":" + id }
 
@@ -356,6 +365,9 @@ type Settings struct {
 	RememberScreen bool `json:"rememberScreen"`
 	// MouseGestures enables "hold right + left click to go back / hold left + right click to go forward"
 	MouseGestures bool `json:"mouseGestures"`
+	// LibraryIgnored are the archives (relative to the library folder) the user removed from the library;
+	// scans skip them
+	LibraryIgnored []string `json:"libraryIgnored"`
 	// FileNameFormat is the zip file name format ({title} {artist} {group} etc.; / makes folders)
 	FileNameFormat string `json:"fileNameFormat"`
 }

@@ -642,6 +642,7 @@ export namespace model {
 	    rememberWindow: boolean;
 	    rememberScreen: boolean;
 	    mouseGestures: boolean;
+	    libraryIgnored: string[];
 	    fileNameFormat: string;
 	
 	    static createFrom(source: any = {}) {
@@ -673,6 +674,7 @@ export namespace model {
 	        this.rememberWindow = source["rememberWindow"];
 	        this.rememberScreen = source["rememberScreen"];
 	        this.mouseGestures = source["mouseGestures"];
+	        this.libraryIgnored = source["libraryIgnored"];
 	        this.fileNameFormat = source["fileNameFormat"];
 	    }
 	

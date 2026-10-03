@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, isLocalKey, thumbUrl } from '../api'
+import { api, isFileKey, isLocalKey, thumbUrl } from '../api'
 import { DOWNLOAD_ACTION_ICON, downloadAction, hasSavedFiles, runDownloadAction, type DownloadAction } from '../bookmarkActions'
 import { downloadErrorText, errorText, t } from '../i18n'
 import { TYPE_LABEL, altTitle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
@@ -151,7 +151,7 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
                 <span>
                   <span className={sourceClass(c?.source)}>{sourceLabel(c?.source)}</span>
                   {c?.status === 'uncertain' && <span className="warn"> {t('common.needsReview')}</span>}
-                  {c?.status === 'notfound' && <span className="warn"> {t('gallery.notFound')}</span>}
+                  {c?.status === 'notfound' && !isFileKey(galleryKey) && <span className="warn"> {t('gallery.notFound')}</span>}
                   {c?.url && (
                     <button className="link" onClick={() => api.openExternal(c.url!)}>
                       {c.productTitle}

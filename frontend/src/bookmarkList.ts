@@ -1,9 +1,17 @@
+import { isFileKey } from './api'
 // Grouping, filtering and sorting of bookmarks.
 // The Bookmarks screen list and the viewer's "next/previous work" (when opened from bookmarks) use the same order.
 import { t } from './i18n'
 import { bookmarkTitle, displayTitle } from './labels'
 import { loadJSON, loadString, saveJSON, saveString } from './storage'
 import type { Bookmark } from './types'
+
+/**
+ * The creator info should be checked: uncertain, or not found by the lookup. The user's own archives are never
+ * looked up automatically, so having no creator info is normal for them
+ */
+export const needsReview = (b: Bookmark): boolean =>
+  b.creator.status === 'uncertain' || (b.creator.status === 'notfound' && !isFileKey(b.key))
 
 export type GroupBy = 'circle' | 'artist'
 export type BookmarkSort = 'added' | 'title' | 'artist' | 'circle'
@@ -29,7 +37,7 @@ export const SPECIAL_LABEL: Record<string, string> = {
 
 const SPECIAL_FILTER: Record<SpecialGroup, (b: Bookmark) => boolean> = {
   __all: () => true,
-  __review: (b) => b.creator.status === 'uncertain' || b.creator.status === 'notfound',
+  __review: (b) => needsReview(b),
   __pending: (b) => b.creator.status === 'pending',
   __downloading: (b) => ['downloading', 'queued', 'error', 'paused'].includes(b.download.status)
 }

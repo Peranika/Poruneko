@@ -25,6 +25,10 @@ const go = Go as unknown as Record<string, (...args: any[]) => Promise<any>>
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
   sites: (): Promise<SiteInfo[]> => go.Sites(),
+  /** Register the archives in the library folder that are not works yet (returns how many were added) */
+  scanLibrary: (): Promise<number> => go.ScanLibrary(),
+  /** Let the archives removed from the library come back, and scan */
+  restoreIgnoredArchives: (): Promise<number> => go.RestoreIgnoredArchives(),
   /** The web page of a work on its site ("" if none) */
   webURL: (key: string): Promise<string> => go.WebURL(key),
   list: (q: ListQuery): Promise<ListResult> => go.List(q),
@@ -122,11 +126,13 @@ const parseKey = (key: string): [string, string] => {
 
 /** Whether the key is of a work made from a page range (a local work) */
 export const isLocalKey = (key: string): boolean => key.startsWith('local:')
+/** Whether the key is of a cbz / zip of the user's own in the library folder (the app never changes the file) */
+export const isFileKey = (key: string): boolean => key.startsWith('file:')
 
 /** Page image URL (served by imgserver on the Go side; from local files if downloaded) */
 export const imageUrl = (key: string, index: number): string => {
   const [site, id] = parseKey(key)
-  return `/poru/img/${site}/${id}/${index}`
+  return `/poru/img/${site}/${encodeURIComponent(id)}/${index}`
 }
 
 // the thumbnail of page range bookmarks depends on a setting, so include it in the URL to refetch when it changes
@@ -147,5 +153,5 @@ export const thumbUrl = (key: string, index = 0, big = true): string => {
   const q = [big ? '' : 'small=1', isLocalKey(key) && rangeThumb ? `rt=${rangeThumb}` : '', custom ? `tv=${custom}` : '']
     .filter(Boolean)
     .join('&')
-  return `/poru/thumb/${site}/${id}/${index}${q ? '?' + q : ''}`
+  return `/poru/thumb/${site}/${encodeURIComponent(id)}/${index}${q ? '?' + q : ''}`
 }

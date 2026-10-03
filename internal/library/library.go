@@ -50,6 +50,8 @@ type Library struct {
 	scanned  map[string]string // index of cbz files without ArchiveFile: key -> absolute path
 	scanRoot string
 	zips     *zipCache
+	// fileDetails caches the details of the user's archives (key -> details), as reading page sizes takes a while
+	fileDetails map[string]*model.GalleryDetail
 
 	gate    gate // limits concurrent connections to the site
 	pmu     sync.Mutex
@@ -211,8 +213,11 @@ func (l *Library) SaveInfo(key string, d *model.GalleryDetail) error {
 	return writeAtomic(filepath.Join(l.WorkDir(key), infoFile), b)
 }
 
-// Delete deletes downloaded files (the cbz and the work dir)
+// Delete deletes downloaded files (the cbz and the work dir). The user's own archives are never deleted
 func (l *Library) Delete(key string) error {
+	if !Owned(key) {
+		return os.RemoveAll(l.WorkDir(key))
+	}
 	if p := l.ArchivePath(key); p != "" {
 		release := l.zips.exclusive(p)
 		err := removeRetry(p)
@@ -291,6 +296,9 @@ func (l *Library) Detail(ctx context.Context, key string) (*model.GalleryDetail,
 	s, id, err := model.ParseKey(key)
 	if err != nil {
 		return nil, err
+	}
+	if s == model.SiteFile {
+		return l.fileDetail(key)
 	}
 	if l.st.Has(key) {
 		if d := l.LocalInfo(key); d != nil {

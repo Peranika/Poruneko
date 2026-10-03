@@ -128,13 +128,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}()
 		w = rec
 	}
+	// the id can contain "/" (the path of a user's archive in the library folder): it is everything between the
+	// site and the page number
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, Prefix), "/")
-	if len(parts) != 4 {
+	if len(parts) < 4 {
 		http.NotFound(w, r)
 		return
 	}
-	kind, siteID, id := parts[0], parts[1], parts[2]
-	index, err := strconv.Atoi(parts[3])
+	kind, siteID, id := parts[0], parts[1], strings.Join(parts[2:len(parts)-1], "/")
+	index, err := strconv.Atoi(parts[len(parts)-1])
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -254,6 +256,14 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID,
 		if p := h.lib.CustomThumb(key); p != "" {
 			return writeFile(w, p)
 		}
+	}
+	// the user's own archives: the page itself
+	if siteID == model.SiteFile {
+		if b, ext, ok := h.lib.ReadPage(key, index); ok {
+			writeImage(w, b, ext)
+			return nil
+		}
+		return os.ErrNotExist
 	}
 	// local works made from a page range are served from the cbz (or the source gallery's thumbnail without one)
 	if siteID == model.SiteLocal {

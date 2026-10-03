@@ -32,6 +32,7 @@ type App struct {
 	resolving map[string]bool // bookmarks whose creator info is being fetched
 	building  map[string]bool // page range bookmarks whose cbz is being built
 	relocMu   sync.Mutex      // renames cbz files for series changes one at a time
+	scanMu    sync.Mutex      // one library scan at a time
 
 	winMu sync.Mutex
 	// window position and size before going full screen (saved instead if the app quits while full screen)
@@ -66,6 +67,7 @@ func (a *App) startup(ctx context.Context) {
 		a.restoreLoneCircles()
 		a.cleanRangeTags()
 		a.VerifyDownloads()
+		a.ScanLibrary()
 		a.cleanTempFiles()
 		// resolve pending creator info one by one
 		for _, b := range a.st.Bookmarks() {
@@ -251,7 +253,7 @@ func (a *App) List(q model.ListQuery) (*model.ListResult, error) {
 
 func (a *App) Gallery(key string) (*model.GalleryDetail, error) {
 	// if a cbz that should be downloaded was deleted outside the app, reset it to unsaved before opening
-	if b, ok := a.st.Bookmark(key); ok && b.Download.Status == model.DownloadDone {
+	if b, ok := a.st.Bookmark(key); ok && b.Download.Status == model.DownloadDone && !model.IsFileKey(key) {
 		a.resetMissing([]string{key})
 	}
 	return a.lib.Detail(a.ctx, key)

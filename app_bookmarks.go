@@ -69,6 +69,14 @@ func (a *App) RemoveBookmark(key string) error {
 	if x, _, ok := a.st.SeriesOf(key); ok {
 		defer a.seriesChanged(slices.DeleteFunc(x.Keys, func(k string) bool { return k == key }))
 	}
+	// the user's own archive stays on disk; it just leaves the library (and does not come back at the next scan)
+	if model.IsFileKey(key) {
+		a.forgetArchive(key)
+		a.lib.DeleteWork(key)
+		a.lib.DeleteCustomThumb(key)
+		a.st.Remove(key)
+		return nil
+	}
 	// a local work made from a page range exists only as its cbz, so delete it with the bookmark
 	if model.IsLocalKey(key) || a.st.Settings().DeleteFilesOnUnbookmark {
 		err := a.lib.DeleteAll(key)
@@ -445,6 +453,9 @@ func (a *App) ClearHistory() { a.st.ClearHistory() }
 
 // StartDownload starts a download (page range bookmarks resume their build)
 func (a *App) StartDownload(key string) error {
+	if model.IsFileKey(key) {
+		return nil // the user's own archive is already on disk
+	}
 	if model.IsLocalKey(key) {
 		return a.retryRange(key)
 	}
@@ -454,6 +465,9 @@ func (a *App) StartDownload(key string) error {
 func (a *App) PauseDownload(key string) { a.dl.Pause(key) }
 
 func (a *App) DeleteDownload(key string) error {
+	if model.IsFileKey(key) {
+		return nil // the user's own archive is never deleted
+	}
 	if model.IsLocalKey(key) {
 		// deleting the cbz turns it back into a bookmark that shows the source gallery's pages
 		if a.isBuilding(key) {
@@ -476,7 +490,8 @@ func (a *App) DeleteDownload(key string) error {
 func (a *App) VerifyDownloads() {
 	var keys []string
 	for _, b := range a.st.Bookmarks() {
-		if b.Download.Status == model.DownloadDone {
+		// the user's own archives are checked by the library scan (a missing one is marked, not reset)
+		if b.Download.Status == model.DownloadDone && !model.IsFileKey(b.Key) {
 			keys = append(keys, b.Key)
 		}
 	}

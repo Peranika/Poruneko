@@ -73,6 +73,10 @@ export function ReorderSeries(arg1:string,arg2:Array<string>):Promise<model.Seri
 
 export function ResolveCreator(arg1:string):Promise<model.Bookmark>;
 
+export function RestoreIgnoredArchives():Promise<number>;
+
+export function ScanLibrary():Promise<number>;
+
 export function SearchCreatorCandidates(arg1:string):Promise<Array<model.CreatorCandidate>>;
 
 export function SeriesList():Promise<Array<model.Series>>;
