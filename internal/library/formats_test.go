@@ -61,3 +61,27 @@ func TestPluginFormat(t *testing.T) {
 		t.Fatal("HasPage")
 	}
 }
+
+// an archive whose pages the format cannot extract is not a work
+type brokenFormat struct{ fakeFormat }
+
+func (b *brokenFormat) Extensions() []string { return []string{".broken"} }
+func (b *brokenFormat) Read(string, ArchiveEntry) ([]byte, error) {
+	return nil, os.ErrPermission
+}
+
+func TestPluginFormatUnreadable(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := store.Open()
+	s := st.Settings()
+	s.LibraryDir = dir
+	st.SetSettings(s)
+	lib := New(st)
+	t.Cleanup(lib.Close)
+	RegisterFormat(&brokenFormat{fakeFormat{files: map[string][]byte{"p1.png": pngBytes(t, 5, 5)}}})
+	_ = os.WriteFile(filepath.Join(dir, "b.broken"), []byte("x"), 0o644)
+	if _, err := lib.ArchiveDetail("b.broken"); err == nil {
+		t.Fatal("an unreadable archive became a work")
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -264,6 +265,12 @@ func (l *Library) pluginArchiveDetail(rel, abs string, f ArchiveFormat) (*model.
 	a, err := openPlugin(abs, f)
 	if err != nil {
 		return nil, err
+	}
+	// a plug-in may list files it cannot extract (unsupported names and the like): the first page must be readable
+	if len(a.pages) > 0 {
+		if _, err := f.Read(abs, a.pages[0]); err != nil {
+			return nil, fmt.Errorf("%s cannot read the pages: %w", f.Name(), err)
+		}
 	}
 	d := &model.GalleryDetail{}
 	if e, ok := a.files[comicInfoEntry]; ok {
