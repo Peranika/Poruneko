@@ -29,6 +29,7 @@ func main() {
 	update.Cleanup() // remove the old exe left by the previous update
 	st := store.Open()
 	model.SetUILanguage(resolveUILanguage(st.Settings().UILanguage))
+	loadPlugins()
 	lib := library.New(st)
 	dl := library.NewDownloader(lib, st)
 	img := imgserver.New(lib, st)

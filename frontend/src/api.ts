@@ -17,7 +17,7 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, SiteInfo } from './types'
+  UpdateRelease, PluginInfo, SiteInfo } from './types'
 
 // the generated models are classes, so call through any to pass plain objects
 const go = Go as unknown as Record<string, (...args: any[]) => Promise<any>>
@@ -25,6 +25,8 @@ const go = Go as unknown as Record<string, (...args: any[]) => Promise<any>>
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
   sites: (): Promise<SiteInfo[]> => go.Sites(),
+  /** The plugins loaded at startup */
+  plugins: (): Promise<PluginInfo[]> => go.Plugins(),
   /** Register the archives in the library folder that are not works yet (returns how many were added) */
   scanLibrary: (): Promise<number> => go.ScanLibrary(),
   /** Let the archives removed from the library come back, and scan */

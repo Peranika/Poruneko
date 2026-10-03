@@ -110,6 +110,10 @@ export function PauseDownload(arg1) {
   return window['go']['main']['App']['PauseDownload'](arg1);
 }
 
+export function Plugins() {
+  return window['go']['main']['App']['Plugins']();
+}
+
 export function PreviewFileName(arg1, arg2) {
   return window['go']['main']['App']['PreviewFileName'](arg1, arg2);
 }
@@ -196,6 +200,10 @@ export function StartDownload(arg1) {
 
 export function Suggest(arg1) {
   return window['go']['main']['App']['Suggest'](arg1);
+}
+
+export function TagNamesJa() {
+  return window['go']['main']['App']['TagNamesJa']();
 }
 
 export function ToggleFullscreen() {

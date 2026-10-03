@@ -175,6 +175,18 @@ export interface ThumbSpec {
 export type SlideCorner = 'tl' | 'tr' | 'bl' | 'br'
 export type SlideEdge = 'top' | 'bottom' | 'left' | 'right'
 
+/** A plugin loaded at startup */
+export interface PluginInfo {
+  id: string
+  name: string
+  version: string
+  kind: string
+  /** Hosts it may fetch from */
+  hosts: string[]
+  /** The .wasm file */
+  file: string
+}
+
 /** A site from a site plugin */
 export interface SiteInfo {
   id: string

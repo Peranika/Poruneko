@@ -1,3 +1,34 @@
+export namespace main {
+	
+	export class PluginInfo {
+	    abi: number;
+	    kind: string;
+	    id: string;
+	    name: string;
+	    version: string;
+	    hosts: string[];
+	    capabilities: string[];
+	    file: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PluginInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.abi = source["abi"];
+	        this.kind = source["kind"];
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.hosts = source["hosts"];
+	        this.capabilities = source["capabilities"];
+	        this.file = source["file"];
+	    }
+	}
+
+}
+
 export namespace model {
 	
 	export class ThumbSpec {

@@ -12,6 +12,10 @@ async function start() {
   setLanguage(resolveLanguage(settings?.uiLanguage || lang))
   applyFontScale(settings?.fontScale)
   applyTheme(settings?.theme, settings?.accent)
+  // Japanese names of the site's tags (from a site plugin; none without one). labels keeps text as constants,
+  // so it is loaded only now that the language is set
+  const [{ setTagNamesJa }, tagNames] = await Promise.all([import('./labels'), Go.TagNamesJa().catch(() => ({}))])
+  setTagNamesJa(tagNames)
   const [{ default: App }, { AppProvider }] = await Promise.all([import('./App'), import('./state')])
   createRoot(document.getElementById('root')!).render(
     <AppProvider>

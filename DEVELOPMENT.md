@@ -82,6 +82,7 @@ internal/
   apperr/                errors shown in the UI: a code and parameters; the text comes from the frontend string tables
   netx/                  HTTP fetching with retries, TTL cache, singleflight
   site/                  abstraction of sites (Provider); sites come from plugins, the base app has none
+  plugin/                runs plugins (.wasm) with wazero, and makes site plugins sites
   meta/                  creator info from DLsite / FANZA, fallbacks (pawchive, DuckDuckGo), title matching
   library/               the library folder: the user's archives as works (scan), reading archives (archive),
                          cbz storage for works from sites (locate / naming / comicinfo), page range works (range),
@@ -89,6 +90,7 @@ internal/
   imgserver/             serves /poru/img and /poru/thumb (local files first)
   store/                 persistence of settings (JSON) and bookmarks / series (SQLite)
   update/                finding a newer release on GitHub and replacing the exe (Windows only)
+pluginsdk/               the plugin side of the plugin interface (for plugins written in Go)
 frontend/src/            React UI
   components/viewer/     viewer (spreads, page images, prefetching, predecoding)
   state.tsx              app state and routing (history entries)
@@ -100,6 +102,21 @@ frontend/src/            React UI
   labels.ts / storage.ts display names and choices / localStorage access
   i18n/                  string tables (ja.ts / en.ts) and t()
 ```
+
+## Plugins
+
+Sites (and later more archive formats) come from plugins: WebAssembly modules (`.wasm`, WASI preview 1 reactors)
+loaded at startup from a `plugins` folder next to the exe or in the data folder. The interface (exports, host
+functions, JSON calls, the methods of a site plugin) is described in `internal/plugin` (plugin.go and site.go).
+A plugin can fetch only through the host, and only from the hosts its info lists.
+
+A plugin written in Go uses `pluginsdk` and is built with
+
+```
+GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o myplugin.wasm .
+```
+
+`internal/plugin/testdata/testsite` is a minimal example (the plugin tests build it).
 
 ## Conventions
 

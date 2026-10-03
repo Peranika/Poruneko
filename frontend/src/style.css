@@ -1014,3 +1014,6 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 
 /* viewer toolbar: back to the first page (the arrow is mirrored when right-to-left, where it sits after the slider) */
 .icon-btn.to-first.rtl svg { transform: scaleX(-1); }
+
+/* settings: loaded plugins */
+.plugin-row { display: block; }

@@ -4,7 +4,7 @@ import { ACCENT_PRESETS, DEFAULT_ACCENT, FONT_SCALES } from '../display'
 import { t } from '../i18n'
 import { LANGUAGES, SORTS } from '../labels'
 import { useApp } from '../state'
-import type { Settings, SortMode, ViewerSettings } from '../types'
+import type { PluginInfo, Settings, SortMode, ViewerSettings } from '../types'
 import { FileNameFormat } from './FileNameFormat'
 import { KeybindingSettings } from './KeybindingSettings'
 import { Options } from './ListControls'
@@ -29,6 +29,31 @@ function AccentPicker({ value, onChange }: { value: string; onChange(v: string):
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
       </label>
     </span>
+  )
+}
+
+/** The plugins loaded at startup (they are added by putting .wasm files in a plugins folder) */
+function PluginList() {
+  const [list, setList] = useState<PluginInfo[] | null>(null)
+  useEffect(() => void api.plugins().then(setList), [])
+  return (
+    <section>
+      <h3>{t('settings.plugins')}</h3>
+      <div className="row-setting">
+        <span>
+          {list && list.length > 0 ? (
+            list.map((p) => (
+              <span key={p.id} className="plugin-row" title={p.file}>
+                {p.name} <small className="muted">{p.version} — {t('settings.pluginHosts', { hosts: p.hosts.join(', ') })}</small>
+              </span>
+            ))
+          ) : (
+            <span className="muted">{t('settings.noPlugins')}</span>
+          )}
+          <small className="muted">{t('settings.pluginsHint')}</small>
+        </span>
+      </div>
+    </section>
   )
 }
 
@@ -287,6 +312,8 @@ export function SettingsView() {
               />
             </label>
           </section>
+
+          <PluginList />
 
           <section>
             <h3>{t('settings.window')}</h3>

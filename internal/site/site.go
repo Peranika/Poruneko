@@ -12,9 +12,9 @@ import (
 
 // ImageSource is where an image is fetched from
 type ImageSource struct {
-	URL     string
-	Headers map[string]string
-	Ext     string
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers,omitempty"`
+	Ext     string            `json:"ext"`
 }
 
 type Provider interface {
@@ -100,11 +100,16 @@ func Get(id model.SiteID) (Provider, error) {
 
 // AnyQuery is the query for listing "works with any of the tags"
 type AnyQuery struct {
-	Tags     []string        // "artist:xxx" / "group:yyy" (any of them)
-	Types    []string        // types (doujinshi, manga, artistcg, etc.; all if empty)
-	Language string          // "all" / "japanese" etc.
-	Page     int             // 1-based
-	Exclude  map[string]bool // keys of works to exclude (bookmarked ones etc.)
+	Tags     []string        `json:"tags"`     // "artist:xxx" / "group:yyy" (any of them)
+	Types    []string        `json:"types"`    // types (doujinshi, manga, artistcg, etc.; all if empty)
+	Language string          `json:"language"` // "all" / "japanese" etc.
+	Page     int             `json:"page"`     // 1-based
+	Exclude  map[string]bool `json:"exclude"`  // keys of works to exclude (bookmarked ones etc.)
+}
+
+// TagNamer is a site that has Japanese names for its tags
+type TagNamer interface {
+	TagNamesJa() map[string]string
 }
 
 // AnyLister is a site that can list "works with any of the tags" newest first (used by Favorites)
