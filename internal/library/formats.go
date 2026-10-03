@@ -44,13 +44,6 @@ func RegisterFormat(f ArchiveFormat) {
 	formatsMu.Unlock()
 }
 
-// Formats returns the registered archive formats
-func Formats() []ArchiveFormat {
-	formatsMu.RLock()
-	defer formatsMu.RUnlock()
-	return slices.Clone(formats)
-}
-
 // formatFor is the plugin format reading a file by its extension (nil for zip / cbz, which are built in)
 func formatFor(path string) ArchiveFormat {
 	ext := strings.ToLower(filepath.Ext(path))

@@ -8,7 +8,7 @@ import { useApp } from '../state'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { useScrollMemory } from '../useScrollMemory'
 import type { Bookmark, Series } from '../types'
-import { BookmarkCard } from './BookmarksView'
+import { BookmarkCard } from './BookmarkCard'
 import { Icon } from './Icon'
 import { SeriesTagPopover } from './TagEditor'
 

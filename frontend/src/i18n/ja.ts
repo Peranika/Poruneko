@@ -18,8 +18,6 @@ export const ja = {
     artist: '作者',
     title: 'タイトル',
     series: 'シリーズ',
-    download: 'ダウンロード',
-    pause: '一時停止',
     edit: '編集',
     needsReview: '要確認',
     showFolder: '保存先を表示',
@@ -33,13 +31,9 @@ export const ja = {
     forward: '進む (Alt+→)',
     minimize: '最小化',
     maximize: '最大化',
-    browse: 'サイト',
     bookmarks: 'ブックマーク',
     siteList: '一覧',
-    local: 'ローカル',
-    localTitle: 'ライブラリのフォルダの作品（ブックマークしていないものも含む）',
     favorites: 'お気に入り',
-    favoritesTitle: 'お気に入り検索（ブックマークしたアーティストの作品）',
     history: '履歴',
     historyTitle: 'ビューアで開いた作品の履歴',
     settings: '設定'
@@ -120,14 +114,13 @@ export const ja = {
     addPlaceholder: 'ローカルタグを追加（Enter・カンマで区切る）',
     remove: '外す',
     filterTitle: 'このローカルタグで絞り込む（複数選ぶと、すべてが付いた作品）',
-    clear: '解除',
     untagged: 'ローカルタグなし',
     rename: 'ローカルタグの名前を変える（付いている全作品で）',
     renamePrompt: '「{tag}」の新しい名前（同じ名前のローカルタグがあればまとめます）',
     renamed: '「{from}」を「{to}」に変えました（{n} 作品）',
     noTags: 'ローカルタグはまだありません（作品ページやカードの + から付けられます）',
     showTag: 'ローカルタグ「{tag}」の作品を表示',
-    hint: '自分で付ける絞り込み用のタグです。ブックマーク画面やローカルタブで絞り込めます'
+    hint: '自分で付ける絞り込み用のタグです。ブックマークやローカルのフォルダの画面で絞り込めます'
   },
 
   bookmarkCard: {
@@ -467,7 +460,7 @@ export const ja = {
   },
   library: {
     rescan: '読み込み直す',
-    rescanTitle: 'ライブラリのフォルダを読み込み直す（新しい cbz / zip を追加し、無くなったファイルに印を付けます）',
+    rescanTitle: 'フォルダを読み込み直す（新しい cbz / zip を追加し、ファイルが無くなった作品を一覧から外します）',
     added: '{n} 作品を追加しました',
     noNew: '新しい作品はありません',
     remove: 'ライブラリから外す',
@@ -478,7 +471,7 @@ export const ja = {
     noResults: '「{query}」に一致する作品はありません',
     noDirs: 'ローカルのフォルダがまだありません。フォルダを追加すると、タブになって中の作品が並びます',
     missingGroup: 'ファイルがない作品',
-    empty: 'ライブラリのフォルダに作品がありません',
+    empty: 'このフォルダに作品がありません',
     emptyHint: '設定の「保存先」のフォルダに cbz / zip などを置いて、「読み込み直す」を押してください'
   },
   predecode: {
@@ -563,6 +556,8 @@ export const ja = {
     localDirRemove: '外す',
     localDirRemoveConfirm: '「{name}」のタブを外しますか？\nこのフォルダの作品は、タグやシリーズと一緒に一覧から消えます（ファイルは削除されません）',
     localDirRemoved: 'フォルダを外しました',
+    restoreRemoved: '外した作品を戻す',
+    restoreRemovedTitle: '「ライブラリから外す」で外した作品を、すべて一覧に戻します',
     change: '変更',
     metaSources: '作者情報の取得元',
     metaSourcesHint: 'ブックマークした作品のタイトルで検索し、作者名・サークル名を取得します。上にあるものが優先されます。見つからない場合は作品の情報を仮に使用します。日本語の作品（と言語の無い作品）だけが対象で、翻訳された作品はサイトのアーティスト名・グループ名をそのまま使います。',
@@ -759,7 +754,7 @@ export const ja = {
       dirOverlapsSave: 'このフォルダはサイトの保存先（{path}）と重なっています',
       dirOverlapsLocal: 'このフォルダはローカルのフォルダ（{path}）と重なっています',
       dirOverlaps: 'このフォルダは追加済みのフォルダ（{path}）と重なっています',
-      missing: 'ライブラリのフォルダにファイルがありません（戻すと自動で直ります）',
+      missing: 'フォルダが読めません（フォルダが戻ると自動で直ります）',
       noInfo: '作品情報がありません'
     },
     tags: {

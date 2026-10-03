@@ -18,8 +18,6 @@ export const en: Dict = {
     artist: 'Artist',
     title: 'Title',
     series: 'Series',
-    download: 'Download',
-    pause: 'Pause',
     edit: 'Edit',
     needsReview: 'Review',
     showFolder: 'Show in folder',
@@ -33,15 +31,11 @@ export const en: Dict = {
     forward: 'Forward (Alt+→)',
     minimize: 'Minimize',
     maximize: 'Maximize',
-    browse: 'Site',
     bookmarks: 'Bookmarks',
     siteList: 'List',
-    local: 'Local',
-    localTitle: 'Works in the library folder (bookmarked or not)',
     favorites: 'Favorites',
     history: 'History',
     historyTitle: 'Works opened in the viewer',
-    favoritesTitle: 'Favorites (works by artists you bookmarked)',
     settings: 'Settings'
   },
 
@@ -118,14 +112,13 @@ export const en: Dict = {
     addPlaceholder: 'Add local tags (Enter or comma to separate)',
     remove: 'Remove',
     filterTitle: 'Filter by this local tag (with several, works having all of them)',
-    clear: 'Clear',
     untagged: 'No local tags',
     rename: 'Rename the local tag (on all works that have it)',
     renamePrompt: 'New name for "{tag}" (merged if a local tag with that name exists)',
     renamed: 'Renamed "{from}" to "{to}" ({n} works)',
     noTags: 'No local tags yet (add them with + on a card or on the gallery page)',
     showTag: 'Show works with the local tag "{tag}"',
-    hint: 'Your own tags for filtering. You can filter by them on the Bookmarks screen and in the Local tab'
+    hint: 'Your own tags for filtering. You can filter by them in the bookmarks and in the tabs of the local folders'
   },
 
   bookmarkCard: {
@@ -464,7 +457,7 @@ export const en: Dict = {
   },
   library: {
     rescan: 'Rescan',
-    rescanTitle: 'Read the library folder again (new cbz / zip files are added and missing files are marked)',
+    rescanTitle: 'Read the folders again (new cbz / zip files are added and works whose file is gone are taken out)',
     added: 'Added {n} works',
     noNew: 'No new works',
     remove: 'Remove from the library',
@@ -475,7 +468,7 @@ export const en: Dict = {
     noResults: 'No works match "{query}"',
     noDirs: 'No local folders yet. Each folder you add becomes a tab listing its works',
     missingGroup: 'Missing files',
-    empty: 'No works in the library folder',
+    empty: 'No works in this folder',
     emptyHint: 'Put cbz / zip files and the like in the folder set as "Save location" in the settings, then press "Rescan"'
   },
   predecode: {
@@ -560,6 +553,8 @@ export const en: Dict = {
     localDirRemove: 'Remove',
     localDirRemoveConfirm: 'Remove the tab "{name}"?\nIts works leave the lists with their tags and series (the files are not deleted)',
     localDirRemoved: 'Removed the folder',
+    restoreRemoved: 'Bring back removed works',
+    restoreRemovedTitle: 'Brings back every work taken out with "Remove from the library"',
     change: 'Change',
     metaSources: 'Sources of creator info',
     metaSourcesHint: 'Searches the titles of bookmarked works to get artist and group names. Sources higher in the list take priority. If nothing is found, the work info is used for now. Only Japanese works (and works without a language) are looked up; translated works use site artist and group names as they are.',
@@ -755,7 +750,7 @@ export const en: Dict = {
       dirOverlapsSave: 'This folder overlaps the save location of a site ({path})',
       dirOverlapsLocal: 'This folder overlaps a local folder ({path})',
       dirOverlaps: 'This folder overlaps a folder already added ({path})',
-      missing: 'The file is not in the library folder (fixed by itself when it is back)',
+      missing: 'The folder cannot be read (fixed by itself when it is back)',
       noInfo: 'The gallery info is missing'
     },
     tags: {

@@ -3,7 +3,7 @@
 // (Settings.pluginSettings). Functions take the site's id; without one they use the first site
 import type { CSSProperties } from 'react'
 import { language, t } from './i18n'
-import type { FilterSpec, Namespace, SiteInfo, Text } from './types'
+import type { BrowseSpec, FilterSpec, Namespace, SiteInfo, Text } from './types'
 
 let sites: SiteInfo[] = []
 // the plugins' settings: site id -> the value of each filter or setting used by default
@@ -21,11 +21,13 @@ export const siteInfo = (id?: string): SiteInfo | null => sites.find((s) => s.id
 /** A text in the UI language (English, or any, if it has none) */
 export const textOf = (x: Text | undefined): string => (x ? (x[language()] ?? x.en ?? Object.values(x)[0] ?? '') : '')
 
-/** The filters on a screen (or the plugin's settings) of a site (its id, or its info) */
-export function filtersOn(where: 'browse' | 'favorites' | 'settings', site?: string | SiteInfo | null): FilterSpec[] {
-  const s = typeof site === 'object' ? site : siteInfo(site)
-  return (s?.browse?.filters ?? []).filter((f) => (f.in?.length ? f.in : ['browse']).includes(where))
-}
+/** The filters on a screen (or the plugin's settings) in a plugin's spec */
+export const specFilters = (spec: BrowseSpec | null | undefined, where: 'browse' | 'favorites' | 'settings'): FilterSpec[] =>
+  (spec?.filters ?? []).filter((f) => (f.in?.length ? f.in : ['browse']).includes(where))
+
+/** The filters on a screen (or the plugin's settings) of a site */
+export const filtersOn = (where: 'browse' | 'favorites' | 'settings', site?: string): FilterSpec[] =>
+  specFilters(siteInfo(site)?.browse, where)
 
 /** The value of a site's filter used by default: the user's choice, or the plugin's default */
 export const savedValue = (f: FilterSpec, site?: string): string => saved[siteInfo(site)?.id ?? '']?.[f.id] ?? f.default ?? ''

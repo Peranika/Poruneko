@@ -73,25 +73,26 @@ On distributions that still ship WebKitGTK 4.0 (`libwebkit2gtk-4.0-dev`), drop `
 
 ```
 main.go                  Wails startup, logging, WebView2 data folder
-app*.go                  APIs exposed to the frontend (viewing / bookmarks / series / favorites / settings / updates)
+app*.go                  APIs exposed to the frontend (viewing / local folders / bookmarks / series / favorites / settings / updates)
 reveal_*.go, window_*.go,
 lang_*.go                platform-specific parts (showing files in Explorer / Finder, saving the window position,
                          the OS display language)
 internal/
   model/                 data types shared with the frontend (Wails generates the TS types)
   apperr/                errors shown in the UI: a code and parameters; the text comes from the frontend string tables
-  netx/                  HTTP fetching with retries, TTL cache, singleflight
+  netx/                  HTTP fetching with retries, TTL cache
   site/                  abstraction of sites (Provider); sites come from plugins, the base app has none
   plugin/                runs plugins (.wasm) with wazero, and makes site plugins sites
   susie/                 Susie 64-bit archive plug-ins (.sph) for more archive formats (Windows)
   meta/                  creator info from DLsite / FANZA, fallbacks (pawchive, DuckDuckGo), title matching
-  library/               the library folder: the user's archives as works (scan), reading archives (archive),
+  library/               the local folders' archives as works (scan), the sites' save locations, reading archives (archive),
                          cbz storage for works from sites (locate / naming / comicinfo), page range works (range),
                          download queue (download), concurrency limits for sites (gate)
   imgserver/             serves /poru/img and /poru/thumb (local files first)
   store/                 persistence of settings (JSON) and bookmarks / series (SQLite)
   update/                finding a newer release on GitHub and replacing the exe (Windows only)
-pluginsdk/               the plugin side of the plugin interface (for plugins written in Go)
+pluginsdk/               the plugin side of the plugin interface (for plugins written in Go; spec.go: the types of a
+                         site plugin's browse spec)
 frontend/src/            React UI
   components/viewer/     viewer (spreads, page images, prefetching, predecoding)
   state.tsx              app state and routing (history entries)
@@ -99,6 +100,7 @@ frontend/src/            React UI
   bookmarkActions.ts     download box actions (shared by the Bookmarks screen and the gallery page)
   series.ts              series ordering and name suggestions
   workSequence.ts        order of next/previous work
+  browseSpec.ts          what the site plugins' screens offer (filters, settings, kinds of tags)
   keybindings.ts         key bindings
   labels.ts / storage.ts display names and choices / localStorage access
   i18n/                  string tables (ja.ts / en.ts) and t()

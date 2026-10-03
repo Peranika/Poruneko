@@ -79,15 +79,3 @@ export function ThumbSizeSlider({ value, onChange }: { value: number; onChange(n
   )
 }
 
-/** select options (from a list of [value, label]) */
-export function Options({ items }: { items: readonly (readonly [string, string])[] }) {
-  return (
-    <>
-      {items.map(([v, l]) => (
-        <option key={v} value={v}>
-          {l}
-        </option>
-      ))}
-    </>
-  )
-}

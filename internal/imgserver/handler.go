@@ -128,7 +128,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}()
 		w = rec
 	}
-	// the id can contain "/" (the path of a user's archive in the library folder): it is everything between the
+	// the id can contain "/" (the path of a user's archive in a local folder): it is everything between the
 	// site and the page number
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, Prefix), "/")
 	if len(parts) < 4 {

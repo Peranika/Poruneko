@@ -190,40 +190,6 @@ func (c *Cache[V]) Delete(k string) {
 
 // ---------------------------------------------------------------- Concurrency
 
-// Group merges concurrent calls with the same key (like singleflight)
-type Group[V any] struct {
-	mu sync.Mutex
-	m  map[string]*call[V]
-}
-
-type call[V any] struct {
-	wg  sync.WaitGroup
-	v   V
-	err error
-}
-
-func (g *Group[V]) Do(key string, fn func() (V, error)) (V, error) {
-	g.mu.Lock()
-	if g.m == nil {
-		g.m = map[string]*call[V]{}
-	}
-	if c, ok := g.m[key]; ok {
-		g.mu.Unlock()
-		c.wg.Wait()
-		return c.v, c.err
-	}
-	c := &call[V]{}
-	c.wg.Add(1)
-	g.m[key] = c
-	g.mu.Unlock()
-	c.v, c.err = fn()
-	c.wg.Done()
-	g.mu.Lock()
-	delete(g.m, key)
-	g.mu.Unlock()
-	return c.v, c.err
-}
-
 // ParallelEach runs fn with limited concurrency
 func ParallelEach[T any](items []T, limit int, fn func(i int, t T)) {
 	if limit < 1 {

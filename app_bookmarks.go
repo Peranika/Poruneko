@@ -37,8 +37,8 @@ func notDownloaded(b *model.Bookmark) model.DownloadState {
 	return model.DownloadState{Status: model.DownloadNone, Total: b.Summary.PageCount}
 }
 
-// Works in the library folders have records like bookmarks (for their tags, series and creator info) but are not
-// bookmarks: they are listed in the Local tab only and cannot be bookmarked
+// Works in the local folders have records like bookmarks (for their tags, series and creator info) but are not
+// bookmarks: they are listed in their folder's tab only and cannot be bookmarked
 
 func (a *App) IsBookmarked(key string) bool { return a.st.Has(key) && !model.IsFileKey(key) }
 

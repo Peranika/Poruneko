@@ -15,10 +15,10 @@ type SiteID = string
 // SiteLocal is a local work cut out from a page range (the cbz is the work; without a cbz the source gallery's pages are shown)
 const SiteLocal SiteID = "local"
 
-// SiteFile is a cbz / zip of the user's own in the library folder (the id is its path relative to the folder)
+// SiteFile is an archive of the user's own in a local folder (the id is "@<folder id>/<path relative to the folder>")
 const SiteFile SiteID = "file"
 
-// IsFileKey reports whether the key is of an archive of the user's own in the library folder
+// IsFileKey reports whether the key is of an archive of the user's own in a local folder
 func IsFileKey(key string) bool {
 	s, _, err := ParseKey(key)
 	return err == nil && s == SiteFile
@@ -220,7 +220,7 @@ type Series struct {
 	CreatedAt int64  `json:"createdAt"`
 	// Keys are the keys of the works in the series (in display order)
 	Keys []string `json:"keys"`
-	// Folder is the subfolder the series was made from (relative path of a library folder); new archives in it join
+	// Folder is the subfolder the series was made from (as in ArchiveFile); new archives in it join
 	Folder string `json:"folder,omitempty"`
 }
 
@@ -264,7 +264,8 @@ type Bookmark struct {
 	Summary  GallerySummary `json:"summary"`
 	Creator  CreatorInfo    `json:"creator"`
 	Download DownloadState  `json:"download"`
-	// ArchiveFile is the saved cbz's path relative to libraryDir (slash-separated)
+	// ArchiveFile is the archive's path relative to the site's save location, or for a work in a local folder
+	// "@<folder id>/<path relative to the folder>" (slash-separated)
 	ArchiveFile string `json:"archiveFile,omitempty"`
 	// Tags are the user's own tags (separate from the work's own tags)
 	Tags []string `json:"tags,omitempty"`

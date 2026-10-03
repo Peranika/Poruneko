@@ -28,7 +28,7 @@ export const api = {
   sites: (): Promise<SiteInfo[]> => go.Sites(),
   /** The plugins loaded at startup */
   plugins: (): Promise<PluginInfo[]> => go.Plugins(),
-  /** Register the archives in the library folder that are not works yet (returns how many were added) */
+  /** Register the archives in the local folders that are not works yet (returns how many were added) */
   scanLibrary: (): Promise<number> => go.ScanLibrary(),
   /** Let the archives removed from the library come back, and scan */
   restoreIgnoredArchives: (): Promise<number> => go.RestoreIgnoredArchives(),
@@ -43,7 +43,7 @@ export const api = {
   bookmarks: (): Promise<Bookmark[]> => go.Bookmarks(),
   addBookmark: (s: GallerySummary): Promise<Bookmark> => go.AddBookmark(s),
   removeBookmark: (key: string): Promise<void> => go.RemoveBookmark(key),
-  /** Take a work in the library folder out of the app (the file stays; it does not come back when rescanning) */
+  /** Take a work in a local folder out of the app (the file stays; it does not come back when rescanning) */
   removeFromLibrary: (key: string): Promise<void> => go.RemoveFromLibrary(key),
   /** Bookmark only the given page range (req.download chooses whether to make a cbz) */
   bookmarkRange: (req: RangeRequest): Promise<Bookmark> => go.BookmarkRange(req),
@@ -101,7 +101,7 @@ export const api = {
   /** Dialog to choose the save location (title is the dialog title) */
   /** Choose where a site's works are saved ("" if cancelled) */
   chooseSiteDir: (site: string, title: string): Promise<string> => go.ChooseSiteDir(site, title),
-  /** Choose a folder to add to the Local tab ("" if cancelled) */
+  /** Choose a folder to add as a tab ("" if cancelled) */
   addLocalDir: (title: string): Promise<string> => go.AddLocalDir(title),
   removeLocalDir: (id: number): Promise<void> => go.RemoveLocalDir(id),
   setLocalDir: (id: number, name: string, icon: string): Promise<void> => go.SetLocalDir(id, name, icon),
@@ -141,7 +141,7 @@ const parseKey = (key: string): [string, string] => {
 
 /** Whether the key is of a work made from a page range (a local work) */
 export const isLocalKey = (key: string): boolean => key.startsWith('local:')
-/** Whether the key is of a cbz / zip of the user's own in the library folder (the app never changes the file) */
+/** Whether the key is of an archive of the user's own in a local folder (the app never changes the file) */
 export const isFileKey = (key: string): boolean => key.startsWith('file:')
 /** The site a bookmark belongs to: its key's site, or for a page range work its source's site */
 export function siteOfBookmark(b: Bookmark): string {
@@ -154,7 +154,7 @@ export const localDirOfKey = (key: string): number | undefined => {
   const m = /^file:@(\d+)\//.exec(key)
   return m ? Number(m[1]) : undefined
 }
-/** Whether a work's record is a bookmark (works in the library folder have records but are never bookmarks) */
+/** Whether a work's record is a bookmark (works in the local folders have records but are never bookmarks) */
 export const isBookmarked = (b: Bookmark | undefined): b is Bookmark => !!b && !isFileKey(b.key)
 
 /** Page image URL (served by imgserver on the Go side; from local files if downloaded) */

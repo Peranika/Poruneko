@@ -14,7 +14,7 @@ export const needsReview = (b: Bookmark): boolean =>
   b.creator.status === 'uncertain' || (b.creator.status === 'notfound' && !isFileKey(b.key))
 
 /**
- * Which works a list shows: the bookmarks, or every work in the library folder (Local tab). Both screens work the same
+ * Which works a list shows: a site's bookmarks, or the works in a local folder (its tab). Both screens work the same
  * way (tags, series, creators); each remembers its own view
  */
 export type ListScope = 'bookmarks' | 'local'

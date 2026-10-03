@@ -23,16 +23,17 @@ import (
 	"poruneko/internal/model"
 )
 
-// The user's own archives in the library folder. A cbz / zip found there becomes a work with the key "file:<relative path>".
+// The user's own archives in the local folders. An archive found there becomes a work with the key
+// "file:@<folder id>/<path relative to the folder>".
 // These files belong to the user: the app reads them but never rewrites, renames or deletes them (see Owned).
 
 // Owned reports whether the app made this work's files and may change them (not for the user's own archives)
 func Owned(key string) bool { return !model.IsFileKey(key) }
 
-// FileKey is the work key of an archive at this path relative to the library folder
+// FileKey is the work key of an archive at this relative path (see LocalDirRel)
 func FileKey(rel string) string { return model.MakeKey(model.SiteFile, filepath.ToSlash(rel)) }
 
-// The other folders listed in the Local tab (Settings.LocalDirs) are marked in the relative paths: "@<id>/<path>"
+// The local folder (Settings.LocalDirs) is marked in the relative paths: "@<id>/<path>"
 
 // LocalDirRel is the relative path of a file in a local folder
 func LocalDirRel(id int, rel string) string { return fmt.Sprintf("@%d/%s", id, filepath.ToSlash(rel)) }
@@ -113,7 +114,7 @@ func findArchives(root string, relOf func(rel string) string) []string {
 	return out
 }
 
-// ArchiveDetail reads the work details of an archive in the library folder (rel is relative to it): the app's own
+// ArchiveDetail reads the work details of an archive in a local folder (rel as in LocalDirRel): the app's own
 // work info when the archive was made by it, otherwise ComicInfo.xml if any, or the file name. Page sizes come from
 // the image headers (0 when the format cannot be read)
 func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {

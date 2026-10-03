@@ -319,7 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (s: GallerySummary, confirmed = false) => {
       const isLocal = isLocalKey(s.key)
       const b = bookmarks.get(s.key)
-      if (isFileKey(s.key)) return // works in the library folder are not bookmarked
+      if (isFileKey(s.key)) return // works in the local folders are not bookmarked
       if (isBookmarked(b)) {
         // a work made from a page range exists only as its cbz, so confirm before removing it
         if (hasRangeFile(b) && !confirmed && !confirm(UNBOOKMARK_RANGE_CONFIRM)) return

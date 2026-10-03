@@ -474,6 +474,7 @@ select { cursor: pointer; }
 .row-setting .inline { display: flex; align-items: center; gap: 10px; }
 .path-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .local-dirs { list-style: none; margin: 8px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.local-dirs-actions { display: flex; align-items: center; gap: 8px; }
 .local-dir-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .local-dir-name { width: 160px; flex: none; }
 .local-dirs code { flex: 1 1 auto; flex: 0 1 auto; min-width: 0; font-size: 0.8571rem; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

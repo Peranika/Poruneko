@@ -9,7 +9,7 @@ import { Icon } from './Icon'
 
 export function BookmarkButton({ s, large = false }: { s: GallerySummary; large?: boolean }) {
   const { bookmarks, toggleBookmark } = useApp()
-  if (isFileKey(s.key)) return null // works in the library folder are not bookmarked
+  if (isFileKey(s.key)) return null // works in the local folders are not bookmarked
   const on = isBookmarked(bookmarks.get(s.key))
   return (
     <button

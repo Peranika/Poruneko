@@ -2,8 +2,8 @@
 //
 // Storage layout:
 //
-//	{libraryDir}/{name from the format}.cbz   one cbz per work (uncompressed zip: page images + ComicInfo.xml + poruneko.json)
-//	{libraryDir}/.parts/{site}/{id}/      work dir for in-progress downloads
+//	{site's save location}/{name from the format}.cbz   one cbz per work (uncompressed zip: page images + ComicInfo.xml + poruneko.json)
+//	{site's save location}/.parts/{site}/{id}/  work dir for in-progress downloads
 //	{dataDir}/thumbs/{site}/{id}.webp     thumbnails
 //
 // The cbz location is recorded in the bookmark's ArchiveFile. A cbz without a record is identified

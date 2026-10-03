@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { ACCENT_PRESETS, DEFAULT_ACCENT, FONT_SCALES } from '../display'
 import { errorText, t } from '../i18n'
-import { filtersOn, textOf } from '../browseSpec'
+import { specFilters, textOf } from '../browseSpec'
 import { useApp } from '../state'
 import type { LocalDir, PluginInfo, Settings, SiteInfo, ViewerSettings } from '../types'
 import { FileNameFormat } from './FileNameFormat'
@@ -69,7 +69,7 @@ function PluginList() {
       {list
         ?.filter((p) => p.browse)
         .map((p) =>
-          [...filtersOn('settings', { browse: p.browse } as SiteInfo), ...filtersOn('browse', { browse: p.browse } as SiteInfo)]
+          [...specFilters(p.browse, 'settings'), ...specFilters(p.browse, 'browse')]
             .filter((f) => !f.multi)
             .map((f) => (
               <label key={p.id + f.id} className="row-setting">
@@ -430,9 +430,19 @@ function LocalDirs() {
           </li>
         ))}
       </ul>
-      <button className="btn small" onClick={() => void add()}>
-        <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
-      </button>
+      <div className="local-dirs-actions">
+        <button className="btn small" onClick={() => void add()}>
+          <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
+        </button>
+        {/* the works taken out of the library come back at the next scan */}
+        <button
+          className="btn ghost small"
+          title={t('settings.restoreRemovedTitle')}
+          onClick={() => void run(async () => toast(t('library.added', { n: await api.restoreIgnoredArchives() })))}
+        >
+          {t('settings.restoreRemoved')}
+        </button>
+      </div>
     </section>
   )
 }
