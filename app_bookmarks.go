@@ -561,5 +561,5 @@ func (a *App) OpenFolder(key string) error {
 	if path == "" {
 		return apperr.New("download.notDownloaded", "not downloaded yet")
 	}
-	return revealInExplorer(path, isFile)
+	return a.sh.reveal(path, isFile)
 }

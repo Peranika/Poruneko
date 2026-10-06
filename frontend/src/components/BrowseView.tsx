@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { api } from '../api'
 import { t } from '../i18n'
-import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
 import { filtersOn, loadMoreOf, savedValue, searchPlaceholder, siteInfo, textOf, viewOf } from '../browseSpec'
 import { pageRangeKey, searchQuery, useApp, viewInputKey, type PageRange } from '../state'
 import { saveJSON, saveString } from '../storage'
@@ -21,7 +20,7 @@ import { ViewHeader } from './ViewHeader'
 function ViewInput({ value, placeholder, onSubmit }: { value: string; placeholder: string; onSubmit(v: string): void }) {
   const [v, setV] = useState(value)
   const paste = async () => {
-    const text = (await ClipboardGetText().catch(() => '')).trim()
+    const text = (await api.clipboardText().catch(() => '')).trim()
     if (!text) return
     setV(text)
     onSubmit(text)

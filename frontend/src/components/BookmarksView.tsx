@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
-import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
 import { creatorLabel, siteInfo } from '../browseSpec'
 import {
   type TagSource,
@@ -201,7 +200,7 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
   // screen)
   const fromUrl = scope === 'bookmarks' && !!site && !!siteInfo(site)?.fromURL
   const addFromUrl = async (text?: string) => {
-    let url = (text ?? (await ClipboardGetText().catch(() => ''))).trim()
+    let url = (text ?? (await api.clipboardText().catch(() => ''))).trim()
     if (!/^https?:\/\//.test(url)) url = prompt(t('bookmarks.fromUrlPrompt'), url)?.trim() ?? ''
     if (!url) return
     try {

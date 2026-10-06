@@ -1,6 +1,5 @@
-// Thin wrapper around the Go backend (Wails bindings)
-import * as Go from '../wailsjs/go/main/App'
-import { EventsOn } from '../wailsjs/runtime/runtime'
+// Thin wrapper around the Go backend (Wails bindings on the desktop, HTTP on Android: see backend.ts)
+import { EventsOn, go } from './backend'
 import type {
   Bookmark,
   IconFile,
@@ -20,9 +19,6 @@ import type {
   Suggestion,
   ThumbSpec,
   UpdateRelease, PluginInfo, SiteInfo, StatusLine, Text, ViewHeader } from './types'
-
-// the generated models are classes, so call through any to pass plain objects
-const go = Go as unknown as Record<string, (...args: any[]) => Promise<any>>
 
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
@@ -144,6 +140,9 @@ export const api = {
   onUpdateProgress: (cb: (p: { done: number; total: number }) => void): (() => void) => EventsOn('update:progress', cb),
 
   openExternal: (url: string): Promise<void> => go.OpenExternal(url),
+  clipboardText: (): Promise<string> => go.ClipboardText(),
+  /** The OS the app runs on ("windows", "android"...) */
+  platform: (): Promise<string> => go.Platform(),
   setFullscreen: (on: boolean): Promise<void> => go.SetFullscreen(on),
   minimise: (): Promise<void> => go.WindowMinimise(),
   toggleMaximise: (): Promise<void> => go.WindowToggleMaximise(),

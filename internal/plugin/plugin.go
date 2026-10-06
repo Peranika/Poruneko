@@ -35,6 +35,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/url"
 	"os"
@@ -244,6 +245,9 @@ func sharedRuntime(cacheDir string) (wazero.Runtime, error) {
 func LoadDir(dir, cacheDir string) []*Plugin {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.Printf("[plugin] %s: %v", dir, err)
+		}
 		return nil
 	}
 	var out []*Plugin

@@ -5,10 +5,8 @@ import (
 	"log"
 	"maps"
 	"net/url"
-	"os/exec"
 	"path/filepath"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"runtime"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/library"
@@ -98,11 +96,7 @@ func resolveUILanguage(setting string) string {
 // language). A folder overlapping a local folder is refused (its works would be listed there too)
 func (a *App) ChooseSiteDir(site, title string) (string, error) {
 	cur := a.st.Settings()
-	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title:                title,
-		DefaultDirectory:     a.st.SiteDir(site),
-		CanCreateDirectories: true,
-	})
+	dir, err := a.sh.chooseDir(title, a.st.SiteDir(site))
 	if err != nil || dir == "" {
 		return "", err
 	}
@@ -122,25 +116,16 @@ func (a *App) ChooseSiteDir(site, title string) (string, error) {
 	return dir, nil
 }
 
-// OpenExternal opens an http(s) URL in the default browser.
-// Wails' BrowserOpenURL rejects URLs containing ( ) ! * and so on (such as Google site: searches),
-// so it is opened with url.dll without going through the shell.
+// OpenExternal opens an http(s) URL in the default browser
 func (a *App) OpenExternal(rawURL string) error {
 	u, err := url.Parse(rawURL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return apperr.New("url.notHTTP", "not an http(s) URL")
 	}
-	return exec.Command("rundll32", "url.dll,FileProtocolHandler", u.String()).Start()
+	return a.sh.openURL(u.String())
 }
 
-func (a *App) ToggleFullscreen() bool {
-	if runtime.WindowIsFullscreen(a.ctx) {
-		runtime.WindowUnfullscreen(a.ctx)
-		return false
-	}
-	runtime.WindowFullscreen(a.ctx)
-	return true
-}
+func (a *App) ToggleFullscreen() bool { return a.sh.toggleFullscreen() }
 
 func (a *App) SetFullscreen(on bool) {
 	a.winMu.Lock()
@@ -152,13 +137,15 @@ func (a *App) SetFullscreen(on bool) {
 		a.beforeFullscreen = nil
 	}
 	a.winMu.Unlock()
-	if on {
-		runtime.WindowFullscreen(a.ctx)
-	} else {
-		runtime.WindowUnfullscreen(a.ctx)
-	}
+	a.sh.setFullscreen(on)
 }
 
-func (a *App) WindowMinimise()       { runtime.WindowMinimise(a.ctx) }
-func (a *App) WindowToggleMaximise() { runtime.WindowToggleMaximise(a.ctx) }
-func (a *App) WindowClose()          { runtime.Quit(a.ctx) }
+func (a *App) WindowMinimise()       { a.sh.minimise() }
+func (a *App) WindowToggleMaximise() { a.sh.toggleMaximise() }
+func (a *App) WindowClose()          { a.sh.quit() }
+
+// ClipboardText is the text on the clipboard
+func (a *App) ClipboardText() (string, error) { return a.sh.clipboardText() }
+
+// Platform is the OS the app runs on ("windows", "android"...), for what the screen offers
+func (a *App) Platform() string { return runtime.GOOS }

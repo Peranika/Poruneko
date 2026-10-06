@@ -10,8 +10,6 @@ import (
 	"poruneko/internal/store"
 	"slices"
 	"strings"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // The local folders: each is a tab of its own, with a name and an icon the user chooses
@@ -20,7 +18,7 @@ import (
 // ("" if cancelled). A folder overlapping the save location or another local folder is refused
 func (a *App) AddLocalDir(title string) (string, error) {
 	cur := a.st.Settings()
-	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{Title: title})
+	dir, err := a.sh.chooseDir(title, "")
 	if err != nil || dir == "" {
 		return "", err
 	}
@@ -117,7 +115,7 @@ func (a *App) OpenIconsFolder() error {
 	if err := os.MkdirAll(iconsDir(), 0o755); err != nil {
 		return err
 	}
-	return revealInExplorer(iconsDir(), false)
+	return a.sh.reveal(iconsDir(), false)
 }
 
 // RemoveLocalDir removes a folder's tab with its works (their tags and series too; the files stay)

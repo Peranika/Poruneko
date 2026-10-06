@@ -785,6 +785,9 @@ export const ja = {
     plugin: {
       message: '{text}'
     },
+    platform: {
+      unsupported: 'この端末では使えません'
+    },
     site: {
       noAction: 'このサイトではその操作はできません'
     },

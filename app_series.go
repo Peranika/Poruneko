@@ -5,8 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
-
 	"poruneko/internal/apperr"
 	"poruneko/internal/model"
 )
@@ -99,7 +97,7 @@ func (a *App) updateSeries(id string, fn func(s *model.Series)) (model.Series, e
 // seriesChanged reports a series change to the frontend and, if the file name format uses the
 // series name or number, renames the cbz files of the affected works
 func (a *App) seriesChanged(affected []string) {
-	runtime.EventsEmit(a.ctx, "series:changed")
+	a.sh.emit("series:changed", nil)
 	if !strings.Contains(a.st.Settings().FileNameFormat, "{series") || len(affected) == 0 {
 		return
 	}

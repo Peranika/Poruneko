@@ -34,6 +34,8 @@ export function ClearCustomThumb(arg1:string):Promise<model.Bookmark>;
 
 export function ClearHistory():Promise<void>;
 
+export function ClipboardText():Promise<string>;
+
 export function CreateSeries(arg1:string,arg2:Array<string>):Promise<model.Series>;
 
 export function DeleteDownload(arg1:string):Promise<void>;
@@ -73,6 +75,8 @@ export function OpenIconsFolder():Promise<void>;
 export function OwnerSettings(arg1:string,arg2:string):Promise<Record<string, string>>;
 
 export function PauseDownload(arg1:string):Promise<void>;
+
+export function Platform():Promise<string>;
 
 export function Plugins():Promise<Array<main.PluginInfo>>;
 

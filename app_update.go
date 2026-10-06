@@ -4,8 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"log"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"runtime"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/update"
@@ -33,6 +32,9 @@ func (a *App) AppVersion() string { return appVersion }
 
 // CheckUpdate checks whether a newer version exists (nil if not)
 func (a *App) CheckUpdate() (*update.Release, error) {
+	if runtime.GOOS == "android" {
+		return nil, nil // the releases hold the Windows exe; the Android app is updated by installing its APK
+	}
 	rel, err := update.Latest(a.ctx, appVersion)
 	if err != nil {
 		log.Printf("[update] check: %v", err)
@@ -57,13 +59,13 @@ func (a *App) InstallUpdate() error {
 		return apperr.New("update.noUpdate", "no update to install")
 	}
 	err := update.Install(a.ctx, rel, func(done, total int64) {
-		runtime.EventsEmit(a.ctx, "update:progress", map[string]int64{"done": done, "total": total})
+		a.sh.emit("update:progress", map[string]int64{"done": done, "total": total})
 	})
 	if err != nil {
 		log.Printf("[update] install %s: %v", rel.Version, err)
 		return err
 	}
 	log.Printf("[update] installed %s, restarting", rel.Version)
-	runtime.Quit(a.ctx)
+	a.sh.quit()
 	return nil
 }

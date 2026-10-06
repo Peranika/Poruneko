@@ -9,8 +9,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
-
 	"poruneko/internal/apperr"
 	"poruneko/internal/imgserver"
 	"poruneko/internal/library"
@@ -23,6 +21,7 @@ import (
 // App is the API exposed to the frontend
 type App struct {
 	ctx       context.Context
+	sh        shell // the window around the app
 	st        *store.Store
 	lib       *library.Library
 	dl        *library.Downloader
@@ -191,11 +190,11 @@ func (a *App) shutdown(context.Context) {
 	a.st.Flush()
 }
 
-func (a *App) notifyBookmarks() { runtime.EventsEmit(a.ctx, "bookmarks:changed") }
+func (a *App) notifyBookmarks() { a.sh.emit("bookmarks:changed", nil) }
 
 // emitProgress reports download progress (including page range cbz builds) to the frontend
 func (a *App) emitProgress(key string, s model.DownloadState) {
-	runtime.EventsEmit(a.ctx, "download:progress", model.DownloadProgress{Key: key, State: s})
+	a.sh.emit("download:progress", model.DownloadProgress{Key: key, State: s})
 }
 
 // mark sets or clears an in-progress flag (resolving / building). When setting, returns false if already set

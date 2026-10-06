@@ -781,6 +781,9 @@ export const en: Dict = {
     plugin: {
       message: '{text}'
     },
+    platform: {
+      unsupported: 'Not available on this device'
+    },
     site: {
       noAction: 'The site cannot do that'
     },

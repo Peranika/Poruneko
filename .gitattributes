@@ -1,2 +1,5 @@
 # line endings are LF in the repository and in working copies, whatever core.autocrlf says
 * text=auto eol=lf
+# except Windows batch files, which cmd reads with CRLF
+*.bat text eol=crlf
+*.jar binary

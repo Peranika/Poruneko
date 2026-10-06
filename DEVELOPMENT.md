@@ -61,6 +61,32 @@ On distributions that still ship WebKitGTK 4.0 (`libwebkit2gtk-4.0-dev`), drop `
 - **Window position**: not remembered between runs.
 - **Data folder**: `~/Library/Application Support/Poruneko` on macOS and `~/.config/Poruneko` on Linux (`%AppData%\Poruneko` on Windows).
 
+### Android
+
+The Android app (`android/`) is a WebView around the same Go backend and frontend. The Go program is built for
+Android with `GOOS=android` (`main_android.go` instead of `main.go`): it serves the frontend, the API
+(`internal/webapi`) and the images on 127.0.0.1, and the Android app runs it as a child process
+(`libporuneko.so`). The frontend calls the backend through `frontend/src/backend.ts`, which uses the Wails
+bindings when they are there and HTTP otherwise. What only the Android app can do (choosing a folder, the browser,
+the clipboard, full screen, sign-in pages) the backend asks of it through `shell_android.go`.
+
+Requirements: the Android SDK (platform 35) and NDK 29.0.14206865 (`sdkmanager "platforms;android-35"
+"ndk;29.0.14206865"`), and JDK 17+ (Android Studio's `jbr` works). Write the SDK's folder in
+`android/local.properties` (`sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk`) or set `ANDROID_HOME`.
+
+```sh
+cd android
+./gradlew assembleDebug                      # app/build/outputs/apk/debug/app-debug.apk (arm64 + x86_64)
+./gradlew assembleDebug -Pabis=arm64-v8a     # phones only (half the size)
+./gradlew assembleRelease                    # release build (signed with the debug key for now)
+```
+
+Gradle builds the frontend (`npm run build`) and the Go backend for each ABI itself. Plugins are the desktop's
+`.wasm` files, unchanged: put them in `Android/data/io.github.peranika.poruneko/files/plugins` on the device
+(over USB, or `adb push x.wasm /sdcard/Android/data/io.github.peranika.poruneko/files/plugins/`) and restart the
+app. The backend's log goes to logcat (`adb logcat -s poruneko`) and to `poruneko.log` in the app's data. In a
+debug build the WebView can be inspected from `chrome://inspect`.
+
 ### Environment variables
 
 | Variable | Effect |
@@ -68,6 +94,7 @@ On distributions that still ship WebKitGTK 4.0 (`libwebkit2gtk-4.0-dev`), drop `
 | `PORUNEKO_DATA_DIR` | Use this folder instead of `%AppData%\Poruneko` for app data |
 | `PORUNEKO_DEBUG=1` | Log every image request served by imgserver |
 | `PORUNEKO_START_HIDDEN=1` | Start without showing the window (to operate it from the browser in dev mode) |
+| `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first (the Android app sets it) |
 
 ## Project layout
 

@@ -101,7 +101,7 @@ func (a *App) SiteLogin(siteID model.SiteID, title string, fresh bool) (map[stri
 		}
 		opts.Cookies = append(opts.Cookies, k)
 	}
-	got, err := loginwin.Run(a.ctx, opts)
+	got, err := a.sh.login(opts)
 	switch {
 	case errors.Is(err, loginwin.ErrClosed):
 		return nil, nil

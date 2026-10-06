@@ -62,6 +62,10 @@ export function ClearHistory() {
   return window['go']['main']['App']['ClearHistory']();
 }
 
+export function ClipboardText() {
+  return window['go']['main']['App']['ClipboardText']();
+}
+
 export function CreateSeries(arg1, arg2) {
   return window['go']['main']['App']['CreateSeries'](arg1, arg2);
 }
@@ -140,6 +144,10 @@ export function OwnerSettings(arg1, arg2) {
 
 export function PauseDownload(arg1) {
   return window['go']['main']['App']['PauseDownload'](arg1);
+}
+
+export function Platform() {
+  return window['go']['main']['App']['Platform']();
 }
 
 export function Plugins() {

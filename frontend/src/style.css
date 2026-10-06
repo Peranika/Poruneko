@@ -180,6 +180,8 @@ select { cursor: pointer; }
 .titlebar { height: var(--titlebar); display: flex; align-items: center; background: var(--bg); border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .titlebar-nav { display: flex; gap: 2px; padding: 0 8px 0 calc((var(--sidebar) - 66px) / 2); }
 .titlebar-drag { flex: 1; height: 100%; display: flex; align-items: center; padding-left: 8px; }
+/* on Android the app fills the screen: there is no window to minimise, maximise or close */
+:root[data-platform='android'] .window-controls { display: none; }
 .brand { font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); font-size: 0.9286rem; }
 .window-controls { display: flex; height: 100%; }
 .window-controls button { width: 46px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-2); }

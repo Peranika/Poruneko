@@ -13,9 +13,13 @@ import (
 	"poruneko/internal/susie"
 )
 
-// pluginDirs are where plugins (.wasm) are looked for: "plugins" next to the exe, then in the data folder
+// pluginDirs are where plugins (.wasm) are looked for: PORUNEKO_PLUGIN_DIR (set by the Android app: a folder the
+// user can reach), "plugins" next to the exe, then in the data folder
 func pluginDirs() []string {
 	var dirs []string
+	if d := os.Getenv("PORUNEKO_PLUGIN_DIR"); d != "" {
+		dirs = append(dirs, d)
+	}
 	if exe, err := os.Executable(); err == nil {
 		dirs = append(dirs, filepath.Join(filepath.Dir(exe), "plugins"))
 	}

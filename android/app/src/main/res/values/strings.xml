@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="backend_failed">Poruneko could not start. Its log is poruneko.log in the app\'s data.</string>
+    <string name="storage_denied">Allow Poruneko to access all files to add a folder</string>
+    <string name="folder_unsupported">Choose a folder on the device\'s storage or an SD card</string>
+</resources>
