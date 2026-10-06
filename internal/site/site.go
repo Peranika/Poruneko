@@ -139,6 +139,22 @@ type AttachmentSource interface {
 	Attachment(ctx context.Context, id string, index int) (*ImageSource, error)
 }
 
+// StatusTeller is a site that tells its state (such as the API calls left), shown on its tab
+type StatusTeller interface {
+	Status(ctx context.Context) []model.StatusLine
+}
+
+// ViewSource is a site with screens of its own (BrowseSpec.Views): a header for what was entered, with buttons
+type ViewSource interface {
+	ViewHeader(ctx context.Context, view, query string) (*model.ViewHeader, error)
+	ViewAction(ctx context.Context, view, query, action string) (model.Text, error)
+}
+
+// FavoriteNamer is a site whose own Favorites can be narrowed by names it gives (its lists and users...)
+type FavoriteNamer interface {
+	FavoriteNames(ctx context.Context) ([]model.FavoriteName, error)
+}
+
 // URLReader is a site that can tell which of its works a URL is
 type URLReader interface {
 	// FromURL returns the id of the work at rawURL ("" if the URL is not one of its works)

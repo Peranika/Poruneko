@@ -31,6 +31,10 @@ var (
 	_ site.AnyLister        = (*anySite)(nil)
 	_ site.WebURLer         = (*Site)(nil)
 	_ site.AttachmentSource = (*Site)(nil)
+	_ site.URLReader        = (*Site)(nil)
+	_ site.StatusTeller     = (*Site)(nil)
+	_ site.ViewSource       = (*Site)(nil)
+	_ site.FavoriteNamer    = (*Site)(nil)
 )
 
 func (s *Site) ID() model.SiteID { return s.p.Info.ID }

@@ -118,7 +118,7 @@ export const useApp = (): AppState => {
 
 /** Page count filter for browsing (carries over the last one set) */
 export type PageRange = Pick<ListQuery, 'minPages' | 'maxPages'>
-export const loadPageRange = (): PageRange => {
+const loadPageRange = (): PageRange => {
   const r = loadJSON<PageRange>('browse.pages', {})
   return { minPages: r.minPages || undefined, maxPages: r.maxPages || undefined }
 }

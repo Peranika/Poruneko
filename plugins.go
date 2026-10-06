@@ -88,14 +88,15 @@ func (f susieFormat) Read(path string, e library.ArchiveEntry) ([]byte, error) {
 	return f.p.Read(path, susie.Entry{Name: e.Name, Size: e.Size, Pos: e.Pos})
 }
 
-// pluginInfo is the info of the loaded plugin with this id (nil if none)
-func pluginInfo(id string) *plugin.Info {
+// pluginInfoOf is the info of the loaded plugin with this id: what its site declares (empty if there is none, so
+// it has no capabilities and no choices of its own)
+func pluginInfoOf(id string) plugin.Info {
 	for _, p := range loaded {
 		if p.Info.ID == id {
-			return &p.Info
+			return p.Info
 		}
 	}
-	return nil
+	return plugin.Info{}
 }
 
 // PluginInfo is a loaded plugin, for the settings screen

@@ -13,6 +13,7 @@ package pluginsdk
 import (
 	"encoding/json"
 	"errors"
+	"time"
 	"unsafe"
 )
 
@@ -220,4 +221,32 @@ func StoreGet(key string) ([]byte, bool) {
 	out := make([]byte, n)
 	hostTake(uint32(uintptr(unsafe.Pointer(&out[0]))))
 	return out, true
+}
+
+// UserError is an error with the text the screen shows in each UI language (code and message go to the log)
+func UserError(code, message, ja, en string) error {
+	return &Error{Code: code, Message: message, Text: map[string]string{"ja": ja, "en": en}}
+}
+
+// Cached is a value kept for all instances of the plugin under key (with StoreSet), made again with fetch when it is
+// older than maxAge or not kept. A failed fetch keeps nothing
+func Cached[T any](key string, maxAge time.Duration, fetch func() (T, error)) (T, error) {
+	type entry struct {
+		V  T
+		At time.Time
+	}
+	if b, ok := StoreGet(key); ok {
+		var e entry
+		if json.Unmarshal(b, &e) == nil && time.Since(e.At) < maxAge {
+			return e.V, nil
+		}
+	}
+	v, err := fetch()
+	if err != nil {
+		return v, err
+	}
+	if b, err := json.Marshal(entry{V: v, At: time.Now()}); err == nil {
+		StoreSet(key, b)
+	}
+	return v, nil
 }

@@ -73,7 +73,9 @@ On distributions that still ship WebKitGTK 4.0 (`libwebkit2gtk-4.0-dev`), drop `
 
 ```
 main.go                  Wails startup, logging, WebView2 data folder
-app*.go                  APIs exposed to the frontend (viewing / local folders / bookmarks / series / favorites / settings / updates)
+app*.go                  APIs exposed to the frontend (viewing / local folders / bookmarks / series / favorites / settings / updates;
+                         app_sites.go: the sites' lists and screens, what their plugins tell, works from URLs, filter
+                         values kept per owner)
 reveal_*.go, window_*.go,
 lang_*.go                platform-specific parts (showing files in Explorer / Finder, saving the window position,
                          the OS display language)
@@ -89,12 +91,12 @@ internal/
                          cbz storage for works from sites (locate / naming / comicinfo), page range works (range),
                          download queue (download), concurrency limits for sites (gate)
   imgserver/             serves /poru/img and /poru/thumb (local files first)
-  store/                 persistence of settings (JSON) and bookmarks / series (SQLite)
+  store/                 persistence of settings (JSON) and bookmarks / series / settings per owner of works (SQLite)
   update/                finding a newer release on GitHub and replacing the exe (Windows only)
 pluginsdk/               the plugin side of the plugin interface (for plugins written in Go; spec.go: the types of a
                          site plugin's browse spec)
 frontend/src/            React UI
-  components/viewer/     viewer (spreads, page images, prefetching, predecoding)
+  components/viewer/     viewer (spreads, page images and videos, prefetching, predecoding, moire reduction)
   state.tsx              app state and routing (history entries)
   bookmarkList.ts        grouping, filtering and sorting of bookmarks (shared by the list and next/previous work)
   bookmarkActions.ts     download box actions (shared by the Bookmarks screen and the gallery page)
@@ -103,6 +105,8 @@ frontend/src/            React UI
   browseSpec.ts          what the site plugins' screens offer (filters, settings, kinds of tags)
   keybindings.ts         key bindings
   labels.ts / storage.ts display names and choices / localStorage access
+  useDragReorder.ts      reordering by drag and drop (the sites and their screens in the sidebar)
+  usePaneScroll.ts       the scroll position of the panes beside lists, kept across moves
   i18n/                  string tables (ja.ts / en.ts) and t()
 ```
 
@@ -264,8 +268,8 @@ Required: `info`, `list`, `gallery`, `image`, `thumb`, `suggest`. Optional (list
 
 **list** is the site's list screen. `query` is the search box as typed (the plugin parses it: tag syntax,
 exclusions, words); `filters` are the values of the browse spec's filters; `page` starts at 1. `minPages` /
-`maxPages` (0 for no limit) are the page count filter: remove works outside it from the page and count them in
-`hidden` (`ListResult.FilterPages` in a copy of the model does this). The result:
+`maxPages` (0 for no limit) are the page count filter: the app removes works outside it from the page and counts
+them in `hidden` itself, so a plugin can leave them alone (doing it too is harmless). The result:
 
 ```json
 {
@@ -339,7 +343,9 @@ JSON file (`//go:embed`) and returning it as `json.RawMessage` is enough.
   a cache is not shared between instances and an instance can be dropped, so treat caches as a speed-up only.
 - `pluginsdk.StoreSet(key, value)` / `pluginsdk.StoreGet(key)` keep values that every instance sees (in the app's
   memory: entries expire after 12 hours and the oldest go past 20,000), such as what a list call learned about
-  works that `gallery` / `thumb` need later.
+  works that `gallery` / `thumb` need later. `pluginsdk.Cached(key, maxAge, fetch)` reads a value kept that way, or
+  makes it again with `fetch` when it is older than `maxAge`.
+- `pluginsdk.UserError(code, message, ja, en)` is an error whose text the screen shows.
 
 ### 6. The browse spec (filters, settings, tags)
 
@@ -443,7 +449,7 @@ GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -ldflags="-s -w" -o myplugi
 
 - **list**：サイトの一覧画面。`query` は検索欄に打たれたままの文字列で、タグの書き方・除外・単語の解釈はプラグインがします。
   `filters` は絞り込みの値、`page` は 1 から始まります。`minPages` / `maxPages`（0 は制限なし）はページ数の絞り込みで、
-  範囲外の作品をそのページから除き、その数を `hidden` に入れます（model をコピーしておけば `ListResult.FilterPages` で済みます）。
+  範囲外の作品をそのページから除いて `hidden` に数えるのはアプリがします（プラグインがしても問題ありません）。
   - `id` はサイト上の作品 id です。変わらないものにしてください。`key` と `site` はアプリが付け、空のリストも補います。
   - `failed` は、このページで情報を取れなかった作品の id です（画面に、一部の作品が欠けていると出ます）。
   - `artists` / `groups` はサイトでの綴りのままにします。お気に入りはこれを `artist:名前` / `group:名前`
@@ -499,6 +505,8 @@ GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -ldflags="-s -w" -o myplugi
   キャッシュは高速化のためだけに使ってください。
 - `pluginsdk.StoreSet(key, value)` / `pluginsdk.StoreGet(key)` で、全インスタンスから見える値を置けます（アプリのメモリ上。
   12 時間で消え、20,000 件を超えると古いものから消えます）。一覧で分かった作品の情報を、後の `gallery` / `thumb` で使うときなどに。
+  `pluginsdk.Cached(key, maxAge, fetch)` は、そうして置いた値を読み、`maxAge` より古ければ `fetch` で作り直します。
+- `pluginsdk.UserError(code, message, ja, en)` で、画面に出す文言付きのエラーを作れます。
 
 ### 6. browse（絞り込み・設定・タグ）
 

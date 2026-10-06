@@ -183,7 +183,8 @@ type ListQuery struct {
 	Filters map[string]string `json:"filters"`
 	Page    int               `json:"page"`
 	// MinPages / MaxPages filter by page count (0 for no limit).
-	// The source list's paging is kept and non-matching works are removed within each page
+	// The source list's paging is kept and non-matching works are removed within each page (by the app; a plugin
+	// may do it too)
 	MinPages int `json:"minPages,omitempty"`
 	MaxPages int `json:"maxPages,omitempty"`
 }

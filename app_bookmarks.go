@@ -247,7 +247,7 @@ func (a *App) resolve(key string) {
 		return
 	}
 	var info model.CreatorInfo
-	if pi := pluginInfo(b.Summary.Site); (pi != nil && pi.SiteCreators) || !lookupCreator(&b.Summary) {
+	if pluginInfoOf(b.Summary.Site).SiteCreators || !lookupCreator(&b.Summary) {
 		info = meta.FromSite(&b.Summary)
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

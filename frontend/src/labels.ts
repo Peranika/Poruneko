@@ -15,7 +15,7 @@ export const altTitle = (s: GallerySummary): string =>
   !s.japaneseTitle || s.japaneseTitle === s.title ? '' : language() === 'en' ? s.japaneseTitle : s.title
 
 /** Creator info sources */
-export const SOURCE_LABEL: Record<string, string> = {
+const SOURCE_LABEL: Record<string, string> = {
   dlsite: 'DLsite',
   fanza: 'FANZA',
   fanbox: 'FANBOX',
