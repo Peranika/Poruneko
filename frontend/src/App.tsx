@@ -16,6 +16,7 @@ import { UpdateNotice } from './components/UpdateNotice'
 import { useApp } from './state'
 import { useAutoReveal } from './useAutoReveal'
 import { useGlobalNavigation } from './useGlobalNavigation'
+import { useTouch } from './useCompact'
 import appIcon from './assets/icon.svg'
 
 export default function App() {
@@ -72,8 +73,10 @@ export default function App() {
     }
   }
 
-  // on the gallery page the viewer uses the full height, so the title bar only overlays it when the cursor is at the top edge
-  const autoChrome = r.name === 'gallery' && !immersive
+  // on the gallery page the viewer uses the full height, so the title bar only overlays it when the cursor is at the
+  // top edge (on a touch screen, which has no cursor, it stays)
+  const touch = useTouch()
+  const autoChrome = r.name === 'gallery' && !immersive && !touch
   const titlebarRef = useRef<HTMLElement>(null)
   const titlebarVisible = useAutoReveal(autoChrome, titlebarRef, (e) => e.clientY < 56)
 

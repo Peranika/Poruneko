@@ -13,6 +13,7 @@ import { Icon } from './Icon'
 import { RangePanel, type RangeSession } from './RangePanel'
 import { ResizablePanel } from './ResizablePanel'
 import { Viewer } from './viewer/Viewer'
+import { useCompact } from '../useCompact'
 
 /** Default width of the info panel on the left */
 const INFO_PANEL_WIDTH = 360
@@ -39,7 +40,9 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
   const [err, setErr] = useState<string | null>(null)
   // keep full screen when arriving via "next/previous work"
   const [immersive, setImmersive] = useState(() => carryImmersive)
-  const [panel, setPanel] = useState(() => loadString('gallery.panel', 'open') !== 'closed')
+  // on a phone the panel lies over the viewer: each work opens with it, and reading closes it
+  const compact = useCompact()
+  const [panel, setPanel] = useState(() => compact || loadString('gallery.panel', 'open') !== 'closed')
   const [panelWidth, setPanelWidth] = useState(INFO_PANEL_WIDTH)
   // state of the page range bookmark being entered (null when closed)
   const [rangeSession, setRangeSession] = useState<RangeSession | null>(null)
@@ -159,9 +162,16 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         min={280}
         max={720}
         onWidthChange={setPanelWidth}
+        drawer={false}
       >
         <div className="info-panel">
-          <GalleryInfo galleryKey={galleryKey} s={s} summary={summary} attachments={detail?.attachments} />
+          <GalleryInfo
+            galleryKey={galleryKey}
+            s={s}
+            summary={summary}
+            attachments={detail?.attachments}
+            onRead={compact ? () => setPanel(false) : undefined}
+          />
         </div>
       </ResizablePanel>
 
@@ -170,7 +180,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         style={panel ? { left: panelWidth } : undefined}
         title={panel ? t('gallery.closePanel') : t('gallery.openPanel')}
         onClick={() => {
-          saveString('gallery.panel', panel ? 'closed' : 'open')
+          if (!compact) saveString('gallery.panel', panel ? 'closed' : 'open')
           setPanel(!panel)
         }}
       >

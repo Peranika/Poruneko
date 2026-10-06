@@ -356,6 +356,7 @@ export const en: Dict = {
     firstWork: 'This is the first work',
     nextFailed: 'Could not load the next work: {error}',
     closePanel: 'Close the info panel',
+    read: 'Read',
     openPanel: 'Open the info panel',
     loadFailed: 'Could not load the gallery info',
     origin: 'Source gallery:',
@@ -444,7 +445,9 @@ export const en: Dict = {
     listView: 'List view',
     gridView: 'Grid view',
     thumbSize: 'Thumbnail size (double-click to reset)',
-    resizePanel: 'Drag to resize (double-click to reset)'
+    resizePanel: 'Drag to resize (double-click to reset)',
+    openPanel: 'Open the filters',
+    closePanel: 'Close the filters'
   },
 
   paged: {

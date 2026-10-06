@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { t } from '../i18n'
 import { loadString, saveString } from '../storage'
+import { useCompact } from '../useCompact'
+import { Icon } from './Icon'
 
 interface Props {
   /** Key to remember the width under (localStorage) */
@@ -11,16 +13,39 @@ interface Props {
   className?: string
   /** Called with the width initially and whenever it changes */
   onWidthChange?(width: number): void
+  /** On a phone the pane is a drawer over the content, opened by a handle at the left edge and closed by choosing an
+   * item in it or tapping outside (false: the caller opens and closes it, as the gallery page does) */
+  drawer?: boolean
   children: ReactNode
 }
 
 /** Left pane resizable by dragging its right edge (double-click resets it; the width is kept for next time) */
-export function ResizablePanel({ storageKey, defaultWidth, min, max, className = '', onWidthChange, children }: Props) {
+export function ResizablePanel({ storageKey, defaultWidth, min, max, className = '', onWidthChange, drawer = true, children }: Props) {
   const clamp = (w: number) => Math.min(max, Math.max(min, Math.round(w)))
   const [width, setWidth] = useState(() => clamp(Number(loadString(storageKey, String(defaultWidth))) || defaultWidth))
   const drag = useRef<{ x: number; w: number } | null>(null)
   const save = (w: number) => saveString(storageKey, String(w))
   useLayoutEffect(() => onWidthChange?.(width), [width, onWidthChange])
+  const compact = useCompact()
+  const [open, setOpen] = useState(false)
+
+  if (compact && drawer)
+    return (
+      <>
+        {open && <div className="drawer-backdrop" onClick={() => setOpen(false)} />}
+        <aside
+          className={`resizable drawer ${open ? 'open' : ''} ${className}`}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest('li')) setOpen(false)
+          }}
+        >
+          {children}
+        </aside>
+        <button className="panel-toggle drawer-toggle" onClick={() => setOpen(!open)} title={open ? t('list.closePanel') : t('list.openPanel')}>
+          <Icon name={open ? 'back' : 'forward'} size={14} />
+        </button>
+      </>
+    )
 
   return (
     <aside className={`resizable ${className}`} style={{ width }}>

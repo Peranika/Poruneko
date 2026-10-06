@@ -28,6 +28,8 @@ interface Props {
   summary?: GallerySummary
   /** The work's files that are not pages (from its details) */
   attachments?: Attachment[]
+  /** Closes the panel to read (on a phone, where the panel lies over the viewer) */
+  onRead?(): void
 }
 
 /** The icon of each kind of attachment */
@@ -37,7 +39,7 @@ const ATTACHMENT_ICON: Record<Attachment['kind'], string> = { archive: 'archive'
 const shortSize = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
 
 /** Info panel on the left of the gallery page (work info, creator info, download, tags) */
-export function GalleryInfo({ galleryKey, s, summary, attachments }: Props) {
+export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Props) {
   const { nav, bookmarks, setEditCreatorKey, seriesOf, setSeriesDialogKey, toast } = useApp()
   const inSeries = seriesOf.get(galleryKey)
   const isLocal = isLocalKey(galleryKey)
@@ -125,6 +127,11 @@ export function GalleryInfo({ galleryKey, s, summary, attachments }: Props) {
         <div className="actions-left">{b && <DownloadButtons b={b} />}</div>
         <BookmarkButton s={s} large />
         <div className="actions-right">
+          {onRead && (
+            <button className="btn read-btn" onClick={onRead}>
+              <Icon name="book" size={16} /> {t('gallery.read')}
+            </button>
+          )}
           {webURL && (
             <button className="icon-btn" title={t('gallery.openSite')} onClick={() => api.openExternal(webURL)}>
               <Icon name="external" />
@@ -315,7 +322,7 @@ function DownloadButtons({ b }: { b: Bookmark }) {
     <>
       {hasSavedFiles(b) && (
         <button
-          className={`icon-btn ${d.status === 'done' ? 'dl-done' : ''}`}
+          className={`icon-btn desktop-only ${d.status === 'done' ? 'dl-done' : ''}`}
           title={[state, t('common.showFolder')].filter(Boolean).join(' — ')}
           onClick={() => api.openFolder(b.key).catch((e) => toast(errorText(e)))}
         >

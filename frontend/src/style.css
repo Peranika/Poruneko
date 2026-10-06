@@ -182,6 +182,8 @@ select { cursor: pointer; }
 .titlebar-drag { flex: 1; height: 100%; display: flex; align-items: center; padding-left: 8px; }
 /* on Android the app fills the screen: there is no window to minimise, maximise or close */
 :root[data-platform='android'] .window-controls { display: none; }
+/* nor a file manager the app can open, nor a window to remember */
+:root[data-platform='android'] .desktop-only { display: none !important; }
 .brand { font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); font-size: 0.9286rem; }
 .window-controls { display: flex; height: 100%; }
 .window-controls button { width: 46px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-2); }
@@ -270,7 +272,7 @@ select { cursor: pointer; }
 .row .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .row-head { display: flex; align-items: flex-start; gap: 10px; }
-.row-head .title { flex: 1; margin: 0; font-size: 1.1429rem; line-height: 1.4; font-weight: 600; }
+.row-head .title { flex: 1; min-width: 0; margin: 0; font-size: 1.1429rem; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
 .alt-title { color: var(--text-3); font-size: 0.8571rem; }
 .row-foot { display: flex; align-items: center; gap: 14px; color: var(--text-3); font-size: 0.8571rem; margin-top: auto; }
 .stats { display: inline-flex; flex-wrap: wrap; gap: 10px; color: var(--text-3); font-size: 0.7857rem; font-variant-numeric: tabular-nums; }
@@ -383,6 +385,8 @@ select { cursor: pointer; }
 .viewer.immersive { position: fixed; inset: 0; z-index: 100; background: #000; }
 .stage { flex: 1; min-height: 0; overflow: auto; display: flex; }
 .stage.fit-contain { overflow: hidden; }
+/* a page that fits the screen turns by sideways swipes (the viewer's own), so the browser only takes pinches */
+.stage.fit-contain:not(.mode-scroll) { touch-action: pinch-zoom; }
 .stage.mode-scroll { display: block; overflow-y: auto; overflow-x: hidden; }
 .spread { margin: auto; display: flex; flex-shrink: 0; }
 .scroll-list { margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -1158,3 +1162,79 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 /* a plugin's text setting (a login cookie and the like) */
 .plugin-text { display: inline-flex; align-items: center; gap: 4px; }
 .plugin-text input { width: 280px; }
+
+/* ---------------------------------------------------------------- Narrow screens (phones)
+   The sidebar becomes a tab bar along the bottom, the side panels slide over the content (opened by their toggles)
+   and the spacing is tighter. The desktop window is never this narrow (its minimum width is 900px) */
+@media (max-width: 760px) {
+  .titlebar-nav { padding-left: 4px; }
+
+  .body { flex-direction: column-reverse; }
+  /* in a column the content has to be allowed to shrink, or it grows with its list and the list never scrolls */
+  .content { min-height: 0; }
+  .sidebar { flex: none; }
+  .sidebar {
+    width: auto; flex-direction: row; align-items: stretch; gap: 2px; padding: 4px 6px;
+    border-right: 0; border-top: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .sidebar button { flex: none; min-width: 58px; padding: 6px; justify-content: center; }
+  .sidebar .spacer { flex: 1 0 0; }
+  .sidebar-sep { width: 1px; height: auto; margin: 8px 2px; }
+  .sidebar .add-tab { min-width: 34px; padding: 0 4px; }
+  .app.chrome-auto .sidebar { padding-top: 4px; }
+  .site-tab { flex: none; flex-direction: row; }
+  .site-tab.expanded { margin: 0; padding: 0 2px; }
+  .site-screens, .site-screens.grid { display: flex; flex-direction: row; align-items: stretch; }
+  .sidebar .site-screens button, .sidebar .site-screens.grid button { min-width: 54px; height: auto; padding: 4px; }
+  .site-screen-name { display: none; }
+  /* the popup that hovering a site shows has no place on a touch screen */
+  .site-pop { display: none; }
+
+  .toolbar { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
+  .result-info { padding: 10px 10px 0; flex-wrap: wrap; }
+  .results { padding: 10px; }
+  .results.list { gap: 8px; }
+  .results.grid { grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min, 180px), 42vw), 1fr)); gap: 14px 10px; }
+  .row { gap: 10px; padding: 8px; }
+  .row .thumb { width: min(var(--row-thumb, 150px), 30vw); }
+  .row-head .title { font-size: 1rem; }
+  .page-divider, .load-prev { padding-left: 10px; padding-right: 10px; }
+
+  /* side panels (the gallery page's info, the lists' groups) lie over the content */
+  .resizable { position: absolute; top: 0; bottom: 0; left: 0; z-index: 40; width: min(100%, 420px) !important; box-shadow: 8px 0 24px rgba(0, 0, 0, 0.45); }
+  .pane-resizer { display: none; }
+  .app.chrome-auto .info-panel { padding-top: 18px; }
+  /* the lists' group panels open as drawers (ResizablePanel) */
+  .resizable.drawer { display: none; background: var(--bg); border-right: 1px solid var(--line); }
+  .resizable.drawer.open { display: flex; width: min(85%, 340px) !important; }
+  .drawer-backdrop { position: absolute; inset: 0; z-index: 39; background: rgba(0, 0, 0, 0.4); }
+  .panel-toggle.drawer-toggle { left: 9px; }
+  .resizable.drawer.open ~ .drawer-toggle { left: calc(min(85%, 340px) - 18px); }
+  .view.bookmarks, .view.favorites { position: relative; }
+  .read-btn { min-height: var(--ctl-lg); }
+  .panel-toggle { z-index: 41; opacity: 0.8; width: 22px; height: 56px; }
+  /* while the panel is open its toggle sits inside its right edge */
+  .view.gallery:not(.panel-closed) .panel-toggle { left: calc(min(100%, 420px) - 18px) !important; }
+
+  /* the viewer's bar: the slider on a row of its own above the buttons */
+  .viewer-bar { flex-wrap: wrap; gap: 6px 4px; padding: 6px 8px; }
+  .viewer-bar .slider { order: -1; flex: 1 0 100%; height: 28px; }
+  .viewer-bar .bar-sep { display: none; }
+  .page-label { min-width: 0; margin: 0 4px; }
+  .viewer.immersive .viewer-bar { width: calc(100% - 16px); bottom: 8px; }
+
+  .settings-nav { display: none; }
+  .settings-inner { padding: 12px 10px 40px; }
+  .settings-inner section { padding: 4px 12px 10px; }
+}
+
+/* ---------------------------------------------------------------- Touch screens (<html data-touch>, see useCompact.ts)
+   Nothing hovers: what hovering shows is shown by tapping instead */
+/* the bar shows and hides by tapping the page, so it is never pinned */
+:root[data-touch] .viewer-bar .icon-btn.pin-btn { display: none; }
+/* the buttons that hovering a card, a row or a cover brings out stay out */
+:root[data-touch] .bm-card .hover-actions, :root[data-touch] .bm-card .tag-add, :root[data-touch] .series-card .tag-add,
+:root[data-touch] .bm-card .select-btn, :root[data-touch] .group-list li .name-open, :root[data-touch] .info-cover.editable .thumb-change,
+:root[data-touch] .editable-title .icon-btn, :root[data-touch] .history-item .history-remove, :root[data-touch] .sidebar .add-tab { opacity: 1; }
+:root[data-touch] .group-list li.tag-item .tag-rename { display: inline-flex; }

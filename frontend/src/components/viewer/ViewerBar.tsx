@@ -118,7 +118,7 @@ export function ViewerBar(props: Props) {
       <span className="bar-sep" />
       {/* pin: keep the bar shown with the pages above it, or let it hide over the pages */}
       <button
-        className={`icon-btn ${settings.barLocked ? 'active' : ''}`}
+        className={`icon-btn pin-btn ${settings.barLocked ? 'active' : ''}`}
         onClick={() => onSettings({ barLocked: !settings.barLocked })}
         title={settings.barLocked ? t('viewer.unlockBar') : t('viewer.lockBar')}
       >

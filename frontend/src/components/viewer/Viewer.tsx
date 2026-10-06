@@ -5,6 +5,7 @@ import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../key
 import type { PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
+import { useTouch } from '../../useCompact'
 import { PageAnimation, PageImage, PageVideo } from './PageImage'
 import { isAnimation, type MediaLike } from './animation'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
@@ -66,11 +67,15 @@ export function Viewer(props: Props) {
   // a work whose pages are an animation's frames (a ugoira) is one page here, played as a whole
   const animation = useMemo(() => isAnimation(allPages), [allPages])
   const pages = useMemo(() => (animation ? allPages.slice(0, 1) : allPages), [animation, allPages])
-  const { mode, direction, coverSingle, fit } = settings
+  const { direction, coverSingle, fit } = settings
   const moire = settings.moire || undefined
   const rtl = direction === 'rtl'
   const stageRef = useRef<HTMLDivElement>(null)
   const size = useSize(stageRef)
+  // a phone held upright is too narrow for two pages side by side: spreads show one page at a time until it is
+  // turned sideways
+  const touch = useTouch()
+  const mode = touch && settings.mode === 'spread' && size.h > size.w ? 'single' : settings.mode
   const [page, setPage] = useState(() => Math.min(Math.max(0, props.initialPage), Math.max(0, pages.length - 1)))
   const [showThumbs, setShowThumbs] = useState(false)
   // slideshow: turns to the next page every settings.slideSeconds seconds
@@ -374,11 +379,37 @@ export function Viewer(props: Props) {
     if (mode === 'scroll') return
     // clicks on a video (or an animation) are for its controls
     if ((e.target as HTMLElement).closest('video, .page.animation')) return
+    // the click a swipe ends with turned the page already
+    if (swiped.current) {
+      swiped.current = false
+      return
+    }
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     if (x < 0.3) rtl ? next() : prev()
     else if (x > 0.7) rtl ? prev() : next()
     else setUiVisible((v) => !v)
+  }
+
+  // a sideways swipe turns the page like turning a paper one (to the right goes on when reading right to left). Only
+  // where the page fits the screen: elsewhere a swipe scrolls it
+  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null)
+  const swiped = useRef(false)
+  const swipeable = mode !== 'scroll' && fit === 'contain'
+  const onStagePointerDown = (e: React.PointerEvent) => {
+    swipeStart.current = swipeable && e.pointerType === 'touch' && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
+  }
+  const onStagePointerUp = (e: React.PointerEvent) => {
+    const s = swipeStart.current
+    swipeStart.current = null
+    if (!s || e.pointerType !== 'touch') return
+    const dx = e.clientX - s.x
+    const dy = e.clientY - s.y
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || e.timeStamp - s.t > 800) return
+    swiped.current = true
+    window.setTimeout(() => (swiped.current = false), 400)
+    if (dx > 0 === rtl) next()
+    else prev()
   }
 
   // in full screen the toolbar hides automatically. Show the cursor when the mouse really moves (excluding moves caused by re-rendering)
@@ -399,14 +430,15 @@ export function Viewer(props: Props) {
     const r = stageRef.current?.getBoundingClientRect()
     return !!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.bottom - 96 && e.clientY <= r.bottom
   })
-  const barVisible = barLocked || barRevealed
+  // a touch screen has no cursor: tapping the middle of the page shows and hides the bar
+  const barVisible = barLocked || (touch ? uiVisible : barRevealed)
   // whether the toolbar is actually on screen (in full screen it hides with the rest of the UI unless locked)
   const barShown = immersive ? uiVisible || barLocked : barVisible
   useEffect(() => {
     setUiVisible(true)
-    if (immersive) hideTimer.current = window.setTimeout(() => setUiVisible(false), 2500)
+    if (immersive || touch) hideTimer.current = window.setTimeout(() => setUiVisible(false), 2500)
     return () => window.clearTimeout(hideTimer.current)
-  }, [immersive])
+  }, [immersive, touch])
 
   // ---------------------------------------------------------------- Page layout (spreads / single pages)
   // The spread actually drawn. On page change the previous spread stays until the next images are decoded
@@ -559,6 +591,9 @@ export function Viewer(props: Props) {
           ref={stageRef}
           className={`stage mode-${mode} fit-${fit} ${picking ? 'range-mode' : ''}`}
           onClick={onStageClick}
+          onPointerDown={onStagePointerDown}
+          onPointerUp={onStagePointerUp}
+          onPointerCancel={() => (swipeStart.current = null)}
           onWheel={onWheel}
           onScroll={onStageScroll}
         >

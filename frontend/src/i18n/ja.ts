@@ -359,6 +359,7 @@ export const ja = {
     firstWork: '最初の作品です',
     nextFailed: '次の作品を読み込めませんでした: {error}',
     closePanel: '情報パネルを閉じる',
+    read: '読む',
     openPanel: '情報パネルを開く',
     loadFailed: '作品情報を取得できませんでした',
     origin: '元の作品:',
@@ -447,7 +448,9 @@ export const ja = {
     listView: 'リスト表示',
     gridView: 'グリッド表示',
     thumbSize: 'サムネイルの大きさ（ダブルクリックで元に戻す）',
-    resizePanel: 'ドラッグで幅を変更（ダブルクリックで元に戻す）'
+    resizePanel: 'ドラッグで幅を変更（ダブルクリックで元に戻す）',
+    openPanel: '絞り込みを開く',
+    closePanel: '絞り込みを閉じる'
   },
 
   paged: {

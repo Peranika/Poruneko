@@ -100,6 +100,12 @@ Differences on Android:
 - **The back button** goes back in the app (closing a dialog first); with nothing to go back to, the app goes to the
   background.
 - **Updates** come as a new APK: the app does not look for them.
+- **The screen** is laid out for a phone below 760px wide (`@media (max-width: 760px)` in `style.css`,
+  `useCompact`): the tabs are a bar along the bottom, the side panels (a work's info, the lists' groups) slide over the
+  content, and the viewer shows one page at a time while the phone is held upright. On a touch screen
+  (`<html data-touch>`, `useTouch`) the viewer turns pages by swiping, tapping the middle of the page shows its bar,
+  and the buttons that hovering brings out are always shown. To work on it in a browser, run `wails dev` and open
+  `http://127.0.0.1:34115` with the browser's device emulation (a phone's size and touch).
 
 ### Environment variables
 
