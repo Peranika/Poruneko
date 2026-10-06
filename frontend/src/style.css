@@ -166,6 +166,7 @@ select { cursor: pointer; }
 .src-fanza { background: rgba(255, 70, 70, 0.16); color: var(--t-red); }
 .src-manual { background: rgba(76, 195, 138, 0.15); color: var(--ok); }
 .src-site { background: rgba(245, 184, 74, 0.14); color: var(--warn); }
+.src-title { background: rgba(76, 195, 138, 0.12); color: var(--ok); }
 
 .spinner {
   width: 28px; height: 28px; border-radius: 50%;
@@ -385,6 +386,8 @@ select { cursor: pointer; }
 .scroll-list { margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .page { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .page img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* the thumbnail standing in for a page that is still loading, under it */
+.page img.page-placeholder { position: absolute; inset: 0; }
 .page video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; cursor: pointer; }
 /* a video's controls in the viewer's toolbar, in place of the page slider */
 .video-controls { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }

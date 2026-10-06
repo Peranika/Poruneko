@@ -156,6 +156,10 @@ them in `hidden` itself, so a plugin can leave them alone (doing it too is harml
 - Optional: `description` is the work's own text (a post's body...), shown on the work page and saved as the
   Summary of ComicInfo.xml; `stats` are its numbers (`{"likes": 120}`, the ids of the browse spec's `stats`).
 - A list whose length is not known (a timeline) returns `"total": -1` and `"more": true` while there is a next page.
+- Optional: `titleCreators: {circle, artists}` are the creators the work's title names, for a site whose titles
+  carry them (`[Circle (Artist)] Title`; take them out of the title). The app takes them as the work's creators as
+  they are, without looking them up on DLsite / FANZA. Leave it out when the title does not tell (a lone `[Name]`
+  can be either); the app then looks them up as usual.
 
 **gallery** returns the work with its pages. `pages[]` are `{index, name, width, height}` in reading order from
 index 0. Give the real size when the site tells it: the viewer uses it for spreads (a page wider than tall is shown
@@ -173,7 +177,8 @@ app calls `invalidate` (when listed) and asks `image` once more, so a plugin wit
 `invalidate`. `format` is empty (the image format is left to the plugin's settings). A
 `thumb` can also give `crop: {x, y, w, h}`: the thumbnail is that rectangle of the picture (for a site whose page
 thumbnails are tiles of one picture); the app fetches the picture once and cuts each out. An `image` can also
-give `entry`: the page is that file in the zip at `url` (for a site whose pages are files of one archive, such as a
+give `fallback`: a URL fetched when `url` is not there (404 / 410), such as the page's thumbnail on a site whose
+files are sometimes missing. And `entry`: the page is that file in the zip at `url` (for a site whose pages are files of one archive, such as a
 pixiv ugoira's frames); the app fetches the zip once, for the viewer and the download alike, and reads each page
 from it. `thumb` with `big: true` asks
 for a larger cover for the work page; return the small one if there is none.
@@ -416,6 +421,9 @@ func handle(method string, params json.RawMessage) (any, error) {
   - 任意：`description` は作品自身の文章（ポストの本文など）で、作品ページに出て、ComicInfo.xml の Summary にも入ります。
     `stats` は作品の数値（`{"likes": 120}`。id は browse の `stats` のもの）です。
   - 件数が分からない一覧（タイムラインなど）は `"total": -1` にし、次のページがある間は `"more": true` を返します。
+  - 任意：`titleCreators: {circle, artists}` は、タイトルが示すサークルと作者です（タイトルに `[サークル (作者)] タイトル` の
+    形で書くサイト向け。タイトルからは取り除いてください）。アプリはこれを調べ直さずに作品の作者として使います（DLsite・FANZA
+    を検索しません）。タイトルから分からないとき（`[名前]` だけでサークルか作者か分からないなど）は付けず、いつもどおり調べさせます。
 - **gallery**：作品とページの一覧。`pages[]` は `{index, name, width, height}` を、読む順に 0 から並べます。
   サイトから大きさが分かるなら入れてください。見開き（横長のページは単独で表示）や、画像が届く前のレイアウトに使います。
   分からなければ 0 にします。動画のページは `"video": true` にします（`image` は `mp4` / `webm` を返します）。
@@ -427,7 +435,8 @@ func handle(method string, params json.RawMessage) (any, error) {
   取得に失敗すると（エラーの応答か、応答がないとき）、アプリは `invalidate` を呼び（あれば）、もう一度 `image` を聞きます。期限付きの URL や鍵を
   使うサイトでは、`invalidate` でそれを捨ててください。`format` は空です（画像形式はプラグインの設定に任せています）。
   `thumb` は `crop: {x, y, w, h}` も返せます。サムネイルはその画像のその範囲になります（ページのサムネイルが 1 枚の画像に
-  並んでいるサイト向け）。アプリはその画像を 1 回だけ取り、そこから切り出します。`image` は `entry` も返せます。ページは
+  並んでいるサイト向け）。アプリはその画像を 1 回だけ取り、そこから切り出します。`image` は `fallback` も返せます。`url` が無いとき（404 / 410）に代わりに取る URL で、ファイルが欠けることのあるサイトでページの
+  サムネイルを指すときなどに使います。`entry` も返せます。ページは
   `url` の zip の中のそのファイルになります（pixiv のうごイラのコマのように、ページが 1 つの書庫に入っているサイト向け）。
   アプリは zip をビューアとダウンロードで共有して 1 回だけ取り、そこから各ページを読みます。
   `thumb` の `big: true` は作品ページ用の大きい表紙です。なければ小さいものを返してください。

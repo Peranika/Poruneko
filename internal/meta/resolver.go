@@ -231,6 +231,17 @@ func FromSite(s *model.GallerySummary) model.CreatorInfo {
 	return info
 }
 
+// FromTitle makes creator info from the names the work's title gives (TitleCreators), without looking anything up
+func FromTitle(s *model.GallerySummary) model.CreatorInfo {
+	tc := s.TitleCreators
+	info := model.CreatorInfo{Status: model.CreatorMatched, Source: "title", Artists: slices.Clone(tc.Artists), Circle: tc.Circle, ResolvedAt: time.Now().UnixMilli()}
+	if info.Artists == nil {
+		info.Artists = []string{}
+	}
+	applyCollective(&info, s)
+	return info
+}
+
 func resolveCreator(ctx context.Context, s *model.GallerySummary, sources, fallbacks []model.MetaSource) model.CreatorInfo {
 	info := resolveByTitle(ctx, s, sources)
 	notFound := info.Status == model.CreatorNotFound

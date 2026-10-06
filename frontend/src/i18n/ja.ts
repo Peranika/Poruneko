@@ -42,6 +42,7 @@ export const ja = {
 
   labels: {
     siteSource: '作品の情報',
+    titleSource: 'タイトル',
     manualSource: '手動',
     siteArtist: 'アーティスト',
     siteGroup: 'グループ',
@@ -575,7 +576,7 @@ export const ja = {
     downloads: 'ブックマーク・ダウンロード',
     autoDownload: 'ブックマーク時に自動ダウンロード',
     deleteOnUnbookmark: 'ブックマーク解除時にファイルを削除',
-    concurrency: '同時ダウンロード数（全作品合計）',
+    concurrency: '同時ダウンロード数（サイトごとの合計）',
     rangeThumb: 'ページ範囲ブックマークのサムネイル',
     rangeThumbHint: '範囲内の最初のページは、ダウンロードしていない時はサイトの小さいサムネイル（1 件 10KB ほど）を使います',
     rangeThumbPage: '範囲内の最初のページ',

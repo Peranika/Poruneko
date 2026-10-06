@@ -24,6 +24,7 @@ const SOURCE_LABEL: Record<string, string> = {
   pawchive: 'pawchive',
   duckduckgo: 'DuckDuckGo',
   site: t('labels.siteSource'),
+  title: t('labels.titleSource'),
   manual: t('labels.manualSource')
 }
 

@@ -42,6 +42,7 @@ export const en: Dict = {
 
   labels: {
     siteSource: 'Work info',
+    titleSource: 'Title',
     manualSource: 'Manual',
     siteArtist: 'Artist',
     siteGroup: 'Group',
@@ -572,7 +573,7 @@ export const en: Dict = {
     downloads: 'Bookmarks & downloads',
     autoDownload: 'Download automatically when bookmarking',
     deleteOnUnbookmark: 'Delete files when removing a bookmark',
-    concurrency: 'Simultaneous downloads (all works in total)',
+    concurrency: 'Simultaneous downloads (per site, all its works)',
     rangeThumb: 'Thumbnail of page range bookmarks',
     rangeThumbHint: 'For the first page of the range, a small thumbnail from the site (about 10 KB each) is used when not downloaded',
     rangeThumbPage: 'First page of the range',

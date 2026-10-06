@@ -3,6 +3,7 @@ package library
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -27,22 +28,42 @@ const (
 	viewerIdle = 4 * time.Second
 )
 
-// gate limits the total number of concurrent connections to the site.
-// Congestion returns 503s, so downloads and the viewer share the slots and the viewer comes first.
+// gate limits the number of concurrent connections to one site (each site has its own: congestion is a site's).
+// A congested site returns 503s, so downloads and the viewer share the slots and the viewer comes first: while it
+// is fetching, downloads of other works of the site get half their slots. The work being viewed is not held back
+// (its download and the viewer fetch the same pages, which are merged)
 type gate struct {
 	mu        sync.Mutex
 	bgInUse   int
 	fgInUse   int
 	fgWaiting int
 	lastFg    time.Time
+	// viewing is the work the viewer fetched for last
+	viewing string
 }
 
-// acquire takes a fetch slot. bgLimit is the download concurrency setting.
-func (g *gate) acquire(ctx context.Context, pr Priority, bgLimit int) bool {
+// gateOf is the gate of a site
+func (l *Library) gateOf(site string) *gate {
+	l.gmu.Lock()
+	defer l.gmu.Unlock()
+	if l.gates == nil {
+		l.gates = map[string]*gate{}
+	}
+	g := l.gates[site]
+	if g == nil {
+		g = &gate{}
+		l.gates[site] = g
+	}
+	return g
+}
+
+// acquire takes a fetch slot for a page of work. bgLimit is the download concurrency setting.
+func (g *gate) acquire(ctx context.Context, pr Priority, bgLimit int, work string) bool {
 	g.mu.Lock()
 	if pr == Foreground {
 		g.fgWaiting++
 		g.lastFg = time.Now()
+		g.viewing = work
 	}
 	g.mu.Unlock()
 	for {
@@ -59,8 +80,8 @@ func (g *gate) acquire(ctx context.Context, pr Priority, bgLimit int) bool {
 			}
 		case Background:
 			limit := max(1, bgLimit)
-			if time.Since(g.lastFg) < viewerIdle {
-				limit = 1 // throttle downloads while viewing
+			if time.Since(g.lastFg) < viewerIdle && work != g.viewing {
+				limit = max(1, bgLimit/2) // leave room for the viewer while it is fetching
 			}
 			if g.fgWaiting == 0 && g.bgInUse < limit {
 				g.bgInUse++
@@ -120,9 +141,10 @@ func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, ind
 		l.pending[key] = pf
 		go func() {
 			defer cancel()
-			if l.gate.acquire(fctx, pr, l.st.Settings().DownloadConcurrency) {
+			g := l.gateOf(string(p.ID()))
+			if g.acquire(fctx, pr, l.st.Settings().DownloadConcurrency, id) {
 				pf.body, pf.ext, pf.err = fetchImage(fctx, p, id, index, format, pr)
-				l.gate.release(pr)
+				g.release(pr)
 			} else {
 				pf.err = fctx.Err()
 			}
@@ -155,6 +177,21 @@ func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, ind
 	}
 }
 
+// sniffExt is the extension of an image by its content (def when it is not one it knows)
+func sniffExt(b []byte, def string) string {
+	switch ct := http.DetectContentType(b); ct {
+	case "image/jpeg":
+		return "jpg"
+	case "image/png":
+		return "png"
+	case "image/gif":
+		return "gif"
+	case "image/webp":
+		return "webp"
+	}
+	return def
+}
+
 func fetchImage(ctx context.Context, p site.Provider, id string, index int, format string, pr Priority) ([]byte, string, error) {
 	opts := &netx.Opts{Timeout: time.Minute, Retries: 5}
 	if pr == Foreground {
@@ -180,6 +217,12 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 			o.Timeout = 3 * time.Minute // a video is much larger than a page image
 		}
 		res, err := netx.Get(ctx, src.URL, &o)
+		if err != nil && src.Fallback != "" && netx.IsStatus(err, 404, 410) {
+			// the file is missing: the site's other picture of the page, kept as what it is (a WebP thumbnail...)
+			if res, err = netx.Get(ctx, src.Fallback, &o); err == nil {
+				return res.Body, sniffExt(res.Body, src.Ext), nil
+			}
+		}
 		if err != nil {
 			return nil, "", err
 		}

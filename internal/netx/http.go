@@ -52,6 +52,8 @@ func IsStatus(err error, codes ...int) bool {
 type Opts struct {
 	Headers map[string]string
 	Retries int // default 2
+	// Timeout is how long a request may go without progress (default 30 seconds): until the response starts, then
+	// between parts of its body. A large body from a slow server keeps going while data comes (up to maxTransfer)
 	Timeout time.Duration
 	// MaxBackoff caps the wait between retries (default 15 seconds)
 	MaxBackoff time.Duration
@@ -116,9 +118,15 @@ func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 	return nil, lastErr
 }
 
+// maxTransfer is the longest a request may take in all, however steadily its body comes
+const maxTransfer = 10 * time.Minute
+
 func do(ctx context.Context, method, url string, headers map[string]string, body []byte, timeout time.Duration) (*Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, maxTransfer)
 	defer cancel()
+	// cancelled when nothing comes for timeout: the timer starts again whenever part of the body arrives
+	stall := time.AfterFunc(timeout, cancel)
+	defer stall.Stop()
 	if method == "" {
 		method = http.MethodGet
 	}
@@ -148,11 +156,25 @@ func do(ctx context.Context, method, url string, headers map[string]string, body
 		}
 		return nil, he
 	}
-	data, err := io.ReadAll(res.Body)
+	data, err := io.ReadAll(&progressReader{r: res.Body, onRead: func() { stall.Reset(timeout) }})
 	if err != nil {
 		return nil, err
 	}
 	return &Response{Body: data, Header: res.Header}, nil
+}
+
+// progressReader tells when part of a body has arrived
+type progressReader struct {
+	r      io.Reader
+	onRead func()
+}
+
+func (p *progressReader) Read(b []byte) (int, error) {
+	n, err := p.r.Read(b)
+	if n > 0 {
+		p.onRead()
+	}
+	return n, err
 }
 
 // ---------------------------------------------------------------- TTL cache

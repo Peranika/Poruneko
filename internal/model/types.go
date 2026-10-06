@@ -84,6 +84,10 @@ type GallerySummary struct {
 	Stats map[string]int `json:"stats,omitempty"`
 	// Owner is the account the work belongs to (such as an X user's id), for settings kept per owner ("" for none)
 	Owner string `json:"owner,omitempty"`
+	// TitleCreators are the circle and artists the work's title names, from a site whose titles carry them
+	// ("[Circle (Artist)] Title"; the plugin takes them out of the title). The app takes them as the work's
+	// creators as they are, without looking them up
+	TitleCreators *TitleCreators `json:"titleCreators,omitempty"`
 	// Origin is the source of a work made from a page range (local works only)
 	Origin *Origin `json:"origin,omitempty"`
 }
@@ -761,6 +765,12 @@ type FavoriteName struct {
 	Parent bool `json:"parent,omitempty"`
 	// Open is one of the plugin's own screens the name can be opened in (such as a user's screen), with its input
 	Open *ViewLink `json:"open,omitempty"`
+}
+
+// TitleCreators are a work's circle and artists as its title names them (either may be empty)
+type TitleCreators struct {
+	Circle  string   `json:"circle,omitempty"`
+	Artists []string `json:"artists,omitempty"`
 }
 
 // ViewLink opens one of a plugin's own screens (ViewSpec) with an input

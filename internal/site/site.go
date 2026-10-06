@@ -15,6 +15,9 @@ type ImageSource struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers,omitempty"`
 	Ext     string            `json:"ext"`
+	// Fallback is fetched when URL is not there (404 / 410), such as a smaller picture of a page whose file is
+	// missing on the site
+	Fallback string `json:"fallback,omitempty"`
 	// Entry is the page's file in the zip at URL, for a site whose pages are files of one archive (a pixiv
 	// ugoira's frames): the app fetches the zip once and reads each page from it
 	Entry string `json:"entry,omitempty"`

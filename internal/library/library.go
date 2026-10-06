@@ -64,7 +64,8 @@ type Library struct {
 	// fileDetails caches the details of the user's archives (key -> details), as reading page sizes takes a while
 	fileDetails map[string]*model.GalleryDetail
 
-	gate    gate // limits concurrent connections to the site
+	gmu     sync.Mutex
+	gates   map[string]*gate // limit concurrent connections to each site
 	pmu     sync.Mutex
 	pending map[string]*pendingFetch // pages being fetched (merges concurrent fetches of the same page)
 }

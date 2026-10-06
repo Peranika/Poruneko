@@ -11,13 +11,26 @@ const AUTO_RETRIES = 3
 /** Wait this long after a size change before redrawing with the moire reduction (ms) */
 const MOIRE_DELAY = 120
 
+/** A page not loaded this long after it is shown gets its thumbnail in its place meanwhile (ms) */
+const PLACEHOLDER_DELAY = 150
+
 /**
  * A page image with loading state and retries.
  * The caller recreates it with a key when the page changes (resetting state here would make an image loaded instantly
  * from the zip or cache go back to "loading" after "done", leaving it hidden).
+ * placeholder is the page's thumbnail: shown in its place while the page takes a while (a slow site, a large
+ * picture), and replaced by the page once it has loaded
  */
-export function PageImage({ src, w, h, index, marker, moire }: { src: string; w: number; h: number; index: number; marker?: string; moire?: MoireLevel }) {
+export function PageImage({ src, w, h, index, marker, moire, placeholder }: { src: string; w: number; h: number; index: number; marker?: string; moire?: MoireLevel; placeholder?: string }) {
   const [state, setState] = useState<'loading' | 'ok' | 'err'>('loading')
+  // the thumbnail is asked for only when the page is not there at once (a page from the cbz or the cache never needs it)
+  const [waited, setWaited] = useState(false)
+  useEffect(() => {
+    if (!placeholder) return
+    const id = window.setTimeout(() => setWaited(true), PLACEHOLDER_DELAY)
+    return () => window.clearTimeout(id)
+  }, [placeholder])
+  const showPlaceholder = !!placeholder && waited && state === 'loading'
   const [retry, setRetry] = useState(0)
   const timer = useRef(0)
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -81,6 +94,7 @@ export function PageImage({ src, w, h, index, marker, moire }: { src: string; w:
   return (
     <div className={`page ${state} ${marker ? 'marked' : ''}`} style={{ width: w, height: h }} data-index={index}>
       {marker && <span className="page-marker">{marker}</span>}
+      {showPlaceholder && <img className="page-placeholder" src={placeholder} draggable={false} alt="" />}
       <img
         key={retry}
         ref={imgRef}
@@ -89,7 +103,8 @@ export function PageImage({ src, w, h, index, marker, moire }: { src: string; w:
         onLoad={() => setState('ok')}
         onError={onError}
         alt=""
-        style={smoothed ? { opacity: 0 } : undefined}
+        // hidden while the thumbnail stands in for it (a half-loaded page would show over it)
+        style={smoothed || showPlaceholder ? { opacity: 0 } : undefined}
       />
       {moire && <canvas ref={canvas} className="page-smooth" style={smoothed ? undefined : { display: 'none' }} />}
       {state === 'loading' && <div className="spinner" />}

@@ -240,6 +240,20 @@ export namespace model {
 	        this.tags = source["tags"];
 	    }
 	}
+	export class TitleCreators {
+	    circle?: string;
+	    artists?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TitleCreators(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.circle = source["circle"];
+	        this.artists = source["artists"];
+	    }
+	}
 	export class TagInfo {
 	    ns: string;
 	    name: string;
@@ -273,6 +287,7 @@ export namespace model {
 	    description?: string;
 	    stats?: Record<string, number>;
 	    owner?: string;
+	    titleCreators?: TitleCreators;
 	    origin?: Origin;
 	
 	    static createFrom(source: any = {}) {
@@ -299,6 +314,7 @@ export namespace model {
 	        this.description = source["description"];
 	        this.stats = source["stats"];
 	        this.owner = source["owner"];
+	        this.titleCreators = this.convertValues(source["titleCreators"], TitleCreators);
 	        this.origin = this.convertValues(source["origin"], Origin);
 	    }
 	
@@ -714,6 +730,7 @@ export namespace model {
 	    description?: string;
 	    stats?: Record<string, number>;
 	    owner?: string;
+	    titleCreators?: TitleCreators;
 	    origin?: Origin;
 	    pages: PageInfo[];
 	    attachments?: Attachment[];
@@ -742,6 +759,7 @@ export namespace model {
 	        this.description = source["description"];
 	        this.stats = source["stats"];
 	        this.owner = source["owner"];
+	        this.titleCreators = this.convertValues(source["titleCreators"], TitleCreators);
 	        this.origin = this.convertValues(source["origin"], Origin);
 	        this.pages = this.convertValues(source["pages"], PageInfo);
 	        this.attachments = this.convertValues(source["attachments"], Attachment);
@@ -1168,6 +1186,7 @@ export namespace model {
 	        this.count = source["count"];
 	    }
 	}
+	
 	
 	
 	export class ViewAction {

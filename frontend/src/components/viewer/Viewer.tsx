@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { imageUrl, thumbUrl } from '../../api'
+import { imageUrl, isFileKey, thumbUrl } from '../../api'
 import { useBackdropClose } from '../../backdrop'
 import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../keybindings'
 import type { PageInfo, ViewerSettings } from '../../types'
@@ -512,7 +512,17 @@ export function Viewer(props: Props) {
         onElement={(el) => onVideoElement(i, el)}
       />
     ) : (
-      <PageImage key={i} index={i} marker={markerOf(i)} src={imageUrl(galleryKey, i)} w={w} h={h} moire={moire} />
+      <PageImage
+        key={i}
+        index={i}
+        marker={markerOf(i)}
+        src={imageUrl(galleryKey, i)}
+        w={w}
+        h={h}
+        moire={moire}
+        // a site's work shows the page's thumbnail while the page loads (the user's own archives load at once)
+        placeholder={isFileKey(galleryKey) ? undefined : thumbUrl(galleryKey, i, false)}
+      />
     )
 
   // the video the toolbar controls: the one shown (the page being read in vertical scroll view)
