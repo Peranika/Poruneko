@@ -15,12 +15,16 @@
 //
 // The host gives the guest these functions, in the import module "poruneko":
 //
-//	http_fetch(ptr u32, len u32) u32       fetches the JSON HTTPRequest at ptr, len; the JSON HTTPResponse is kept
-//	                                       by the host and its length returned
+//	http_fetch(ptr u32, len u32) u32       fetches the JSON HTTPRequest (GET or POST) at ptr, len; the JSON
+//	                                       HTTPResponse is kept by the host and its length returned
 //	http_fetch_many(ptr u32, len u32) u32  the same for a JSON array of requests, fetched in parallel; the kept
 //	                                       answer is the array of responses in the same order
 //	take(ptr u32)                          copies the kept response to ptr (the guest allocates that many bytes)
-//	log(ptr u32, len u32)              writes a line to the app's log
+//	log(ptr u32, len u32)                  writes a line to the app's log
+//	store_set(kptr, klen, vptr, vlen u32)  keeps a value under a key, shared by all instances of the plugin (in
+//	                                       memory: entries expire and the oldest go when there are many)
+//	store_get(kptr u32, klen u32) u32      the value kept under a key, kept for take like a fetch response (0 if
+//	                                       there is none)
 //
 // A guest has no file system or network of its own: it fetches only through http_fetch, and only from the hosts
 // its info lists. Each instance runs one call at a time; the host keeps a few instances of each plugin.
@@ -44,6 +48,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 
+	"poruneko/internal/apperr"
 	"poruneko/internal/model"
 	"poruneko/internal/netx"
 )
@@ -68,8 +73,21 @@ type Info struct {
 	Hosts []string `json:"hosts"`
 	// DisplayHosts are the hosts shown in the settings (Hosts if empty), e.g. the site without its content servers
 	DisplayHosts []string `json:"displayHosts,omitempty"`
-	// Capabilities are optional methods the plugin answers ("listAny", "webURL", "tagNamesJa")
+	// Capabilities are optional methods the plugin answers ("listAny", "webURL", "tagNamesJa", "invalidate",
+	// "fromURL", "status")
 	Capabilities []string `json:"capabilities"`
+	// SiteCreators: the creators are the work's own artists and groups (no lookup on DLsite / FANZA)
+	SiteCreators bool `json:"siteCreators,omitempty"`
+	// OwnFavorites: listAny lists the plugin's own choice of works (such as the user's lists on the site) instead of
+	// works by the bookmarked artists; it gets no tags and the Favorites screen shows no artists
+	OwnFavorites bool `json:"ownFavorites,omitempty"`
+	// LoadMore is when the site's lists load their next page while scrolling: "near" (the default), "bottom" (when
+	// scrolling on at the bottom) or "button"; the later ones call the site less (for a site with rate limits). The
+	// user can choose another
+	LoadMore string `json:"loadMore,omitempty"`
+	// FileNameFormat is the file name format suggested for the site's works ("" for the app's common one); the user
+	// can choose another for the site
+	FileNameFormat string `json:"fileNameFormat,omitempty"`
 	// Icon is the plugin's icon as a data URL (an SVG is drawn in the text color like the app's own icons)
 	Icon string `json:"icon,omitempty"`
 	// Browse is what a site plugin's list screen offers (its filters and the search box's hint)
@@ -90,6 +108,11 @@ func (i *Info) Has(capability string) bool {
 type HTTPRequest struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers,omitempty"`
+	// Method is GET (the default) or POST; Body is sent with a POST
+	Method string `json:"method,omitempty"`
+	Body   []byte `json:"body,omitempty"`
+	// NoRetry: a failure is not retried (for a site that counts every request against a limit)
+	NoRetry bool `json:"noRetry,omitempty"`
 }
 
 // HTTPResponse is the result of a fetch (the body is base64 in JSON)
@@ -104,6 +127,8 @@ type HTTPResponse struct {
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	// Text is what the screen shows in each UI language (the code's text in the app's string table if none)
+	Text model.Text `json:"text,omitempty"`
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
@@ -124,6 +149,22 @@ type Plugin struct {
 	idle     []*instance
 	count    int
 	free     chan struct{} // a slot for one more call (maxInstances of them)
+
+	// store holds what the plugin keeps for all its instances (store_set / store_get)
+	storeOnce sync.Once
+	store     *netx.Cache[[]byte]
+}
+
+// storeTTL / storeMax limit what a plugin keeps with store_set
+const (
+	storeTTL = 12 * time.Hour
+	storeMax = 20000
+)
+
+// kept is the plugin's shared store
+func (p *Plugin) kept() *netx.Cache[[]byte] {
+	p.storeOnce.Do(func() { p.store = netx.NewCache[[]byte](storeTTL, storeMax) })
+	return p.store
 }
 
 // instance is one running copy of a plugin
@@ -164,6 +205,8 @@ func sharedRuntime(cacheDir string) (wazero.Runtime, error) {
 			NewFunctionBuilder().WithFunc(hostFetchMany).Export("http_fetch_many").
 			NewFunctionBuilder().WithFunc(hostTake).Export("take").
 			NewFunctionBuilder().WithFunc(hostLog).Export("log").
+			NewFunctionBuilder().WithFunc(hostStoreSet).Export("store_set").
+			NewFunctionBuilder().WithFunc(hostStoreGet).Export("store_get").
 			Instantiate(ctx)
 		runtime, runtimeErr = rt, err
 	})
@@ -268,12 +311,32 @@ func (p *Plugin) Call(ctx context.Context, method string, params, out any) error
 		return fmt.Errorf("plugin %s: %s: bad response: %w", p.Info.ID, method, err)
 	}
 	if resp.Error != nil {
+		if t := textIn(resp.Error.Text); t != "" {
+			return apperr.Wrap(resp.Error, "plugin.message", resp.Error.Message, "text", t)
+		}
 		return resp.Error
 	}
 	if out != nil && len(resp.Result) > 0 {
 		return json.Unmarshal(resp.Result, out)
 	}
 	return nil
+}
+
+// textIn is a text in the UI language (English, or any, if it has none)
+func textIn(t model.Text) string {
+	lang := "ja"
+	if model.English() {
+		lang = "en"
+	}
+	for _, l := range []string{lang, "en"} {
+		if s := t[l]; s != "" {
+			return s
+		}
+	}
+	for _, s := range t {
+		return s
+	}
+	return ""
 }
 
 // take returns an idle instance or starts a new one
@@ -341,7 +404,7 @@ func (inst *instance) invoke(ctx context.Context, req []byte) ([]byte, error) {
 
 // ---------------------------------------------------------------- host functions
 
-// hostFetch fetches for the guest. Only http(s) URLs on the hosts in the plugin's info are allowed
+// hostFetch fetches for the guest (GET or POST). Only http(s) URLs on the hosts in the plugin's info are allowed
 func hostFetch(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
 	inst, _ := byModule.Load(m.Name())
 	owner, _ := ownerOf.Load(m.Name())
@@ -397,23 +460,39 @@ func hostFetchMany(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
 func fetch(ctx context.Context, req *HTTPRequest, res *HTTPResponse) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	r, err := netx.Get(ctx, req.URL, &netx.Opts{Headers: req.Headers})
+	method := strings.ToUpper(req.Method)
+	if method != "" && method != "GET" && method != "POST" {
+		res.Error = "method not allowed: " + req.Method
+		return
+	}
+	opts := &netx.Opts{Headers: req.Headers, Method: method, Body: req.Body}
+	if req.NoRetry {
+		opts.Retries = -1
+	}
+	r, err := netx.Get(ctx, req.URL, opts)
 	if err != nil {
 		var he *netx.HTTPError
 		if errors.As(err, &he) {
-			res.Status = he.Status
+			// the start of the error response and its headers, for plugins that read the site's message or limits
+			res.Status, res.Body, res.Headers = he.Status, he.Body, firstValues(he.Header)
 		}
 		res.Error = err.Error()
 		return
 	}
 	res.Status = 200
 	res.Body = r.Body
-	res.Headers = map[string]string{}
-	for k, v := range r.Header {
+	res.Headers = firstValues(r.Header)
+}
+
+// firstValues is the first value of each header
+func firstValues(h map[string][]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range h {
 		if len(v) > 0 {
-			res.Headers[k] = v[0]
+			out[k] = v[0]
 		}
 	}
+	return out
 }
 
 // allowed checks a URL against the hosts the plugin may fetch from
@@ -438,6 +517,38 @@ func hostTake(_ context.Context, m api.Module, ptr uint32) {
 		m.Memory().Write(ptr, in.pending)
 		in.pending = nil
 	}
+}
+
+// hostStoreSet keeps a value for all instances of the guest's plugin
+func hostStoreSet(_ context.Context, m api.Module, kptr, klen, vptr, vlen uint32) {
+	owner, ok := ownerOf.Load(m.Name())
+	if !ok {
+		return
+	}
+	k, ok1 := m.Memory().Read(kptr, klen)
+	v, ok2 := m.Memory().Read(vptr, vlen)
+	if ok1 && ok2 {
+		owner.(*Plugin).kept().Set(string(k), append([]byte(nil), v...))
+	}
+}
+
+// hostStoreGet hands the guest a value kept by any instance of its plugin (through take; 0 if there is none)
+func hostStoreGet(_ context.Context, m api.Module, kptr, klen uint32) uint32 {
+	inst, _ := byModule.Load(m.Name())
+	owner, _ := ownerOf.Load(m.Name())
+	if inst == nil || owner == nil {
+		return 0
+	}
+	k, ok := m.Memory().Read(kptr, klen)
+	if !ok {
+		return 0
+	}
+	v, ok := owner.(*Plugin).kept().Get(string(k))
+	if !ok || len(v) == 0 {
+		return 0
+	}
+	inst.(*instance).pending = v
+	return uint32(len(v))
 }
 
 func hostLog(_ context.Context, m api.Module, ptr, size uint32) {

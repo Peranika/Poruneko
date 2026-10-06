@@ -115,3 +115,32 @@ type TagNamer interface {
 type AnyLister interface {
 	ListAny(ctx context.Context, q AnyQuery) (*model.ListResult, error)
 }
+
+// FileNamer is a site that suggests a file name format for its works
+type FileNamer interface {
+	FileNameFormat() string
+}
+
+// FileNameFormat is the file name format a site suggests ("" for none)
+func FileNameFormat(id model.SiteID) string {
+	p, err := Get(id)
+	if err != nil {
+		return ""
+	}
+	if f, ok := p.(FileNamer); ok {
+		return f.FileNameFormat()
+	}
+	return ""
+}
+
+// AttachmentSource is a site whose works have attachments (files that are not pages)
+type AttachmentSource interface {
+	// Attachment is where an attachment of a work is fetched from (index: GalleryDetail.Attachments[].Index)
+	Attachment(ctx context.Context, id string, index int) (*ImageSource, error)
+}
+
+// URLReader is a site that can tell which of its works a URL is
+type URLReader interface {
+	// FromURL returns the id of the work at rawURL ("" if the URL is not one of its works)
+	FromURL(ctx context.Context, rawURL string) (string, error)
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type HTMLAttributes, type ReactNode } from 'react'
 import { api, isBookmarked, isFileKey, isLocalKey, localDirOfKey, siteOfBookmark, thumbUrl } from '../api'
 import { type GroupBy, needsReview } from '../bookmarkList'
+import { creatorLabel, textOf, viewLink } from '../browseSpec'
 import {
   DELETE_FILES_CONFIRM,
   DOWNLOAD_ACTION_ICON,
@@ -14,8 +15,8 @@ import {
 } from '../bookmarkActions'
 import { downloadErrorText, errorText, t } from '../i18n'
 import { artistsBesideCircle, bookmarkTitle } from '../labels'
-import { actionTargets, useApp } from '../state'
-import type { Bookmark } from '../types'
+import { actionTargets, nameRoute, useApp } from '../state'
+import type { Bookmark, GallerySummary } from '../types'
 import type { WorkSource } from '../workSequence'
 import { Icon } from './Icon'
 import { SeriesTagPopover, TagPopover } from './TagEditor'
@@ -184,7 +185,7 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
             <span className="muted">{t('bookmarkCard.resolving')}</span>
           ) : (
             <>
-              {c.circle && <NameLink name={c.circle} by="circle" onShowGroup={onShowGroup} />}
+              {c.circle && <NameLink name={c.circle} by="circle" work={b.summary} onShowGroup={onShowGroup} />}
               {artistsBesideCircle(c).length > 0 && (
                 // without a circle the artists take its place and look like it
                 <span className={c.circle ? 'muted' : ''}>
@@ -192,7 +193,7 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
                   {artistsBesideCircle(c).map((a, i) => (
                     <span key={a}>
                       {i > 0 && t('common.listSeparator')}
-                      <NameLink name={a} by="artist" onShowGroup={onShowGroup} />
+                      <NameLink name={a} by="artist" work={b.summary} onShowGroup={onShowGroup} />
                     </span>
                   ))}
                 </span>
@@ -333,16 +334,28 @@ function StatusIcons({ b, seriesNo }: { b: Bookmark; seriesNo?: number }) {
   return icons.length ? <div className="thumb-br">{icons}</div> : null
 }
 
-/** Circle and artist names at the bottom of a card (clicking opens that group) */
-function NameLink({ name, by, onShowGroup }: { name: string; by: GroupBy; onShowGroup?(by: GroupBy, group: string): void }) {
-  if (!onShowGroup) return <span>{name}</span>
+/**
+ * Circle and artist names at the bottom of a card: clicking opens the plugin's screen for the name if there is one
+ * (a user's screen), otherwise that group of the bookmarks
+ */
+function NameLink({ name, by, work, onShowGroup }: { name: string; by: GroupBy; work: GallerySummary; onShowGroup?(by: GroupBy, group: string): void }) {
+  const { nav } = useApp()
+  const site = work.site
+  const ns = by === 'circle' ? 'group' : 'artist'
+  const view = viewLink(site, ns, name, work)
+  if (!onShowGroup && !view) return <span>{name}</span>
   return (
     <button
       className="link name-link"
-      title={t('bookmarks.showName', { kind: by === 'circle' ? t('common.circle') : t('common.artist'), name })}
+      title={
+        view
+          ? t('bookmarks.openNameIn', { view: textOf(view.view.label), name })
+          : t('bookmarks.showName', { kind: by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist')), name })
+      }
       onClick={(e) => {
         e.stopPropagation()
-        onShowGroup(by, name)
+        if (view) nav.go(nameRoute(ns, name, site, work))
+        else onShowGroup?.(by, name)
       }}
     >
       {name}

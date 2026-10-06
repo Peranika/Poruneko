@@ -144,3 +144,26 @@ func TestHistory(t *testing.T) {
 		t.Fatalf("after removing: %+v", h)
 	}
 }
+
+// values kept per owner survive a restart, and removing the last one removes the owner
+func TestOwnerSettingsPersist(t *testing.T) {
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := Open()
+	st.SetOwnerValue("twitter", "123", "minLikes", "1000")
+	st.SetOwnerValue("twitter", "456", "minLikes", "10")
+	st.SetOwnerValue("other", "123", "minLikes", "5")
+	st.Flush()
+
+	st = Open()
+	if v := st.OwnerValues("twitter", "123")["minLikes"]; v != "1000" {
+		t.Fatalf("after reopen: %q", v)
+	}
+	if all := st.OwnersOf("twitter"); len(all) != 2 || all["456"]["minLikes"] != "10" {
+		t.Fatalf("owners of twitter: %v", all)
+	}
+	st.SetOwnerValue("twitter", "123", "minLikes", "")
+	st.Flush()
+	if all := Open().OwnersOf("twitter"); len(all) != 1 {
+		t.Fatalf("after removing: %v", all)
+	}
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"slices"
 	"strings"
 	"time"
@@ -64,6 +65,38 @@ func (a *App) favoriteNames(siteID model.SiteID, excludeCollective bool) []model
 	return out
 }
 
+// FavoriteNames returns only the artists and groups Favorites searches for (quick: no site search), so the list
+// can be shown while the works are still being fetched
+func (a *App) FavoriteNames(q model.FavoritesQuery) ([]model.FavoriteName, error) {
+	p, err := browseSite(q.Site)
+	if err != nil {
+		return nil, err
+	}
+	if pi := pluginInfo(p.ID()); pi != nil && pi.OwnFavorites {
+		return a.ownFavoriteNames(p), nil
+	}
+	return a.favoriteNames(p.ID(), q.ExcludeCollective), nil
+}
+
+// ownFavoriteNames are the names a plugin's own Favorites can be narrowed by (its lists and users...; none if it
+// gives none)
+func (a *App) ownFavoriteNames(p site.Provider) []model.FavoriteName {
+	n, ok := p.(interface {
+		FavoriteNames(context.Context) ([]model.FavoriteName, error)
+	})
+	if !ok {
+		return []model.FavoriteName{}
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	names, err := n.FavoriteNames(ctx)
+	if err != nil {
+		log.Printf("[favorites] %s: names: %v", p.ID(), err)
+		return []model.FavoriteName{}
+	}
+	return names
+}
+
 // Favorites lists works by bookmarked artists, newest first
 func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) {
 	ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
@@ -79,7 +112,13 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 
 	names := a.favoriteNames(p.ID(), q.ExcludeCollective)
 	var tags []string
-	if q.Tag != "" {
+	if pi := pluginInfo(p.ID()); pi != nil && pi.OwnFavorites {
+		// the plugin lists its own choice of works (no artists are searched), narrowed by one of its own names
+		names = a.ownFavoriteNames(p)
+		if q.Tag != "" {
+			tags = []string{q.Tag}
+		}
+	} else if q.Tag != "" {
 		tags = []string{q.Tag}
 	} else {
 		for _, n := range names {
@@ -97,8 +136,10 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 	}
 	res, err := lister.ListAny(ctx, site.AnyQuery{Tags: tags, Filters: q.Filters, Page: q.Page, Exclude: exclude})
 	if err != nil {
+		log.Printf("[favorites] %s (page %d): %v", p.ID(), q.Page, err)
 		return nil, err
 	}
 	res.FilterPages(q.MinPages, q.MaxPages)
+	res.FilterStats(browseSpec(p.ID()), q.Filters, a.st.OwnersOf(p.ID()))
 	return &model.FavoritesResult{ListResult: *res, Names: names}, nil
 }

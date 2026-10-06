@@ -5,6 +5,8 @@ export interface PageInfo {
   name: string
   width: number
   height: number
+  /** The page is a video (played in the viewer) */
+  video?: boolean
 }
 
 export interface TagInfo {
@@ -27,6 +29,12 @@ export interface GallerySummary {
   parodies: string[]
   characters: string[]
   tags: TagInfo[]
+  /** The work's own text (a post's body and the like) */
+  description?: string
+  /** The site's numbers for the work (likes, views...: the ids in its BrowseSpec.stats) */
+  stats?: Record<string, number>
+  /** The account the work belongs to (a user's id), for the filter values kept per owner */
+  owner?: string
   pageCount: number
   /** Source of a work made from a page range (local works only) */
   origin?: Origin
@@ -60,11 +68,24 @@ export interface RangeRequest {
 
 export interface GalleryDetail extends GallerySummary {
   pages: PageInfo[]
+  /** The work's files that are not pages (archives, documents...): listed on the work page */
+  attachments?: Attachment[]
+}
+
+/** A file of a work that is not a page; where it is fetched from is asked of the site when it is opened */
+export interface Attachment {
+  index: number
+  name: string
+  kind: 'archive' | 'document' | 'audio' | 'other'
+  /** Bytes (absent when unknown) */
+  size?: number
 }
 
 export interface ListQuery {
   /** The site listed (the first site if absent) */
   site?: string
+  /** The plugin's own screen listed (its BrowseSpec.views; absent for the site's list). query is then its input */
+  view?: string
   query: string
   /** Values of the site plugin's filters (its sort order, language and so on) */
   filters: Record<string, string>
@@ -77,11 +98,13 @@ export interface ListQuery {
 export interface ListResult {
   items: GallerySummary[]
   failed: string[]
+  /** -1 when not known (a timeline); more then tells whether there is a next page */
   total: number
   page: number
   perPage: number
   /** Number of works removed from this page by the filters (page count etc.) */
   hidden: number
+  more?: boolean
 }
 
 export interface Suggestion {
@@ -204,6 +227,76 @@ export interface BrowseSpec {
   filters: FilterSpec[]
   /** The kinds of the site's tags: how they are named and colored */
   namespaces?: Namespace[]
+  /** The numbers the site's works have, shown on them */
+  stats?: StatSpec[]
+  /** What the site calls the creators the app calls circle ("group") and artist ("artist") */
+  creatorLabels?: Partial<Record<'group' | 'artist', Text>>
+  /** The plugin's own screens, added to the site's tab */
+  views?: ViewSpec[]
+  /** The name and icon of the Favorites screen (when it is the plugin's own choice, such as the user's lists) */
+  favoritesLabel?: Text
+  favoritesIcon?: string
+}
+
+/** A plugin's own screen: an input (which can come from the clipboard) and the works listed for it */
+export interface ViewSpec {
+  id: string
+  label: Text
+  /** One of the app's icons */
+  icon?: string
+  placeholder?: Text
+  /** Shown while nothing has been entered */
+  hint?: Text
+  /** The kinds of names (such as "artist") whose links open this screen with the name */
+  namespaces?: string[]
+  /**
+   * Kinds of names that stand for a work's name of the first of namespaces (a display name for a user id): their
+   * links open this screen with the work's name of that kind
+   */
+  aliases?: string[]
+}
+
+/** What a plugin shows above its own screen's works for what was entered */
+export interface ViewHeader {
+  /** The owner of works it is about (a user's id): the values of the filters with a stat can be kept for them */
+  owner?: string
+  title: string
+  subtitle?: string
+  text?: string
+  /** A small picture's URL */
+  image?: string
+  actions?: ViewAction[]
+}
+
+/** A button of a view's header (with items, a menu of more buttons) */
+export interface ViewAction {
+  id: string
+  label: Text
+  icon?: string
+  /** Shown as on (following, on a list...) */
+  active?: boolean
+  /** Asked before doing it */
+  confirm?: Text
+  items?: ViewAction[]
+}
+
+/** A line of a site's state shown on its tab (such as the API calls left) */
+export interface StatusLine {
+  label: Text
+  value: string
+  /** What value is out of, shown as "/ max" */
+  max?: string
+  /** A small text at the end (such as the time until it resets) */
+  note?: string
+  warn?: boolean
+}
+
+/** A number the site's works have (likes, views...) */
+export interface StatSpec {
+  id: string
+  label: Text
+  /** One of the app's icons shown before the number (the label if absent) */
+  icon?: string
 }
 
 /** A kind of the site's tags ("female", "artist"...) */
@@ -226,12 +319,21 @@ export interface FilterSpec {
   options: { value: string; label: Text; color?: string; spread?: boolean }[]
   /** The value until the user chooses another (the user's choice is kept as the plugin's setting) */
   default: string
-  /** The screens it is on ("browse" if absent), or "settings" for a setting of the plugin that is not a filter */
-  in?: ('browse' | 'favorites' | 'settings')[]
+  /**
+   * The screens it is on ("browse" if absent; a view's id for the plugin's own screen), or "settings" for a setting
+   * of the plugin that is not a filter
+   */
+  in?: string[]
   /** Several options at once (joined with ","; none means all) */
   multi?: boolean
   /** The value used while there is a search query */
   onSearch?: string
+  /** A minimum of this stat: the app hides the works below the chosen value */
+  stat?: string
+  /** Kind of a setting: a choice of options (absent), a line of text, or a hidden one */
+  kind?: '' | 'text' | 'secret'
+  /** Shown under a setting */
+  hint?: Text
 }
 
 /** A site from a site plugin */
@@ -246,7 +348,28 @@ export interface SiteInfo {
   dir: string
   /** What the site's list screen offers (from its plugin) */
   browse: BrowseSpec | null
+  /** Works can be added from their URL on the site */
+  fromURL: boolean
+  /** Favorites lists the plugin's own choice of works, not works by the bookmarked artists */
+  ownFavorites: boolean
+  /** With ownFavorites: the plugin gives the names Favorites can be narrowed by (its lists and users...) */
+  favoriteNames: boolean
+  /** The file name format the plugin suggests for its works ('' for the common one) */
+  fileNameFormat: string
+  /** When the plugin suggests loading the next page while scrolling ('' for near) */
+  loadMore: LoadMore | ''
+  /** The plugin tells its state (shown on the site's tab) */
+  status: boolean
+  /** The plugin's version and the hosts it connects to */
+  version: string
+  hosts: string[]
 }
+
+/**
+ * When a list loads its next page while scrolling: as its end comes near, when scrolling on at the bottom, or only
+ * with the button
+ */
+export type LoadMore = 'near' | 'bottom' | 'button'
 
 export interface ViewerSettings {
   mode: 'single' | 'spread' | 'scroll'
@@ -275,7 +398,11 @@ export interface ViewerSettings {
   slideEdgeShrink: boolean
   /** Keep the bottom toolbar shown, with the pages above it */
   barLocked: boolean
+  /** How strongly pages shown smaller than their size are smoothed against moire ("" off) */
+  moire: '' | MoireLevel
 }
+
+export type MoireLevel = 'weak' | 'strong'
 
 /** A folder of the user's own archives, shown as a tab of its own */
 export interface LocalDir {
@@ -326,6 +453,14 @@ export interface Settings {
   keybindings: Record<string, string[]> | null
   /** Load the next page automatically when scrolling a list */
   infiniteScroll: boolean
+  /** The order of the sites' tabs as the user arranged them (site ids; others follow) */
+  siteOrder?: string[]
+  /** The order of each site's screens under its tab (site id -> "browse" | "bookmarks" | "favorites" | "view.<id>") */
+  siteScreenOrder?: Record<string, string[]>
+  /** How the screens of the site being used are laid out under its tab ('' with names, one a row; grid: icons, two a row) */
+  siteScreens?: '' | 'grid'
+  /** When a site's list loads its next page while scrolling (a site without one uses its plugin's choice) */
+  siteLoadMore?: Record<string, LoadMore>
   /** Restore the window position and size from the last exit at the next start */
   rememberWindow: boolean
   /** Open the screen shown at the last exit at the next start (the tab, its list or the open work) */
@@ -334,6 +469,8 @@ export interface Settings {
   mouseGestures: boolean
   /** zip file name format */
   fileNameFormat: string
+  /** Formats chosen for sites (a site without one uses its plugin's format, or fileNameFormat) */
+  siteFileNameFormats?: Record<string, string>
 }
 
 export interface DownloadProgress {
@@ -375,6 +512,12 @@ export interface FavoriteName {
   ns: 'artist' | 'group'
   /** Number of bookmarks with that name */
   bookmarks: number
+  /** A small text after the name (the kind of a plugin's own name, such as "list") */
+  note?: string
+  /** The tags of the names it belongs to (a user's lists); names that are parents are shown apart, above */
+  parents?: string[]
+  /** One of the plugin's own screens the name opens in (a user's screen), with its input */
+  open?: { view: string; query: string }
 }
 
 export interface FavoritesResult extends ListResult {

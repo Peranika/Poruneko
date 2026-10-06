@@ -251,10 +251,100 @@ func (a *App) Sites() []model.SiteInfo {
 		info := model.SiteInfo{ID: p.ID(), Name: p.Name(), Favorites: any, Dir: a.st.SiteDir(p.ID())}
 		if pi := pluginInfo(p.ID()); pi != nil {
 			info.Icon, info.Browse = pi.Icon, pi.Browse
+			info.FromURL, info.OwnFavorites, info.FileNameFormat = pi.Has("fromURL"), pi.OwnFavorites, pi.FileNameFormat
+			info.Status = pi.Has("status")
+			info.Version, info.Hosts = pi.Version, pi.DisplayHosts
+			if len(info.Hosts) == 0 {
+				info.Hosts = pi.Hosts
+			}
+			info.FavoriteNames = pi.OwnFavorites && pi.Has("favoriteNames")
+			if model.IsLoadMore(pi.LoadMore) {
+				info.LoadMore = pi.LoadMore
+			}
 		}
 		out = append(out, info)
 	}
 	return out
+}
+
+// SiteStatus is a site's state as its plugin tells it (such as the API calls left), shown on its tab
+func (a *App) SiteStatus(siteID model.SiteID) []model.StatusLine {
+	p, err := site.Get(siteID)
+	if err != nil {
+		return []model.StatusLine{}
+	}
+	if s, ok := p.(interface {
+		Status(context.Context) []model.StatusLine
+	}); ok {
+		ctx, cancel := context.WithTimeout(a.ctx, 10*time.Second)
+		defer cancel()
+		return s.Status(ctx)
+	}
+	return []model.StatusLine{}
+}
+
+// viewSite is a site plugin with its own screens' headers
+type viewSite interface {
+	ViewHeader(ctx context.Context, view, query string) (*model.ViewHeader, error)
+	ViewAction(ctx context.Context, view, query, action string) (model.Text, error)
+}
+
+// ViewHeader is the header of a plugin's own screen for its input (nil when the plugin shows none)
+func (a *App) ViewHeader(siteID model.SiteID, view, query string) (*model.ViewHeader, error) {
+	p, err := site.Get(siteID)
+	if err != nil {
+		return nil, err
+	}
+	v, ok := p.(viewSite)
+	if !ok {
+		return nil, nil
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	h, err := v.ViewHeader(ctx, view, query)
+	if err != nil {
+		log.Printf("[view] %s %s header: %v", siteID, view, err)
+	}
+	return h, err
+}
+
+// ViewAction does a button of a plugin's own screen (such as following a user); the message is shown after it
+func (a *App) ViewAction(siteID model.SiteID, view, query, action string) (model.Text, error) {
+	p, err := site.Get(siteID)
+	if err != nil {
+		return nil, err
+	}
+	v, ok := p.(viewSite)
+	if !ok {
+		return nil, apperr.New("site.noAction", "the site has no such action")
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	return v.ViewAction(ctx, view, query, action)
+}
+
+// OpenAttachment opens an attachment of a work (a file that is not a page) in the browser, from where its site
+// says it is now. Downloading attachments into the library comes later; until then this is how they are reached
+func (a *App) OpenAttachment(key string, index int) error {
+	siteID, id, err := model.ParseKey(key)
+	if err != nil {
+		return err
+	}
+	p, err := site.Get(siteID)
+	if err != nil {
+		return err
+	}
+	src, ok := p.(site.AttachmentSource)
+	if !ok {
+		return apperr.New("site.noAction", "the site has no attachments")
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	at, err := src.Attachment(ctx, id, index)
+	if err != nil {
+		return err
+	}
+	return a.OpenExternal(at.URL)
 }
 
 // WebURL returns the web page of a work on its site ("" when there is none, e.g. local archives)
@@ -265,7 +355,62 @@ func (a *App) List(q model.ListQuery) (*model.ListResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.List(a.ctx, q)
+	r, err := p.List(a.ctx, q)
+	if err != nil {
+		log.Printf("[list] %s (view %q, page %d): %v", p.ID(), q.View, q.Page, err)
+		return nil, err
+	}
+	r.FilterStats(browseSpec(p.ID()), q.Filters, a.st.OwnersOf(p.ID()))
+	return r, nil
+}
+
+// OwnerSettings are the values of a site's filters kept for one owner of its works (such as an X user), which
+// override the common ones for that owner's works wherever they are listed
+func (a *App) OwnerSettings(siteID model.SiteID, owner string) map[string]string {
+	return a.st.OwnerValues(siteID, owner)
+}
+
+// SetOwnerSetting keeps the value of a filter for one owner of a site's works ("" goes back to the common value)
+func (a *App) SetOwnerSetting(siteID model.SiteID, owner, filterID, value string) map[string]string {
+	return a.st.SetOwnerValue(siteID, owner, filterID, value)
+}
+
+// browseSpec is what a site's plugin says about its screens (nil for none)
+func browseSpec(id model.SiteID) *model.BrowseSpec {
+	if pi := pluginInfo(id); pi != nil {
+		return pi.Browse
+	}
+	return nil
+}
+
+// AddBookmarkFromURL bookmarks the work at a URL on one of the sites (such as one copied from the browser)
+func (a *App) AddBookmarkFromURL(rawURL string) (model.Bookmark, error) {
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	rawURL = strings.TrimSpace(rawURL)
+	for _, p := range site.All() {
+		r, ok := p.(site.URLReader)
+		if !ok {
+			continue
+		}
+		id, err := r.FromURL(ctx, rawURL)
+		if err != nil {
+			return model.Bookmark{}, err
+		}
+		if id == "" {
+			continue
+		}
+		key := model.MakeKey(p.ID(), id)
+		if b, ok := a.st.Bookmark(key); ok {
+			return b, nil
+		}
+		d, err := p.Gallery(ctx, id)
+		if err != nil {
+			return model.Bookmark{}, err
+		}
+		return a.AddBookmark(d.GallerySummary), nil
+	}
+	return model.Bookmark{}, apperr.New("bookmark.unknownURL", "no site knows this URL: "+rawURL)
 }
 
 func (a *App) Gallery(key string) (*model.GalleryDetail, error) {

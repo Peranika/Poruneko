@@ -3,6 +3,7 @@ import * as Go from '../wailsjs/go/main/App'
 import { applyFontScale, applyTheme } from './display'
 import { resolveLanguage, setLanguage } from './i18n'
 import '@fontsource-variable/noto-sans-jp'
+import '@fontsource-variable/noto-sans-mono'
 import './style.css'
 
 // decide the UI language before loading the UI modules (some keep text as constants)

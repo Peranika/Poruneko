@@ -6,6 +6,8 @@ import {main} from '../models';
 
 export function AddBookmark(arg1:model.GallerySummary):Promise<model.Bookmark>;
 
+export function AddBookmarkFromURL(arg1:string):Promise<model.Bookmark>;
+
 export function AddHistory(arg1:model.GallerySummary,arg2:string):Promise<void>;
 
 export function AddLocalDir(arg1:string):Promise<string>;
@@ -38,6 +40,8 @@ export function DeleteDownload(arg1:string):Promise<void>;
 
 export function DeleteSeries(arg1:string):Promise<void>;
 
+export function FavoriteNames(arg1:model.FavoritesQuery):Promise<Array<model.FavoriteName>>;
+
 export function Favorites(arg1:model.FavoritesQuery):Promise<model.FavoritesResult>;
 
 export function FileNamePlaceholders():Promise<Array<string>>;
@@ -58,17 +62,21 @@ export function LocalIcons():Promise<Array<main.IconFile>>;
 
 export function MoveLocalDir(arg1:number,arg2:number):Promise<void>;
 
+export function OpenAttachment(arg1:string,arg2:number):Promise<void>;
+
 export function OpenExternal(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function OpenIconsFolder():Promise<void>;
 
+export function OwnerSettings(arg1:string,arg2:string):Promise<Record<string, string>>;
+
 export function PauseDownload(arg1:string):Promise<void>;
 
 export function Plugins():Promise<Array<main.PluginInfo>>;
 
-export function PreviewFileName(arg1:string,arg2:string):Promise<string>;
+export function PreviewFileName(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function RemoveBookmark(arg1:string):Promise<void>;
 
@@ -108,9 +116,13 @@ export function SetFullscreen(arg1:boolean):Promise<void>;
 
 export function SetLocalDir(arg1:number,arg2:string,arg3:string):Promise<void>;
 
+export function SetOwnerSetting(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Record<string, string>>;
+
 export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):Promise<model.Bookmark>;
 
 export function SetSettings(arg1:model.Settings):Promise<model.Settings>;
+
+export function SiteStatus(arg1:string):Promise<Array<model.StatusLine>>;
 
 export function Sites():Promise<Array<model.SiteInfo>>;
 
@@ -129,6 +141,10 @@ export function UnlinkCreatorSource(arg1:string):Promise<model.Bookmark>;
 export function UpdateTags(arg1:Array<string>,arg2:Array<string>,arg3:Array<string>):Promise<void>;
 
 export function VerifyDownloads():Promise<void>;
+
+export function ViewAction(arg1:string,arg2:string,arg3:string,arg4:string):Promise<model.Text>;
+
+export function ViewHeader(arg1:string,arg2:string,arg3:string):Promise<model.ViewHeader>;
 
 export function WebURL(arg1:string):Promise<string>;
 

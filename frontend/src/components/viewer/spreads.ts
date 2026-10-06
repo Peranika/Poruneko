@@ -3,9 +3,10 @@ import { loadJSON, removeItem, saveJSON } from '../../storage'
 import type { PageInfo, ViewerSettings } from '../../types'
 
 export const ratioOf = (p: PageInfo): number => (p.width > 0 && p.height > 0 ? p.width / p.height : 0.7)
-export const isWide = (p: PageInfo): boolean => ratioOf(p) > 1.1
+/** Pages shown alone in spreads: landscape pages and videos */
+export const isWide = (p: PageInfo): boolean => ratioOf(p) > 1.1 || !!p.video
 
-/** Build spread pairs (landscape pages are shown alone) */
+/** Build spread pairs (landscape pages and videos are shown alone) */
 export function buildSpreads(
   pages: PageInfo[],
   mode: ViewerSettings['mode'],

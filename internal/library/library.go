@@ -35,6 +35,15 @@ const (
 // imageExts are the page image formats (the WebView shows them all; AVIF pages are not decoded by the app)
 var imageExts = []string{"webp", "avif", "jpg", "jpeg", "png", "gif", "bmp"}
 
+// videoExts are the formats of pages that are videos (played by the WebView)
+var videoExts = []string{"mp4", "webm", "m4v", "mov"}
+
+// pageExts are the formats of all pages
+var pageExts = append(slices.Clone(imageExts), videoExts...)
+
+// IsVideoExt reports whether a page with this extension ("mp4", no dot) is a video
+func IsVideoExt(ext string) bool { return slices.Contains(videoExts, strings.ToLower(ext)) }
+
 // badChars replaces characters not allowed in file names with full-width lookalikes (Japanese UI)
 var badChars = strings.NewReplacer(
 	`\`, "＼", "/", "／", ":", "：", "*", "＊", "?", "？", `"`, "”", "<", "＜", ">", "＞", "|", "｜",
@@ -135,7 +144,7 @@ func pageBase(index int) string { return fmt.Sprintf("%04d", index+1) }
 // workPage returns the path of a page image in the work dir ("" if none)
 func (l *Library) workPage(key string, index int) string {
 	dir := l.WorkDir(key)
-	for _, ext := range imageExts {
+	for _, ext := range pageExts {
 		p := filepath.Join(dir, pageBase(index)+"."+ext)
 		if _, err := os.Stat(p); err == nil {
 			return p

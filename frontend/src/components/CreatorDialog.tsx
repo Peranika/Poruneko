@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { api } from '../api'
 import { errorText, t } from '../i18n'
+import { creatorLabel } from '../browseSpec'
 import { bookmarkTitle, displayTitle, sourceClass, sourceLabel, splitNames } from '../labels'
 import { actionTargets, useApp } from '../state'
 import { loadString, saveString } from '../storage'
@@ -218,9 +219,9 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
       )}
 
       <div className="form-grid">
-        <label>{t('common.circle')}</label>
+        <label>{creatorLabel('group', b?.summary.site, t('common.circle'))}</label>
         <input value={circle} list="creator-circles" onChange={(e) => setCircle(e.target.value)} placeholder={t('creator.circlePlaceholder')} />
-        <label>{t('common.artist')}</label>
+        <label>{creatorLabel('artist', b?.summary.site, t('common.artist'))}</label>
         <input value={artists} list="creator-artists" onChange={(e) => setArtists(e.target.value)} placeholder={t('creator.artistsPlaceholder')} />
       </div>
       {complement.length > 0 && (
@@ -233,7 +234,7 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
               title={t('creator.fillTitle', { n: s.count })}
               onClick={() => (s.kind === 'artists' ? setArtists(s.value) : setCircle(s.value))}
             >
-              {s.kind === 'artists' ? t('common.artist') : t('common.circle')}: {s.value} <small className="muted">({s.count})</small>
+              {s.kind === 'artists' ? creatorLabel('artist', b?.summary.site, t('common.artist')) : creatorLabel('group', b?.summary.site, t('common.circle'))}: {s.value} <small className="muted">({s.count})</small>
             </button>
           ))}
         </div>

@@ -7,6 +7,7 @@ import { tagLabel } from '../labels'
 import { useApp } from '../state'
 import type { Bookmark } from '../types'
 import { Icon } from './Icon'
+import { usePaneScroll } from '../usePaneScroll'
 
 interface EditorProps {
   value: string[]
@@ -126,8 +127,11 @@ export function TagList({
   total,
   untagged,
   onChange,
-  onRename
+  onRename,
+  scrollKey
 }: {
+  /** Where the list keeps its scroll position across moves (none if absent) */
+  scrollKey?: string
   tags: [string, number][]
   selected: string[]
   total: number
@@ -142,8 +146,9 @@ export function TagList({
   const toggle = (tag: string) => onChange(picked.includes(tag) ? picked.filter((s) => s !== tag) : [...picked, tag])
   // also show selected tags that are no longer used, so they can be unselected
   const shown: [string, number][] = [...tags, ...picked.filter((s) => !tags.some(([tag]) => tag === s)).map((s): [string, number] => [s, 0])]
+  const scroll = usePaneScroll<HTMLUListElement>(scrollKey ?? '', !!scrollKey && shown.length > 0)
   return (
-    <ul className="group-list">
+    <ul ref={scroll} className="group-list">
       <li className={`special ${selected.length === 0 ? 'active' : ''}`} onClick={() => onChange([])}>
         <span>{t('common.all')}</span>
         <em>{total}</em>
@@ -185,8 +190,11 @@ export function WorkTagList({
   tags,
   selected,
   total,
-  onChange
+  onChange,
+  scrollKey
 }: {
+  /** Where the list keeps its scroll position across moves (none if absent) */
+  scrollKey?: string
   /** [workTagKey, count] */
   tags: [string, number][]
   selected: string[]
@@ -202,10 +210,12 @@ export function WorkTagList({
   const query = q.trim().toLowerCase()
   // selected tags stay visible even when the box narrows the list
   const shown = tags.filter(([k]) => selected.includes(k) || !query || k.toLowerCase().includes(query) || label(k).toLowerCase().includes(query))
+  // narrowed by the box, the list is another one: it keeps its own position only while not narrowed
+  const scroll = usePaneScroll<HTMLUListElement>(query ? '' : (scrollKey ?? ''), !query && !!scrollKey && shown.length > 0)
   return (
     <>
       <input className="tag-list-filter" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('bookmarks.workTagsFilter')} />
-      <ul className="group-list">
+      <ul ref={scroll} className="group-list">
         <li className={`special ${selected.length === 0 ? 'active' : ''}`} onClick={() => onChange([])}>
           <span>{t('common.all')}</span>
           <em>{total}</em>

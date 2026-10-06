@@ -16,6 +16,16 @@ func init() {
 		case "info":
 			return map[string]any{"abi": 1, "kind": "site", "id": "testsite", "name": "Test Site", "version": "0.1",
 				"hosts": []string{"127.0.0.1"}, "capabilities": []string{"webURL"}}, nil
+		case "storeSet":
+			var p struct{ Key, Value string }
+			_ = json.Unmarshal(params, &p)
+			pluginsdk.StoreSet(p.Key, []byte(p.Value))
+			return nil, nil
+		case "storeGet":
+			var p struct{ Key string }
+			_ = json.Unmarshal(params, &p)
+			v, ok := pluginsdk.StoreGet(p.Key)
+			return map[string]any{"value": string(v), "ok": ok}, nil
 		case "echo":
 			var v any
 			_ = json.Unmarshal(params, &v)

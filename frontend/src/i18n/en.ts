@@ -27,6 +27,7 @@ export const en: Dict = {
   },
 
   app: {
+    downloadingNow: 'Downloading',
     back: 'Back (Alt+←)',
     forward: 'Forward (Alt+→)',
     minimize: 'Minimize',
@@ -80,6 +81,11 @@ export const en: Dict = {
   },
 
   bookmarks: {
+    openNameIn: 'Open {name} in {view}',
+    fromUrl: 'Add from URL',
+    fromUrlTitle: 'Bookmarks the work whose URL is on the clipboard (pasting with Ctrl+V on this screen adds it too)',
+    fromUrlPrompt: 'URL of the work to bookmark',
+    fromUrlAlready: 'Already bookmarked',
     byCircleToggle: 'By group (click again for by artist)',
     shuffle: 'Shuffle',
     avoidRecent: 'Play recently opened works less often',
@@ -248,12 +254,17 @@ export const en: Dict = {
 
   favorites: {
     artists: 'Favorite artists',
+    narrow: 'Narrow down',
+    members: 'Members',
+    noOwnNames: 'Nothing to narrow down by',
     noArtists: 'Your bookmarked works have no artist info',
     bookmarkCount: '{n} bookmarks',
     multiSelect: 'You can select more than one',
     newest: 'New from favorites',
     includeGroups: 'Include groups',
     excludeCollective: 'Hide artists only in anthologies',
+    artistScope: 'Artists searched',
+    allArtists: 'All artists',
     excludeCollectiveTitle: 'Removes artists who appear only in bookmarks with many artists (anthologies, magazines) from this list and the search',
     hideBookmarked: 'Hide bookmarked',
     searchInBrowse: 'Search this artist on the site',
@@ -276,11 +287,23 @@ export const en: Dict = {
     openedAt: 'Opened {date}'
   },
 
+  viewHeader: {
+    own: '{filter} for this user',
+    ownTitle: "This user's posts use this value instead of the common one in every list",
+    common: 'Common ({value})'
+  },
+
   browse: {
+    fromClipboard: 'From clipboard',
+    fromClipboardTitle: 'Shows what the URL (or text) on the clipboard is for',
+    viewHint: 'Enter something above, or paste it from the clipboard',
     empty: 'No matching works'
   },
 
   fileName: {
+    siteDescription: 'Used only for works from {name}. Empty uses the format its plugin suggests',
+    sitePreset: 'Suggested for {name}',
+    commonPreset: 'Same as the common format',
     presets: {
       groupArtistTitle: '[Group (Artist)] Title',
       groupFolder: 'Folder per group',
@@ -320,6 +343,8 @@ export const en: Dict = {
   },
 
   gallery: {
+    attachments: 'Attachments ({n})',
+    openAttachment: 'Open {name} in the browser',
     originPages: ' (pp. {from}–{to})',
     editTitle: 'Change the title (only in this app; empty goes back to the original title)',
     titleSaved: 'Changed the title',
@@ -422,6 +447,8 @@ export const en: Dict = {
   },
 
   paged: {
+    loadNext: 'Load the next page ({page})',
+    pullHint: 'Scrolling on at the bottom loads it too',
     loadFailed: 'Failed to load',
     showing: 'showing {page}',
     pageOf: ' · page {page} / {total}',
@@ -514,12 +541,30 @@ export const en: Dict = {
 
   settings: {
     title: 'Settings',
-    browse: 'Site',
+    siteScreens: 'Site screens in the sidebar',
+    siteScreensHint: 'How the screens (browse, bookmarks...) of the site in use are laid out under its tab',
+    siteScreensList: 'With names, one a row',
+    siteScreensGrid: 'Icons, two a row',
+    loadMore: 'When to load the next page',
+    loadMoreHint: 'Later loading calls the site less (for sites with rate limits)',
+    loadMoreNear: 'Automatically as the end comes near',
+    loadMoreBottom: 'When scrolling on at the bottom',
+    loadMoreButton: 'Only with the button',
+    showSecret: 'Show',
+    hideSecret: 'Hide',
+    browse: 'Lists',
+    general: 'Display and language',
+    sites: 'Sites',
     infiniteScroll: 'Load the next page automatically when scrolling',
     infiniteScrollHint: 'When off, shows one page at a time with page navigation at the bottom',
     viewer: 'Viewer',
     spreadForManga: 'Open manga in spreads',
     spreadForMangaHint: 'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads instead',
+    moire: 'Moire reduction',
+    moireHint: 'Smooths pages shown smaller than their size so that screentone does not turn into moire. Strong suppresses more but softens fine lines a little',
+    moireOff: 'Off',
+    moireWeak: 'Weak',
+    moireStrong: 'Strong',
     autoFullscreen: 'Open works in full screen',
     autoFullscreenHint: 'Press Esc or the full screen button to return. Moving to the next/previous work keeps the current mode',
     downloads: 'Bookmarks & downloads',
@@ -535,7 +580,7 @@ export const en: Dict = {
     tempFilesStartup: 'Delete at startup',
     tempFilesViewerClose: 'Delete when closing the viewer',
     tempFilesPack: 'Make a cbz when all pages are saved',
-    siteDir: 'Save location ({name})',
+    siteDir: 'Save location',
     libraryDirHint: 'Existing files are not moved when you change it',
     siteDirDialog: 'Choose the save folder for {name}',
     libraryDirChanged: 'Changed the save location',
@@ -570,8 +615,7 @@ export const en: Dict = {
     noPlugins: 'No plugins loaded',
     pluginHosts: 'connects to: {hosts}',
     pluginFormats: 'Susie archive plug-in ({formats})',
-    pluginDefault: '{plugin}: default {filter}',
-    pluginSetting: '{plugin}: {setting}',
+    pluginDefault: 'Default {filter}',
     pluginDefaultHint: 'Changing it on the site screen saves it here too',
     pluginsHint: 'Plugins (.wasm) and Susie 64-bit archive plug-ins (.sph) in a "plugins" folder next to Poruneko.exe or in the data folder are loaded at the next start. A .wasm plugin can connect only to the hosts it lists, through the app. Susie plug-ins run directly inside the app, so add only ones you trust',
     window: 'Window',
@@ -595,6 +639,11 @@ export const en: Dict = {
   },
 
   viewer: {
+    videoPlay: 'Play',
+    videoPause: 'Pause',
+    videoMute: 'Mute',
+    videoUnmute: 'Unmute',
+    videoVolume: 'Volume',
     rangeStart: 'Start',
     rangeEnd: 'End',
     markSeparator: ' · ',
@@ -719,6 +768,12 @@ export const en: Dict = {
   },
 
   errors: {
+    plugin: {
+      message: '{text}'
+    },
+    site: {
+      noAction: 'The site cannot do that'
+    },
     range: {
       invalid: 'Invalid page range (1-{max})',
       noArtist: 'Enter an artist name',
@@ -732,7 +787,8 @@ export const en: Dict = {
       interrupted: 'Building was interrupted'
     },
     bookmark: {
-      notBookmarked: 'Not bookmarked'
+      notBookmarked: 'Not bookmarked',
+      unknownURL: 'No site can open a work at this URL'
     },
     creator: {
       unsupportedUrl: 'Enter the URL of a DLsite or FANZA Doujin product page',

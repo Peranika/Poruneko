@@ -6,6 +6,7 @@ import type {
   IconFile,
   CreatorCandidate,
   DownloadProgress,
+  FavoriteName,
   FavoritesQuery,
   FavoritesResult,
   GalleryDetail,
@@ -18,7 +19,7 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, PluginInfo, SiteInfo } from './types'
+  UpdateRelease, PluginInfo, SiteInfo, StatusLine, Text, ViewHeader } from './types'
 
 // the generated models are classes, so call through any to pass plain objects
 const go = Go as unknown as Record<string, (...args: any[]) => Promise<any>>
@@ -34,14 +35,31 @@ export const api = {
   restoreIgnoredArchives: (): Promise<number> => go.RestoreIgnoredArchives(),
   /** The web page of a work on its site ("" if none) */
   webURL: (key: string): Promise<string> => go.WebURL(key),
+  /** Open an attachment of a work (a file that is not a page) in the browser */
+  openAttachment: (key: string, index: number): Promise<void> => go.OpenAttachment(key, index),
+  /** A site's state as its plugin tells it (such as the API calls left) */
+  siteStatus: (site: string): Promise<StatusLine[]> => go.SiteStatus(site),
+  /** The header of a plugin's own screen for what was entered (null when it shows none) */
+  viewHeader: (site: string, view: string, query: string): Promise<ViewHeader | null> => go.ViewHeader(site, view, query),
+  /** The values of a site's filters kept for one owner of its works (a user), overriding the common ones */
+  ownerSettings: (site: string, owner: string): Promise<Record<string, string>> => go.OwnerSettings(site, owner),
+  /** Keep a filter's value for one owner of a site's works ('' goes back to the common value) */
+  setOwnerSetting: (site: string, owner: string, filterId: string, value: string): Promise<Record<string, string>> =>
+    go.SetOwnerSetting(site, owner, filterId, value),
+  /** Do a button of a plugin's own screen (such as following a user); returns the message to show */
+  viewAction: (site: string, view: string, query: string, action: string): Promise<Text | null> => go.ViewAction(site, view, query, action),
   list: (q: ListQuery): Promise<ListResult> => go.List(q),
   gallery: (key: string): Promise<GalleryDetail> => go.Gallery(key),
   suggest: (site: string, term: string): Promise<Suggestion[]> => go.Suggest(site, term),
   /** Works by bookmarked artists (Favorites) */
   favorites: (q: FavoritesQuery): Promise<FavoritesResult> => go.Favorites(q),
+  /** Only the artists and groups Favorites searches for (no site search, so it returns at once) */
+  favoriteNames: (q: FavoritesQuery): Promise<FavoriteName[]> => go.FavoriteNames(q),
 
   bookmarks: (): Promise<Bookmark[]> => go.Bookmarks(),
   addBookmark: (s: GallerySummary): Promise<Bookmark> => go.AddBookmark(s),
+  /** Bookmark the work at a URL on one of the sites (an error if no site knows it) */
+  addBookmarkFromUrl: (url: string): Promise<Bookmark> => go.AddBookmarkFromURL(url),
   removeBookmark: (key: string): Promise<void> => go.RemoveBookmark(key),
   /** Take a work in a local folder out of the app (the file stays; it does not come back when rescanning) */
   removeFromLibrary: (key: string): Promise<void> => go.RemoveFromLibrary(key),
@@ -113,7 +131,7 @@ export const api = {
   /** Placeholders of the file name format (descriptions are in fileName.placeholders) */
   fileNamePlaceholders: (): Promise<string[]> => go.FileNamePlaceholders(),
   /** Example of the format (sampleSeries is the series name for the example when no work is in a series) */
-  previewFileName: (format: string, sampleSeries: string): Promise<string> => go.PreviewFileName(format, sampleSeries),
+  previewFileName: (site: string, format: string, sampleSeries: string): Promise<string> => go.PreviewFileName(site, format, sampleSeries),
   applyFileNameFormat: (): Promise<number> => go.ApplyFileNameFormat(),
 
   appVersion: (): Promise<string> => go.AppVersion(),

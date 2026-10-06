@@ -27,6 +27,7 @@ export const ja = {
   },
 
   app: {
+    downloadingNow: 'ダウンロード中',
     back: '戻る (Alt+←)',
     forward: '進む (Alt+→)',
     minimize: '最小化',
@@ -81,6 +82,11 @@ export const ja = {
   },
 
   bookmarks: {
+    openNameIn: '{name} を「{view}」で開く',
+    fromUrl: 'URL から追加',
+    fromUrlTitle: 'クリップボードにある作品の URL をブックマークします（この画面で Ctrl+V で貼り付けても追加できます）',
+    fromUrlPrompt: 'ブックマークする作品の URL',
+    fromUrlAlready: '既にブックマークしています',
     byCircleToggle: 'サークル別（もう一度押すと作者別）',
     byArtistToggle: '作者別（もう一度押すとサークル別）',
     shuffle: 'シャッフル再生',
@@ -251,12 +257,17 @@ export const ja = {
 
   favorites: {
     artists: 'お気に入りのアーティスト',
+    narrow: '絞り込み',
+    members: 'メンバー',
+    noOwnNames: '絞り込める項目がありません',
     noArtists: 'ブックマークした作品にアーティスト情報がありません',
     bookmarkCount: 'ブックマーク {n} 件',
     multiSelect: '複数選べます',
     newest: 'お気に入りの新着',
     includeGroups: 'グループ（サークル）も含める',
     excludeCollective: '多数参加作品の作者を除く',
+    artistScope: '作者の範囲',
+    allArtists: 'すべての作者',
     excludeCollectiveTitle: 'アンソロジーや雑誌など、アーティストが多数いるブックマークにしか出てこない作者を、この一覧と検索から外します',
     hideBookmarked: 'ブックマーク済みを隠す',
     searchInBrowse: 'サイトでこのアーティストを検索',
@@ -265,7 +276,16 @@ export const ja = {
     empty: '該当する作品がありません'
   },
 
+  viewHeader: {
+    own: 'このユーザーの{filter}',
+    ownTitle: 'このユーザーのポストには、どの一覧でも共通の設定の代わりにこの値を使います',
+    common: '共通の設定（{value}）'
+  },
+
   browse: {
+    fromClipboard: 'クリップボードから',
+    fromClipboardTitle: 'クリップボードにある URL などを入れて表示します',
+    viewHint: '上の欄に入力するか、クリップボードから貼ってください',
     empty: '該当する作品がありません'
   },
 
@@ -284,6 +304,9 @@ export const ja = {
   },
 
   fileName: {
+    siteDescription: '{name} の作品にだけ使う書式です。空にするとプラグインのおすすめの書式になります',
+    sitePreset: '{name} のおすすめ',
+    commonPreset: '共通の書式と同じ',
     presets: {
       groupArtistTitle: '[サークル (作者)] タイトル',
       groupFolder: 'サークルごとのフォルダ',
@@ -323,6 +346,8 @@ export const ja = {
   },
 
   gallery: {
+    attachments: '添付ファイル（{n}）',
+    openAttachment: '{name} をブラウザで開く',
     originPages: '（p.{from}–{to}）',
     editTitle: 'タイトルを変える（このアプリの中だけ。空にすると元のタイトルに戻る）',
     titleSaved: 'タイトルを変えました',
@@ -425,6 +450,8 @@ export const ja = {
   },
 
   paged: {
+    loadNext: '次のページ（{page}）を読み込む',
+    pullHint: '一番下でさらに下へスクロールしても読み込めます',
     loadFailed: '読み込みに失敗しました',
     showing: '表示中 {page}',
     pageOf: ' ・ {page} / {total} ページ',
@@ -517,12 +544,30 @@ export const ja = {
 
   settings: {
     title: '設定',
-    browse: 'サイト',
+    siteScreens: 'サイトの画面の並べ方',
+    siteScreensHint: '左のタブで、使っているサイトの下に並ぶ画面（ブラウズ・ブックマークなど）の並べ方',
+    siteScreensList: '名前付きで縦に',
+    siteScreensGrid: 'アイコンを 2 列に',
+    loadMore: '次のページを読み込むタイミング',
+    loadMoreHint: '遅いほど、サイトへの読み込みが減ります（回数制限のあるサイト向け）',
+    loadMoreNear: '最後に近づいたら自動で',
+    loadMoreBottom: '一番下でさらにスクロールしたとき',
+    loadMoreButton: 'ボタンを押したときだけ',
+    showSecret: '表示する',
+    hideSecret: '隠す',
+    browse: '一覧',
+    general: '表示と言語',
+    sites: 'サイト',
     infiniteScroll: 'スクロールで次のページを自動で読み込む',
     infiniteScrollHint: 'オフにすると 1 ページずつ表示し、下にページ切り替えを出します',
     viewer: 'ビューア',
     spreadForManga: '漫画は見開きで開く',
     spreadForMangaHint: '単ページ・見開き・スクロールの切り替えは作品ごとに記憶されます。まだ切り替えたことのない作品は、直前に使った表示で開きますが、これをオンにするとサイトのプラグインが漫画とする種別（同人誌など）は見開きで開きます',
+    moire: 'モアレ軽減',
+    moireHint: '元の大きさより縮めて表示するページをなめらかにして、トーンがモアレになるのを抑えます。「強」はより抑えますが、細い線が少しやわらかくなります',
+    moireOff: 'オフ',
+    moireWeak: '弱',
+    moireStrong: '強',
     autoFullscreen: '作品を開いたら自動で全画面にする',
     autoFullscreenHint: 'Esc や全画面ボタンで通常表示に戻せます。次/前のブックマークへの移動では今の表示を引き継ぎます',
     downloads: 'ブックマーク・ダウンロード',
@@ -538,7 +583,7 @@ export const ja = {
     tempFilesStartup: '起動時に削除',
     tempFilesViewerClose: 'ビューアを閉じたら削除',
     tempFilesPack: '全ページ揃ったら cbz にする',
-    siteDir: '保存先（{name}）',
+    siteDir: '保存先',
     libraryDirHint: '変更しても既存のファイルは移動されません',
     siteDirDialog: '{name} の保存先フォルダを選択',
     libraryDirChanged: '保存先を変更しました',
@@ -573,8 +618,7 @@ export const ja = {
     noPlugins: '読み込まれたプラグインはありません',
     pluginHosts: '接続先: {hosts}',
     pluginFormats: 'Susie 書庫プラグイン（{formats}）',
-    pluginDefault: '{plugin}: 既定の{filter}',
-    pluginSetting: '{plugin}: {setting}',
+    pluginDefault: '既定の{filter}',
     pluginDefaultHint: 'サイトの画面で変えると、ここにも保存されます',
     pluginsHint: 'プラグイン（.wasm）と Susie 64bit 書庫プラグイン（.sph）は、Poruneko.exe と同じ場所かデータフォルダの plugins フォルダに置くと、次の起動で読み込まれます。.wasm のプラグインは指定した接続先にだけ、アプリを通して接続できます。Susie プラグインはアプリの中で直接動くので、信頼できるものだけを入れてください',
     window: 'ウィンドウ',
@@ -598,6 +642,11 @@ export const ja = {
   },
 
   viewer: {
+    videoPlay: '再生',
+    videoPause: '一時停止',
+    videoMute: '音を消す',
+    videoUnmute: '音を出す',
+    videoVolume: '音量',
     rangeStart: '開始',
     rangeEnd: '終了',
     markSeparator: '・',
@@ -723,6 +772,12 @@ export const ja = {
 
   /** Errors returned from Go (code -> text). {detail} is the English text of the original error */
   errors: {
+    plugin: {
+      message: '{text}'
+    },
+    site: {
+      noAction: 'このサイトではその操作はできません'
+    },
     range: {
       invalid: 'ページ範囲が正しくありません（1〜{max}）',
       noArtist: '作者名を入力してください',
@@ -736,7 +791,8 @@ export const ja = {
       interrupted: '作成が中断されました'
     },
     bookmark: {
-      notBookmarked: 'ブックマークされていません'
+      notBookmarked: 'ブックマークされていません',
+      unknownURL: 'この URL の作品を扱えるサイトがありません'
     },
     creator: {
       unsupportedUrl: 'DLsite か FANZA 同人の作品ページの URL を入れてください',

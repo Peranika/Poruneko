@@ -255,10 +255,14 @@ func digitRun(s string) int {
 	return n
 }
 
+// isImage reports whether a file is a page: an image or a video
 func isImage(name string) bool {
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
-	return slices.Contains(imageExts, ext)
+	return slices.Contains(pageExts, ext)
 }
+
+// isVideoName reports whether a page file is a video
+func isVideoName(name string) bool { return IsVideoExt(strings.TrimPrefix(filepath.Ext(name), ".")) }
 
 // ---------------------------------------------------------------- Packing
 
@@ -454,4 +458,59 @@ func removeRetry(path string) error {
 		}
 		return nil
 	})
+}
+
+// ---------------------------------------------------------------- Reading a page in parts
+
+// PageReader is a stored page opened for reading in parts (a video played with seeking)
+type PageReader struct {
+	*io.SectionReader
+	f       *os.File
+	Ext     string
+	ModTime time.Time
+}
+
+func (r *PageReader) Close() error { return r.f.Close() }
+
+// OpenPage opens a stored page without reading it all: a page in the work dir, or a page stored uncompressed in the
+// work's cbz (the app stores pages so). ok is false for other pages, which are read with ReadPage
+func (l *Library) OpenPage(key string, index int) (*PageReader, bool) {
+	if p := l.ArchivePath(key); p != "" {
+		if formatFor(p) != nil {
+			return nil, false
+		}
+		z, err := l.zips.open(p)
+		if err != nil {
+			return nil, false
+		}
+		e, ok := z.pages[index]
+		if !ok || e.Method != zip.Store {
+			return nil, false
+		}
+		off, err := e.DataOffset()
+		if err != nil {
+			return nil, false
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			return nil, false
+		}
+		ext := strings.TrimPrefix(filepath.Ext(e.Name), ".")
+		return &PageReader{SectionReader: io.NewSectionReader(f, off, int64(e.UncompressedSize64)), f: f, Ext: ext, ModTime: e.Modified}, true
+	}
+	p := l.workPage(key, index)
+	if p == "" {
+		return nil, false
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, false
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, false
+	}
+	ext := strings.TrimPrefix(filepath.Ext(p), ".")
+	return &PageReader{SectionReader: io.NewSectionReader(f, 0, fi.Size()), f: f, Ext: ext, ModTime: fi.ModTime()}, true
 }

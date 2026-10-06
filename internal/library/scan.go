@@ -143,7 +143,7 @@ func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 	d.Pages = make([]model.PageInfo, len(z.order))
 	for i, f := range z.order {
 		w, h := imageSize(f)
-		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(f.Name), Width: w, Height: h}
+		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(f.Name), Width: w, Height: h, Video: isVideoName(f.Name)}
 	}
 	d.PageCount = len(d.Pages)
 	return d, nil
@@ -337,7 +337,7 @@ func (l *Library) pluginArchiveDetail(rel, abs string, f ArchiveFormat) (*model.
 	l.finishDetail(d, rel, abs)
 	d.Pages = make([]model.PageInfo, len(a.pages))
 	for i, e := range a.pages {
-		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(e.Name)}
+		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(e.Name), Video: isVideoName(e.Name)}
 	}
 	d.PageCount = len(d.Pages)
 	return d, nil

@@ -3,6 +3,7 @@ import type { ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { Icon } from '../Icon'
 import { SlideshowControl, type SlideTimerState } from './Slideshow'
+import { VideoControls } from './VideoControls'
 
 interface Props {
   barRef: Ref<HTMLDivElement>
@@ -33,6 +34,8 @@ interface Props {
   slideshow: boolean
   onSlideshow(on: boolean): void
   slideTimer: SlideTimerState
+  /** The video shown: the toolbar controls it in place of the page slider */
+  video?: HTMLVideoElement | null
 }
 
 /** Toolbar at the bottom of the viewer (page position, view mode, display size, etc.) */
@@ -62,17 +65,24 @@ export function ViewerBar(props: Props) {
           </span>
         )}
       </div>
-      {!rtl && toFirst}
-      <input
-        className="slider"
-        type="range"
-        min={0}
-        max={Math.max(0, pageCount - 1)}
-        value={props.page}
-        style={{ direction: rtl ? 'rtl' : 'ltr' }}
-        onChange={(e) => props.onJump(Number(e.target.value))}
-      />
-      {rtl && toFirst}
+      {props.video ? (
+        // a video's position and sound in place of the page slider (pages still turn by keys and clicks beside it)
+        <VideoControls video={props.video} />
+      ) : (
+        <>
+          {!rtl && toFirst}
+          <input
+            className="slider"
+            type="range"
+            min={0}
+            max={Math.max(0, pageCount - 1)}
+            value={props.page}
+            style={{ direction: rtl ? 'rtl' : 'ltr' }}
+            onChange={(e) => props.onJump(Number(e.target.value))}
+          />
+          {rtl && toFirst}
+        </>
+      )}
       <span className="bar-sep" />
       <div className="seg">
         {(['single', 'spread', 'scroll'] as const).map((m) => (

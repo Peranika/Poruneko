@@ -161,7 +161,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         onWidthChange={setPanelWidth}
       >
         <div className="info-panel">
-          <GalleryInfo galleryKey={galleryKey} s={s} summary={summary} />
+          <GalleryInfo galleryKey={galleryKey} s={s} summary={summary} attachments={detail?.attachments} />
         </div>
       </ResizablePanel>
 

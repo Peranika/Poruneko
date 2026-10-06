@@ -5,7 +5,7 @@ import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../key
 import type { PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
-import { PageImage } from './PageImage'
+import { PageImage, PageVideo } from './PageImage'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
 import { PREDECODE_BEHIND, estimatePredecodeBytes, formatBytes, usePredecode } from './usePredecode'
 import { usePrefetchAll } from './usePrefetchAll'
@@ -14,6 +14,10 @@ import { useWheelPaging } from './useWheelPaging'
 import { SlideProgress, SlideTimer, type SlideTimerState } from './Slideshow'
 import { ViewerBar } from './ViewerBar'
 import { pageFactor, viewFactor } from './pageComplexity'
+import { prepareMoire } from './moire'
+
+/** Spreads around the shown one whose moire reduction is prepared in advance (nearest first) */
+const MOIRE_AROUND = [1, 2, -1]
 
 interface Props {
   galleryKey: string
@@ -59,6 +63,7 @@ let slideshowCarriedAt = 0
 export function Viewer(props: Props) {
   const { galleryKey, pages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, range } = props
   const { mode, direction, coverSingle, fit } = settings
+  const moire = settings.moire || undefined
   const rtl = direction === 'rtl'
   const stageRef = useRef<HTMLDivElement>(null)
   const size = useSize(stageRef)
@@ -88,6 +93,16 @@ export function Viewer(props: Props) {
   // pages shown alone via "Shift by one" (saved per work)
   const [singles, setSingles] = useState<Set<number>>(() => loadSingles(galleryKey))
   const spreads = useMemo(() => buildSpreads(pages, mode, coverSingle, singles), [pages, mode, coverSingle, singles])
+  // pages that are videos (played instead of shown; not prefetched, decoded or smoothed)
+  const videos = useMemo(() => new Set(pages.filter((p) => p.video).map((p) => p.index)), [pages])
+  // the video elements on screen by page, so the toolbar can control the one shown
+  const videoEls = useRef(new Map<number, HTMLVideoElement>())
+  const [videoTick, setVideoTick] = useState(0)
+  const onVideoElement = useCallback((i: number, el: HTMLVideoElement | null) => {
+    if (el) videoEls.current.set(i, el)
+    else if (videoEls.current.get(i)) videoEls.current.delete(i)
+    setVideoTick((n) => n + 1)
+  }, [])
   const spreadIdx = Math.max(0, spreads.findIndex((s) => s.includes(page)))
   const current = spreads[spreadIdx] ?? [0]
 
@@ -158,6 +173,10 @@ export function Viewer(props: Props) {
   // the timer restarts whenever the page changes (also when turned by hand).
   // When it started and its length are kept so the time left shown anywhere (toolbar, corner) stays in step with it
   const [slideTimer, setSlideTimer] = useState<SlideTimerState>({ startedAt: 0, seconds: 5 })
+  // while a video is shown the slideshow waits for it to end instead of the timer (the video reports its length
+  // and its end through these)
+  const videoEnded = useRef<(() => void) | null>(null)
+  const videoLength = useRef<((seconds: number) => void) | null>(null)
   useEffect(() => {
     if (!slideshow) return
     const base = Math.max(1, settings.slideSeconds || 5)
@@ -181,7 +200,11 @@ export function Viewer(props: Props) {
       setSlideTimer({ startedAt: Date.now(), seconds })
       id = window.setTimeout(advance, seconds * 1000)
     }
-    if (!settings.slideAuto) {
+    const shownVideo = (mode === 'scroll' ? [page] : (spreads.find((s) => s.includes(page)) ?? [page])).some((i) => videos.has(i))
+    if (shownVideo) {
+      videoEnded.current = () => !cancelled && advance()
+      videoLength.current = (seconds) => !cancelled && setSlideTimer({ startedAt: Date.now(), seconds })
+    } else if (!settings.slideAuto) {
       start(base)
     } else {
       // the interval follows how much there is on the shown pages (the set interval stands for a full view)
@@ -195,8 +218,9 @@ export function Viewer(props: Props) {
     return () => {
       cancelled = true
       window.clearTimeout(id)
+      videoEnded.current = videoLength.current = null
     }
-  }, [slideshow, page, mode, pages.length, spreads, next, settings.slideSeconds, settings.slideNextWork, settings.slideAuto, onNextWork, galleryKey])
+  }, [slideshow, page, mode, pages.length, spreads, next, settings.slideSeconds, settings.slideNextWork, settings.slideAuto, onNextWork, galleryKey, videos])
 
   // ---------------------------------------------------------------- Scroll mode
   const scroll = useMemo(() => scrollLayout(pages, fit, size), [pages, fit, size.w, size.h]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -235,7 +259,7 @@ export function Viewer(props: Props) {
   }
 
   // ---------------------------------------------------------------- Prefetching
-  const prefetched = usePrefetchAll(galleryKey, pages.length, page)
+  const prefetched = usePrefetchAll(galleryKey, pages.length, page, videos)
 
   // ---------------------------------------------------------------- Controls
   useEffect(() => {
@@ -344,6 +368,8 @@ export function Viewer(props: Props) {
       return
     }
     if (mode === 'scroll') return
+    // clicks on a video are for its controls
+    if ((e.target as HTMLElement).closest('video')) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     if (x < 0.3) rtl ? next() : prev()
@@ -392,12 +418,20 @@ export function Viewer(props: Props) {
       done = true
       setShown(target)
     }
-    const imgs = target.map((i) => {
-      const im = new Image()
-      im.src = imageUrl(galleryKey, i)
-      return im
-    })
-    Promise.all(imgs.map((im) => im.decode().catch(() => {}))).then(swap)
+    const imgs = target
+      .filter((i) => !videos.has(i))
+      .map((i) => {
+        const im = new Image()
+        im.src = imageUrl(galleryKey, i)
+        return im
+      })
+    // with the moire reduction, also wait for the reduced pages so they do not show unreduced first
+    const reduced = moire
+      ? layoutSpread(pages, target, fit, size, rtl)
+          .filter((it) => !videos.has(it.index))
+          .map((it) => prepareMoire(imageUrl(galleryKey, it.index), it, moire).catch(() => {}))
+      : []
+    Promise.all([...imgs.map((im) => im.decode().catch(() => {})), ...reduced]).then(swap)
     const timer = window.setTimeout(swap, 350)
     return () => {
       done = true
@@ -406,9 +440,25 @@ export function Viewer(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentKey, galleryKey, mode])
 
+  // prepare the moire reduction of the spreads around the shown one, so turning to them shows them reduced at once
+  useEffect(() => {
+    if (!moire || mode === 'scroll' || size.w <= 0) return
+    const at = spreads.findIndex((sp) => sp.includes(shown[0]))
+    if (at < 0) return
+    const timer = window.setTimeout(() => {
+      for (const d of MOIRE_AROUND) {
+        const sp = spreads[at + d]
+        if (!sp) continue
+        for (const it of layoutSpread(pages, sp, fit, size, rtl)) if (!videos.has(it.index)) void prepareMoire(imageUrl(galleryKey, it.index), it, moire, true).catch(() => {})
+      }
+    }, 0)
+    return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moire, mode, shown.join(','), spreads, pages, fit, size.w, size.h, rtl, galleryKey])
+
   // decode the nearby pages in advance (not used in vertical scroll view)
   const predecode = mode === 'scroll' ? 0 : (settings.predecode ?? 0)
-  usePredecode(galleryKey, pages.length, shown, predecode)
+  usePredecode(galleryKey, pages.length, shown, predecode, videos)
   const predecodeInfo = useMemo(() => {
     if (!predecode) return t('predecode.viewerOff')
     const behind = Math.min(PREDECODE_BEHIND, predecode)
@@ -425,6 +475,31 @@ export function Viewer(props: Props) {
       stageRef.current.scrollLeft = rtl ? stageRef.current.scrollWidth : 0
     }
   }, [shownKey, mode, rtl])
+
+  // a page: its image, or its video
+  const renderPage = (i: number, w: number, h: number) =>
+    videos.has(i) ? (
+      <PageVideo
+        key={i}
+        index={i}
+        marker={markerOf(i)}
+        src={imageUrl(galleryKey, i)}
+        w={w}
+        h={h}
+        onEnded={slideshow ? () => videoEnded.current?.() : undefined}
+        onDuration={(sec) => videoLength.current?.(sec)}
+        onElement={(el) => onVideoElement(i, el)}
+      />
+    ) : (
+      <PageImage key={i} index={i} marker={markerOf(i)} src={imageUrl(galleryKey, i)} w={w} h={h} moire={moire} />
+    )
+
+  // the video the toolbar controls: the one shown (the page being read in vertical scroll view)
+  const shownVideo = mode === 'scroll' ? (videos.has(page) ? page : undefined) : shown.find((i) => videos.has(i))
+  const activeVideo = useMemo(
+    () => (shownVideo === undefined ? null : (videoEls.current.get(shownVideo) ?? null)),
+    [shownVideo, videoTick] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const label = current.length > 1 ? `${current[0] + 1}-${current[current.length - 1] + 1}` : `${current[0] + 1}`
 
@@ -465,7 +540,7 @@ export function Viewer(props: Props) {
                   // load only around the visible position
                   const near = Math.abs(i - page) <= 4
                   return near ? (
-                    <PageImage key={i} index={i} marker={markerOf(i)} src={imageUrl(galleryKey, i)} w={w} h={h} />
+                    renderPage(i, w, h)
                   ) : (
                     <div key={i} className="page placeholder" style={{ width: w, height: h }} />
                   )
@@ -473,9 +548,7 @@ export function Viewer(props: Props) {
               </div>
             ) : (
               <div className="spread">
-                {layout.map((it) => (
-                  <PageImage key={it.index} index={it.index} marker={markerOf(it.index)} src={imageUrl(galleryKey, it.index)} w={it.w} h={it.h} />
-                ))}
+                {layout.map((it) => renderPage(it.index, it.w, it.h))}
               </div>
             ))}
         </div>
@@ -515,6 +588,7 @@ export function Viewer(props: Props) {
         slideshow={slideshow}
         onSlideshow={setSlideshow}
         slideTimer={slideTimer}
+        video={activeVideo}
       />
 
       {showThumbs && (

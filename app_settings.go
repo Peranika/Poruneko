@@ -22,9 +22,10 @@ import (
 // FileNamePlaceholders returns the placeholders for the file name format (their descriptions are in the frontend string tables)
 func (a *App) FileNamePlaceholders() []string { return library.Placeholders }
 
-// PreviewFileName returns an example of the format (using a bookmark with creator info if there is one).
-// sampleSeries is the series name used in the example when no work is in a series (in the UI language)
-func (a *App) PreviewFileName(format, sampleSeries string) string {
+// PreviewFileName returns an example of the format (using a bookmark with creator info if there is one; of the
+// site when siteID is set). sampleSeries is the series name used in the example when no work is in a series (in the
+// UI language)
+func (a *App) PreviewFileName(siteID, format, sampleSeries string) string {
 	d := &model.GalleryDetail{GallerySummary: model.GallerySummary{
 		Key: "example:123456", Site: "example", ID: "123456", Title: "Asa no Hikari", JapaneseTitle: "あさのひかり",
 		Type: "doujinshi", Language: "japanese", Date: "2017-07-09 00:00:00-05", Parodies: []string{"original"},
@@ -37,7 +38,7 @@ func (a *App) PreviewFileName(format, sampleSeries string) string {
 	// prefer a work in a series for the example (so {series} shows a real name)
 	var fallback *model.Bookmark
 	for _, b := range a.st.Bookmarks() {
-		if b.Creator.Circle == "" || len(b.Creator.Artists) == 0 {
+		if b.Creator.Circle == "" || len(b.Creator.Artists) == 0 || (siteID != "" && siteOfBookmark(&b) != siteID) {
 			continue
 		}
 		if x, i, ok := a.st.SeriesOf(b.Key); ok {

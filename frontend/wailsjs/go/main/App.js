@@ -6,6 +6,10 @@ export function AddBookmark(arg1) {
   return window['go']['main']['App']['AddBookmark'](arg1);
 }
 
+export function AddBookmarkFromURL(arg1) {
+  return window['go']['main']['App']['AddBookmarkFromURL'](arg1);
+}
+
 export function AddHistory(arg1, arg2) {
   return window['go']['main']['App']['AddHistory'](arg1, arg2);
 }
@@ -70,6 +74,10 @@ export function DeleteSeries(arg1) {
   return window['go']['main']['App']['DeleteSeries'](arg1);
 }
 
+export function FavoriteNames(arg1) {
+  return window['go']['main']['App']['FavoriteNames'](arg1);
+}
+
 export function Favorites(arg1) {
   return window['go']['main']['App']['Favorites'](arg1);
 }
@@ -110,6 +118,10 @@ export function MoveLocalDir(arg1, arg2) {
   return window['go']['main']['App']['MoveLocalDir'](arg1, arg2);
 }
 
+export function OpenAttachment(arg1, arg2) {
+  return window['go']['main']['App']['OpenAttachment'](arg1, arg2);
+}
+
 export function OpenExternal(arg1) {
   return window['go']['main']['App']['OpenExternal'](arg1);
 }
@@ -122,6 +134,10 @@ export function OpenIconsFolder() {
   return window['go']['main']['App']['OpenIconsFolder']();
 }
 
+export function OwnerSettings(arg1, arg2) {
+  return window['go']['main']['App']['OwnerSettings'](arg1, arg2);
+}
+
 export function PauseDownload(arg1) {
   return window['go']['main']['App']['PauseDownload'](arg1);
 }
@@ -130,8 +146,8 @@ export function Plugins() {
   return window['go']['main']['App']['Plugins']();
 }
 
-export function PreviewFileName(arg1, arg2) {
-  return window['go']['main']['App']['PreviewFileName'](arg1, arg2);
+export function PreviewFileName(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PreviewFileName'](arg1, arg2, arg3);
 }
 
 export function RemoveBookmark(arg1) {
@@ -210,12 +226,20 @@ export function SetLocalDir(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetLocalDir'](arg1, arg2, arg3);
 }
 
+export function SetOwnerSetting(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetOwnerSetting'](arg1, arg2, arg3, arg4);
+}
+
 export function SetRangeTags(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetRangeTags'](arg1, arg2, arg3);
 }
 
 export function SetSettings(arg1) {
   return window['go']['main']['App']['SetSettings'](arg1);
+}
+
+export function SiteStatus(arg1) {
+  return window['go']['main']['App']['SiteStatus'](arg1);
 }
 
 export function Sites() {
@@ -252,6 +276,14 @@ export function UpdateTags(arg1, arg2, arg3) {
 
 export function VerifyDownloads() {
   return window['go']['main']['App']['VerifyDownloads']();
+}
+
+export function ViewAction(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ViewAction'](arg1, arg2, arg3, arg4);
+}
+
+export function ViewHeader(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ViewHeader'](arg1, arg2, arg3);
 }
 
 export function WebURL(arg1) {

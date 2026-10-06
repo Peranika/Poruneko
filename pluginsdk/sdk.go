@@ -19,10 +19,12 @@ import (
 // Handler handles one call
 type Handler func(method string, params json.RawMessage) (any, error)
 
-// Error is an error with a code the app can show
+// Error is an error with a code the app can show. Message is English for the log; Text, if given, is what the
+// screen shows in each UI language ({"ja": ..., "en": ...})
 type Error struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    string            `json:"code"`
+	Message string            `json:"message"`
+	Text    map[string]string `json:"text,omitempty"`
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
@@ -108,10 +110,21 @@ func hostTake(ptr uint32)
 //go:wasmimport poruneko log
 func hostLog(ptr, size uint32)
 
-// Request is an HTTP GET for the host to make (only to the hosts in the plugin's info)
+//go:wasmimport poruneko store_set
+func hostStoreSet(kptr, klen, vptr, vlen uint32)
+
+//go:wasmimport poruneko store_get
+func hostStoreGet(kptr, klen uint32) uint32
+
+// Request is an HTTP GET (or POST) for the host to make (only to the hosts in the plugin's info)
 type Request struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers,omitempty"`
+	// Method is "" (GET) or "POST"; Body is sent with a POST
+	Method string `json:"method,omitempty"`
+	Body   []byte `json:"body,omitempty"`
+	// NoRetry: the app does not retry a failure (for a site that counts every request against a limit)
+	NoRetry bool `json:"noRetry,omitempty"`
 }
 
 // Response is the host's answer to a Request
@@ -122,15 +135,17 @@ type Response struct {
 	Error   string            `json:"error,omitempty"`
 }
 
-// HTTPError is a failed fetch (Status is 0 when there was no HTTP response)
+// HTTPError is a failed fetch (Status is 0 when there was no HTTP response). The Response that comes with it has the
+// start of the site's error response and its headers, if any
 type HTTPError struct {
 	Status  int
 	Message string
+	Body    []byte
 }
 
 func (e *HTTPError) Error() string { return e.Message }
 
-// Fetch makes an HTTP GET through the host
+// Fetch makes an HTTP GET (or POST) through the host
 func Fetch(req Request) (*Response, error) {
 	b, err := json.Marshal(req)
 	if err != nil {
@@ -146,7 +161,7 @@ func Fetch(req Request) (*Response, error) {
 		return nil, err
 	}
 	if res.Error != "" {
-		return &res, &HTTPError{Status: res.Status, Message: res.Error}
+		return &res, &HTTPError{Status: res.Status, Message: res.Error, Body: res.Body}
 	}
 	return &res, nil
 }
@@ -180,4 +195,29 @@ func Log(msg string) {
 	}
 	b := []byte(msg)
 	hostLog(uint32(uintptr(unsafe.Pointer(&b[0]))), uint32(len(b)))
+}
+
+// StoreSet keeps a value under a key for all instances of the plugin (each instance has its own globals). The app
+// keeps it in memory only: entries expire after a while and the oldest go when there are many
+func StoreSet(key string, value []byte) {
+	if key == "" || len(value) == 0 {
+		return
+	}
+	k := []byte(key)
+	hostStoreSet(uint32(uintptr(unsafe.Pointer(&k[0]))), uint32(len(k)), uint32(uintptr(unsafe.Pointer(&value[0]))), uint32(len(value)))
+}
+
+// StoreGet is the value kept under a key by any instance of the plugin (false if there is none)
+func StoreGet(key string) ([]byte, bool) {
+	if key == "" {
+		return nil, false
+	}
+	k := []byte(key)
+	n := hostStoreGet(uint32(uintptr(unsafe.Pointer(&k[0]))), uint32(len(k)))
+	if n == 0 {
+		return nil, false
+	}
+	out := make([]byte, n)
+	hostTake(uint32(uintptr(unsafe.Pointer(&out[0]))))
+	return out, true
 }

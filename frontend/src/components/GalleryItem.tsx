@@ -1,9 +1,9 @@
 import { memo, type ReactNode } from 'react'
 import { isBookmarked, isFileKey, thumbUrl } from '../api'
 import { downloadErrorText, t } from '../i18n'
-import { optionLabel, tagStyle, typeStyle } from '../browseSpec'
+import { creatorLabel, optionLabel, shortNumber, statsOf, tagStyle, textOf, typeStyle, viewLink } from '../browseSpec'
 import { altTitle, artistsBesideCircle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
-import { tagToken, useApp } from '../state'
+import { nameRoute, tagToken, useApp } from '../state'
 import type { Bookmark, GallerySummary } from '../types'
 import { Icon } from './Icon'
 
@@ -42,6 +42,21 @@ export function DownloadBadge({ b }: { b?: Bookmark }) {
   return null
 }
 
+/** The site's numbers for a work (likes and the like), each with its icon */
+export function Stats({ s }: { s: GallerySummary }) {
+  const list = statsOf(s)
+  if (!list.length) return null
+  return (
+    <span className="stats">
+      {list.map(({ spec, value }) => (
+        <span key={spec.id} title={`${textOf(spec.label)}: ${value.toLocaleString()}`}>
+          {spec.icon ? <Icon name={spec.icon} size={12} /> : textOf(spec.label)} {shortNumber(value)}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 /** Kind of page range bookmark (local if a cbz was made, otherwise a link to the source gallery) */
 export function RangeChip({ saved }: { saved: boolean }) {
   return saved ? (
@@ -62,13 +77,29 @@ interface Props {
 
 /** One work in a list (list view / grid view) */
 export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSearch, badge }: Props) {
-  const { bookmarks } = useApp()
+  const { bookmarks, nav } = useApp()
   const b = bookmarks.get(s.key)
+  // a name opens the plugin's screen for it if there is one (a user's posts...), otherwise a search
   const link = (ns: string, name: string, cls = '') => (
-    <button key={ns + name} className={`link ${cls}`} style={cls ? tagStyle(ns) : undefined} title={`${ns}:${name}`} onClick={(e) => { e.stopPropagation(); onSearch(tagToken(ns, name)) }}>
+    <button
+      key={ns + name}
+      className={`link ${cls}`}
+      style={cls ? tagStyle(ns) : undefined}
+      title={`${ns}:${name}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (viewLink(s.site, ns, name, s)) nav.go(nameRoute(ns, name, s.site, s))
+        else onSearch(tagToken(ns, name))
+      }}
+    >
       {tagLabel(ns, name)}
     </button>
   )
+
+  // the name under a grid card: the circle (group) or the artist; a link when the plugin has a screen for it
+  const subNs = b?.creator.circle || (!b?.creator.artists[0] && s.groups[0]) ? 'group' : 'artist'
+  const sub = b?.creator.circle || b?.creator.artists[0] || s.groups[0] || s.artists[0] || ''
+  const subView = sub ? viewLink(s.site, subNs, sub, s) : undefined
 
   if (layout === 'grid') {
     return (
@@ -82,8 +113,15 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
         <div className="card-body">
           <div className="title" title={b ? bookmarkTitle(b) : displayTitle(s)}>{b ? bookmarkTitle(b) : displayTitle(s)}</div>
           <div className="sub">
-            {b?.creator.circle || b?.creator.artists[0] || s.groups[0] || s.artists[0] || '—'}
+            {subView ? (
+              <button className="link name-link" title={t('bookmarks.openNameIn', { view: textOf(subView.view.label), name: sub })} onClick={(e) => { e.stopPropagation(); nav.go(nameRoute(subNs, sub, s.site, s)) }}>
+                {sub}
+              </button>
+            ) : (
+              sub || '—'
+            )}
           </div>
+          <Stats s={s} />
           <DownloadBadge b={b} />
         </div>
       </div>
@@ -123,8 +161,8 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
               </dd>
             </>
           )}
-          {s.artists.length > 0 && (<><dt>{t('meta.artists')}</dt><dd>{s.artists.map((a) => link('artist', a))}</dd></>)}
-          {s.groups.length > 0 && (<><dt>{t('meta.groups')}</dt><dd>{s.groups.map((g) => link('group', g))}</dd></>)}
+          {s.artists.length > 0 && (<><dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt><dd>{s.artists.map((a) => link('artist', a))}</dd></>)}
+          {s.groups.length > 0 && (<><dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt><dd>{s.groups.map((g) => link('group', g))}</dd></>)}
           {s.parodies.length > 0 && (<><dt>{t('meta.parodies')}</dt><dd>{s.parodies.map((p) => link('series', p))}</dd></>)}
           {s.characters.length > 0 && (<><dt>{t('meta.characters')}</dt><dd>{s.characters.slice(0, 6).map((c) => link('character', c))}</dd></>)}
         </dl>
@@ -135,6 +173,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
           <span>{s.languageLocal || s.language || '—'}</span>
           <span>{t('common.pages', { n: s.pageCount })}</span>
           <span>{s.date.slice(0, 10)}</span>
+          <Stats s={s} />
           <DownloadBadge b={b} />
         </div>
       </div>

@@ -11,6 +11,7 @@ import (
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/model"
+	"poruneko/internal/site"
 )
 
 // Managing cbz locations. The location is recorded in the bookmark's ArchiveFile, and a cbz without a record
@@ -122,7 +123,31 @@ func (l *Library) TargetName(d *model.GalleryDetail) string {
 	if x, i, ok := l.st.SeriesOf(d.Key); ok {
 		sr = SeriesRef{Name: x.Name, No: i + 1}
 	}
-	return FormatNameTitled(l.st.Settings().FileNameFormat, d, creator, sr, title)
+	return FormatNameTitled(l.FormatFor(l.siteOf(d.Key)), d, creator, sr, title)
+}
+
+// FormatFor is the file name format of a site's works: the one chosen for the site, the one its plugin suggests,
+// or the common one
+func (l *Library) FormatFor(siteID model.SiteID) string {
+	s := l.st.Settings()
+	if f := s.SiteFileNameFormats[siteID]; f != "" {
+		return f
+	}
+	if f := site.FileNameFormat(siteID); f != "" {
+		return f
+	}
+	return s.FileNameFormat
+}
+
+// siteOf is the site a work's files belong to (a page range work: its source's site)
+func (l *Library) siteOf(key string) model.SiteID {
+	s, _, _ := model.ParseKey(key)
+	if s == model.SiteLocal {
+		if b, ok := l.st.Bookmark(key); ok && b.Summary.Origin != nil {
+			s, _, _ = model.ParseKey(b.Summary.Origin.Key)
+		}
+	}
+	return s
 }
 
 // targetPath returns the absolute save path from the format (adding the ID if it clashes with another work)

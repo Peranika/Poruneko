@@ -23,6 +23,10 @@ export namespace main {
 	    hosts: string[];
 	    displayHosts?: string[];
 	    capabilities: string[];
+	    siteCreators?: boolean;
+	    ownFavorites?: boolean;
+	    loadMore?: string;
+	    fileNameFormat?: string;
 	    icon?: string;
 	    browse?: model.BrowseSpec;
 	    file: string;
@@ -42,6 +46,10 @@ export namespace main {
 	        this.hosts = source["hosts"];
 	        this.displayHosts = source["displayHosts"];
 	        this.capabilities = source["capabilities"];
+	        this.siteCreators = source["siteCreators"];
+	        this.ownFavorites = source["ownFavorites"];
+	        this.loadMore = source["loadMore"];
+	        this.fileNameFormat = source["fileNameFormat"];
 	        this.icon = source["icon"];
 	        this.browse = this.convertValues(source["browse"], model.BrowseSpec);
 	        this.file = source["file"];
@@ -71,6 +79,24 @@ export namespace main {
 
 export namespace model {
 	
+	export class Attachment {
+	    index: number;
+	    name: string;
+	    kind: string;
+	    size?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Attachment(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.index = source["index"];
+	        this.name = source["name"];
+	        this.kind = source["kind"];
+	        this.size = source["size"];
+	    }
+	}
 	export class ThumbSpec {
 	    page: number;
 	    x: number;
@@ -239,6 +265,9 @@ export namespace model {
 	    characters: string[];
 	    tags: TagInfo[];
 	    pageCount: number;
+	    description?: string;
+	    stats?: Record<string, number>;
+	    owner?: string;
 	    origin?: Origin;
 	
 	    static createFrom(source: any = {}) {
@@ -262,6 +291,9 @@ export namespace model {
 	        this.characters = source["characters"];
 	        this.tags = this.convertValues(source["tags"], TagInfo);
 	        this.pageCount = source["pageCount"];
+	        this.description = source["description"];
+	        this.stats = source["stats"];
+	        this.owner = source["owner"];
 	        this.origin = this.convertValues(source["origin"], Origin);
 	    }
 	
@@ -329,6 +361,46 @@ export namespace model {
 		    return a;
 		}
 	}
+	export class ViewSpec {
+	    id: string;
+	    label: Record<string, string>;
+	    icon?: string;
+	    placeholder?: Record<string, string>;
+	    hint?: Record<string, string>;
+	    namespaces?: string[];
+	    aliases?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ViewSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.icon = source["icon"];
+	        this.placeholder = source["placeholder"];
+	        this.hint = source["hint"];
+	        this.namespaces = source["namespaces"];
+	        this.aliases = source["aliases"];
+	    }
+	}
+	export class StatSpec {
+	    id: string;
+	    label: Record<string, string>;
+	    icon?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.icon = source["icon"];
+	    }
+	}
 	export class Namespace {
 	    id: string;
 	    label: Record<string, string>;
@@ -375,6 +447,9 @@ export namespace model {
 	    in?: string[];
 	    multi?: boolean;
 	    onSearch?: string;
+	    stat?: string;
+	    kind?: string;
+	    hint?: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new FilterSpec(source);
@@ -389,6 +464,9 @@ export namespace model {
 	        this.in = source["in"];
 	        this.multi = source["multi"];
 	        this.onSearch = source["onSearch"];
+	        this.stat = source["stat"];
+	        this.kind = source["kind"];
+	        this.hint = source["hint"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -413,6 +491,11 @@ export namespace model {
 	    placeholder?: Record<string, string>;
 	    filters: FilterSpec[];
 	    namespaces?: Namespace[];
+	    stats?: StatSpec[];
+	    creatorLabels?: Record<string, any>;
+	    views?: ViewSpec[];
+	    favoritesLabel?: Record<string, string>;
+	    favoritesIcon?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new BrowseSpec(source);
@@ -423,6 +506,11 @@ export namespace model {
 	        this.placeholder = source["placeholder"];
 	        this.filters = this.convertValues(source["filters"], FilterSpec);
 	        this.namespaces = this.convertValues(source["namespaces"], Namespace);
+	        this.stats = this.convertValues(source["stats"], StatSpec);
+	        this.creatorLabels = source["creatorLabels"];
+	        this.views = this.convertValues(source["views"], ViewSpec);
+	        this.favoritesLabel = source["favoritesLabel"];
+	        this.favoritesIcon = source["favoritesIcon"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -446,11 +534,28 @@ export namespace model {
 	
 	
 	
+	export class ViewLink {
+	    view: string;
+	    query: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ViewLink(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.view = source["view"];
+	        this.query = source["query"];
+	    }
+	}
 	export class FavoriteName {
 	    tag: string;
 	    name: string;
 	    ns: string;
 	    bookmarks: number;
+	    note?: string;
+	    parents?: string[];
+	    open?: ViewLink;
 	
 	    static createFrom(source: any = {}) {
 	        return new FavoriteName(source);
@@ -462,7 +567,28 @@ export namespace model {
 	        this.name = source["name"];
 	        this.ns = source["ns"];
 	        this.bookmarks = source["bookmarks"];
+	        this.note = source["note"];
+	        this.parents = source["parents"];
+	        this.open = this.convertValues(source["open"], ViewLink);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class FavoritesQuery {
 	    site?: string;
@@ -499,6 +625,7 @@ export namespace model {
 	    page: number;
 	    perPage: number;
 	    hidden: number;
+	    more?: boolean;
 	    names: FavoriteName[];
 	
 	    static createFrom(source: any = {}) {
@@ -513,6 +640,7 @@ export namespace model {
 	        this.page = source["page"];
 	        this.perPage = source["perPage"];
 	        this.hidden = source["hidden"];
+	        this.more = source["more"];
 	        this.names = this.convertValues(source["names"], FavoriteName);
 	    }
 	
@@ -541,6 +669,7 @@ export namespace model {
 	    name: string;
 	    width: number;
 	    height: number;
+	    video?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new PageInfo(source);
@@ -552,6 +681,7 @@ export namespace model {
 	        this.name = source["name"];
 	        this.width = source["width"];
 	        this.height = source["height"];
+	        this.video = source["video"];
 	    }
 	}
 	export class GalleryDetail {
@@ -570,8 +700,12 @@ export namespace model {
 	    characters: string[];
 	    tags: TagInfo[];
 	    pageCount: number;
+	    description?: string;
+	    stats?: Record<string, number>;
+	    owner?: string;
 	    origin?: Origin;
 	    pages: PageInfo[];
+	    attachments?: Attachment[];
 	
 	    static createFrom(source: any = {}) {
 	        return new GalleryDetail(source);
@@ -594,8 +728,12 @@ export namespace model {
 	        this.characters = source["characters"];
 	        this.tags = this.convertValues(source["tags"], TagInfo);
 	        this.pageCount = source["pageCount"];
+	        this.description = source["description"];
+	        this.stats = source["stats"];
+	        this.owner = source["owner"];
 	        this.origin = this.convertValues(source["origin"], Origin);
 	        this.pages = this.convertValues(source["pages"], PageInfo);
+	        this.attachments = this.convertValues(source["attachments"], Attachment);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -655,6 +793,7 @@ export namespace model {
 	}
 	export class ListQuery {
 	    site?: string;
+	    view?: string;
 	    query: string;
 	    filters: Record<string, string>;
 	    page: number;
@@ -668,6 +807,7 @@ export namespace model {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.site = source["site"];
+	        this.view = source["view"];
 	        this.query = source["query"];
 	        this.filters = source["filters"];
 	        this.page = source["page"];
@@ -682,6 +822,7 @@ export namespace model {
 	    page: number;
 	    perPage: number;
 	    hidden: number;
+	    more?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new ListResult(source);
@@ -695,6 +836,7 @@ export namespace model {
 	        this.page = source["page"];
 	        this.perPage = source["perPage"];
 	        this.hidden = source["hidden"];
+	        this.more = source["more"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -801,6 +943,7 @@ export namespace model {
 	    slideEdgeShrink: boolean;
 	    slideTimeLeft?: boolean;
 	    barLocked: boolean;
+	    moire: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ViewerSettings(source);
@@ -824,6 +967,7 @@ export namespace model {
 	        this.slideEdgeShrink = source["slideEdgeShrink"];
 	        this.slideTimeLeft = source["slideTimeLeft"];
 	        this.barLocked = source["barLocked"];
+	        this.moire = source["moire"];
 	    }
 	}
 	export class Settings {
@@ -846,6 +990,10 @@ export namespace model {
 	    sourcesRev: number;
 	    keybindings: Record<string, Array<string>>;
 	    infiniteScroll: boolean;
+	    siteOrder: string[];
+	    siteScreenOrder: Record<string, Array<string>>;
+	    siteScreens: string;
+	    siteLoadMore: Record<string, string>;
 	    rememberWindow: boolean;
 	    rememberScreen: boolean;
 	    mouseGestures: boolean;
@@ -853,6 +1001,7 @@ export namespace model {
 	    localDirs: LocalDir[];
 	    folderSeriesOff: string[];
 	    fileNameFormat: string;
+	    siteFileNameFormats: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -879,6 +1028,10 @@ export namespace model {
 	        this.sourcesRev = source["sourcesRev"];
 	        this.keybindings = source["keybindings"];
 	        this.infiniteScroll = source["infiniteScroll"];
+	        this.siteOrder = source["siteOrder"];
+	        this.siteScreenOrder = source["siteScreenOrder"];
+	        this.siteScreens = source["siteScreens"];
+	        this.siteLoadMore = source["siteLoadMore"];
 	        this.rememberWindow = source["rememberWindow"];
 	        this.rememberScreen = source["rememberScreen"];
 	        this.mouseGestures = source["mouseGestures"];
@@ -886,6 +1039,7 @@ export namespace model {
 	        this.localDirs = this.convertValues(source["localDirs"], LocalDir);
 	        this.folderSeriesOff = source["folderSeriesOff"];
 	        this.fileNameFormat = source["fileNameFormat"];
+	        this.siteFileNameFormats = source["siteFileNameFormats"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -913,6 +1067,14 @@ export namespace model {
 	    icon: string;
 	    dir: string;
 	    browse?: BrowseSpec;
+	    fromURL: boolean;
+	    ownFavorites: boolean;
+	    favoriteNames: boolean;
+	    fileNameFormat: string;
+	    status: boolean;
+	    version: string;
+	    hosts: string[];
+	    loadMore: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SiteInfo(source);
@@ -926,6 +1088,14 @@ export namespace model {
 	        this.icon = source["icon"];
 	        this.dir = source["dir"];
 	        this.browse = this.convertValues(source["browse"], BrowseSpec);
+	        this.fromURL = source["fromURL"];
+	        this.ownFavorites = source["ownFavorites"];
+	        this.favoriteNames = source["favoriteNames"];
+	        this.fileNameFormat = source["fileNameFormat"];
+	        this.status = source["status"];
+	        this.version = source["version"];
+	        this.hosts = source["hosts"];
+	        this.loadMore = source["loadMore"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -946,6 +1116,27 @@ export namespace model {
 		    return a;
 		}
 	}
+	
+	export class StatusLine {
+	    label: Record<string, string>;
+	    value: string;
+	    max?: string;
+	    note?: string;
+	    warn?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatusLine(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.label = source["label"];
+	        this.value = source["value"];
+	        this.max = source["max"];
+	        this.note = source["note"];
+	        this.warn = source["warn"];
+	    }
+	}
 	export class Suggestion {
 	    ns: string;
 	    name: string;
@@ -961,6 +1152,88 @@ export namespace model {
 	        this.name = source["name"];
 	        this.count = source["count"];
 	    }
+	}
+	
+	
+	export class ViewAction {
+	    id: string;
+	    label: Record<string, string>;
+	    icon?: string;
+	    active?: boolean;
+	    confirm?: Record<string, string>;
+	    items?: ViewAction[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ViewAction(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.icon = source["icon"];
+	        this.active = source["active"];
+	        this.confirm = source["confirm"];
+	        this.items = this.convertValues(source["items"], ViewAction);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ViewHeader {
+	    owner?: string;
+	    title: string;
+	    subtitle?: string;
+	    text?: string;
+	    image?: string;
+	    actions?: ViewAction[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ViewHeader(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.owner = source["owner"];
+	        this.title = source["title"];
+	        this.subtitle = source["subtitle"];
+	        this.text = source["text"];
+	        this.image = source["image"];
+	        this.actions = this.convertValues(source["actions"], ViewAction);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	
 	

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { errorText, t } from '../i18n'
-import type { GallerySummary, ListResult } from '../types'
+import type { GallerySummary, ListResult, LoadMore } from '../types'
 import { cachedPage, storePage } from '../workSequence'
 import { Pagination } from './Pagination'
 
@@ -15,6 +15,8 @@ import { Pagination } from './Pagination'
 const KEEP_MARGIN = '2500px 0px'
 /** Load the next page when the end of the list is this close */
 const LOAD_AHEAD = '0px 0px 1500px 0px'
+/** How far to scroll on at the bottom of the list before the next page loads (wheel distance in px) */
+const PULL_TO_LOAD = 600
 
 interface SavedState {
   key: string
@@ -32,6 +34,8 @@ interface Props<R extends ListResult> {
   load(page: number): Promise<R>
   /** If false, show one page at a time with page navigation */
   infinite: boolean
+  /** When the next page loads while scrolling (near the end by default) */
+  loadMore?: LoadMore
   layout: 'list' | 'grid'
   /** page / result are the page the work is on (passed for next/previous work when opening it) */
   renderItem(s: GallerySummary, page: number, result: ListResult): ReactNode
@@ -46,6 +50,7 @@ interface Props<R extends ListResult> {
 
 export function PagedResults<R extends ListResult>(props: Props<R>) {
   const { resetKey, startPage, load, infinite, layout, renderItem, onResult, onJump, scroller, entryState, emptyText } = props
+  const loadMore = props.loadMore ?? 'near'
   const fresh = (p: number) => cachedPage<R>(resetKey, p)
 
   // when coming back, restore from the previously loaded range if it is still cached (even if expired).
@@ -77,7 +82,10 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
 
   const anyResult = results[first] ?? Object.values(results)[0]
   const perPage = anyResult?.perPage ?? 25
-  const totalPages = anyResult ? Math.max(1, Math.ceil(anyResult.total / perPage)) : undefined
+  // a list without a known total (a timeline) ends at the first page saying there is no more
+  const unknownTotal = !!anyResult && anyResult.total < 0
+  const endPage = unknownTotal ? Object.entries(results).find(([, r]) => !r.more)?.[0] : undefined
+  const totalPages = !anyResult ? undefined : unknownTotal ? (endPage ? Number(endPage) : undefined) : Math.max(1, Math.ceil(anyResult.total / perPage))
 
   const loadPage = useCallback(
     (p: number) => {
@@ -123,7 +131,7 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
   // load the next page when the end of the list gets close
   const sentinel = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!infinite || !sentinel.current || !scroller.current) return
+    if (!infinite || loadMore !== 'near' || !sentinel.current || !scroller.current) return
     const io = new IntersectionObserver(
       (es) => {
         if (!es[0].isIntersecting || !results[last] || errors[last]) return
@@ -135,7 +143,39 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
     )
     io.observe(sentinel.current)
     return () => io.disconnect()
-  }, [infinite, last, results, errors, totalPages, loadPage, scroller])
+  }, [infinite, loadMore, last, results, errors, totalPages, loadPage, scroller])
+
+  // the next page by hand (the button, or scrolling on at the bottom), for sites that count every call
+  const ended = totalPages !== undefined && last >= totalPages
+  const canLoadNext = !!results[last] && !errors[last] && !ended
+  const loadNext = useCallback(() => {
+    if (!canLoadNext) return
+    setLast(last + 1)
+    loadPage(last + 1)
+  }, [canLoadNext, last, loadPage])
+  // how far the wheel has gone on at the bottom (0 to 1), shown as a bar
+  const [pull, setPull] = useState(0)
+  useEffect(() => {
+    const el = scroller.current
+    if (!infinite || loadMore !== 'bottom' || !el) return
+    let pulled = 0
+    const onWheel = (e: WheelEvent) => {
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4
+      if (!atBottom || e.deltaY <= 0 || !canLoadNext) {
+        if (pulled) setPull((pulled = 0))
+        return
+      }
+      pulled += e.deltaY
+      if (pulled >= PULL_TO_LOAD) {
+        setPull((pulled = 0))
+        loadNext()
+      } else {
+        setPull(pulled / PULL_TO_LOAD)
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: true })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [infinite, loadMore, canLoadNext, loadNext, scroller])
 
   // prepend the previous page
   // (remember where the viewed page is on screen and return there each time a loading box or result arrives)
@@ -196,10 +236,10 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
       {anyResult && (
         <div className="result-info">
           <span>
-            {t('common.items', { n: anyResult.total.toLocaleString() })}
-            {totalPages && t('paged.pageOf', { page: infinite ? t('paged.showing', { page: current }) : startPage, total: totalPages })}
+            {!unknownTotal && t('common.items', { n: anyResult.total.toLocaleString() })}
+            {!unknownTotal && totalPages && t('paged.pageOf', { page: infinite ? t('paged.showing', { page: current }) : startPage, total: totalPages })}
           </span>
-          {infinite && totalPages && totalPages > 1 && <JumpInput pages={totalPages} onJump={onJump} />}
+          {!unknownTotal && infinite && totalPages && totalPages > 1 && <JumpInput pages={totalPages} onJump={onJump} />}
         </div>
       )}
       {infinite && first > 1 && (
@@ -225,10 +265,30 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
       ))}
       {infinite ? (
         <div ref={sentinel} className="page-end">
-          {totalPages !== undefined && last >= totalPages && results[last] && <span className="muted small">{t('paged.lastPage')}</span>}
+          {ended && results[last] && <span className="muted small">{t('paged.lastPage')}</span>}
+          {loadMore !== 'near' && canLoadNext && (
+            <div className="load-next">
+              <button className="btn" onClick={loadNext}>
+                {t('paged.loadNext', { page: last + 1 })}
+              </button>
+              {loadMore === 'bottom' && (
+                <>
+                  <span className="muted small">{t('paged.pullHint')}</span>
+                  <span className="pull-bar">
+                    <span style={{ width: `${pull * 100}%` }} />
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       ) : (
-        totalPages && <Pagination page={startPage} pages={totalPages} onPage={onJump} />
+        // without a known total the pages go one at a time
+        (unknownTotal ? (
+          <Pagination page={startPage} pages={results[startPage]?.more ? startPage + 1 : startPage} onPage={onJump} />
+        ) : (
+          totalPages && <Pagination page={startPage} pages={totalPages} onPage={onJump} />
+        ))
       )}
     </div>
   )

@@ -2,6 +2,7 @@
 package netx
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -26,6 +27,10 @@ type HTTPError struct {
 	Status     int
 	URL        string
 	RetryAfter time.Duration // Retry-After of a 429/503
+	// Body is the start of the error response and Header its headers (for plugins that read the site's error
+	// message or its rate limits)
+	Body   []byte
+	Header http.Header
 }
 
 func (e *HTTPError) Error() string { return fmt.Sprintf("HTTP %d: %s", e.Status, e.URL) }
@@ -50,6 +55,9 @@ type Opts struct {
 	Timeout time.Duration
 	// MaxBackoff caps the wait between retries (default 15 seconds)
 	MaxBackoff time.Duration
+	// Method is the HTTP method (GET if empty); Body is sent with it
+	Method string
+	Body   []byte
 }
 
 // Response is the body and some headers
@@ -58,7 +66,7 @@ type Response struct {
 	Header http.Header
 }
 
-// Get is a GET with retries and a timeout (4xx fails immediately)
+// Get is a GET (or o.Method) with retries and a timeout (4xx fails immediately)
 func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 	if o == nil {
 		o = &Opts{}
@@ -75,7 +83,7 @@ func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 	}
 	var lastErr error
 	for attempt := 0; attempt <= retries; attempt++ {
-		res, err := doGet(ctx, url, o.Headers, timeout)
+		res, err := do(ctx, o.Method, url, o.Headers, o.Body, timeout)
 		if err == nil {
 			return res, nil
 		}
@@ -108,10 +116,17 @@ func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 	return nil, lastErr
 }
 
-func doGet(ctx context.Context, url string, headers map[string]string, timeout time.Duration) (*Response, error) {
+func do(ctx context.Context, method, url string, headers map[string]string, body []byte, timeout time.Duration) (*Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if method == "" {
+		method = http.MethodGet
+	}
+	var rd io.Reader
+	if body != nil {
+		rd = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, url, rd)
 	if err != nil {
 		return nil, err
 	}
@@ -125,18 +140,19 @@ func doGet(ctx context.Context, url string, headers map[string]string, timeout t
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 400 {
+		head, _ := io.ReadAll(io.LimitReader(res.Body, 4<<10))
 		io.Copy(io.Discard, res.Body)
-		he := &HTTPError{Status: res.StatusCode, URL: url}
+		he := &HTTPError{Status: res.StatusCode, URL: url, Body: head, Header: res.Header}
 		if sec, err := strconv.Atoi(res.Header.Get("Retry-After")); err == nil {
 			he.RetryAfter = time.Duration(sec) * time.Second
 		}
 		return nil, he
 	}
-	body, err := io.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
-	return &Response{Body: body, Header: res.Header}, nil
+	return &Response{Body: data, Header: res.Header}, nil
 }
 
 // ---------------------------------------------------------------- TTL cache

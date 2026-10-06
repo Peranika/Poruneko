@@ -6,6 +6,7 @@
 package imgserver
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log"
@@ -146,9 +147,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch kind {
 	case "img":
-		err = h.image(ctx, w, key, siteID, id, index)
+		err = h.image(ctx, w, r, key, siteID, id, index)
 	case "thumb":
-		err = h.thumb(ctx, w, key, siteID, id, index, r.URL.Query().Get("small") == "")
+		err = h.thumb(ctx, w, r, key, siteID, id, index, r.URL.Query().Get("small") == "")
 	default:
 		http.NotFound(w, r)
 		return
@@ -164,28 +165,46 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func writeImage(w http.ResponseWriter, body []byte, ext string) {
-	ct := mime.TypeByExtension("." + ext)
-	if ct == "" {
-		ct = "image/" + ext
+// contentType is the type of a page or thumbnail with this extension
+func contentType(ext string) string {
+	if ct := mime.TypeByExtension("." + ext); ct != "" {
+		return ct
 	}
-	w.Header().Set("Content-Type", ct)
-	w.Header().Set("Cache-Control", "max-age=86400")
-	_, _ = w.Write(body)
+	if library.IsVideoExt(ext) {
+		return "video/" + ext
+	}
+	return "image/" + ext
 }
 
-func writeFile(w http.ResponseWriter, path string) error {
+// writeImage serves a page or thumbnail (with range requests, so a video can be played from any point)
+func writeImage(w http.ResponseWriter, r *http.Request, body []byte, ext string) {
+	w.Header().Set("Content-Type", contentType(ext))
+	w.Header().Set("Cache-Control", "max-age=86400")
+	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(body))
+}
+
+func writeFile(w http.ResponseWriter, r *http.Request, path string) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	writeImage(w, b, strings.TrimPrefix(filepath.Ext(path), "."))
+	writeImage(w, r, b, strings.TrimPrefix(filepath.Ext(path), "."))
 	return nil
 }
 
-func (h *Handler) image(ctx context.Context, w http.ResponseWriter, key, siteID, id string, index int) error {
+func (h *Handler) image(ctx context.Context, w http.ResponseWriter, r *http.Request, key, siteID, id string, index int) error {
+	// a stored video is played from the file in parts, not read all at once for every range request
+	if pr, ok := h.lib.OpenPage(key, index); ok {
+		defer pr.Close()
+		if library.IsVideoExt(pr.Ext) {
+			w.Header().Set("Content-Type", contentType(pr.Ext))
+			w.Header().Set("Cache-Control", "max-age=86400")
+			http.ServeContent(w, r, "", pr.ModTime, pr)
+			return nil
+		}
+	}
 	if b, ext, ok := h.lib.ReadPage(key, index); ok {
-		writeImage(w, b, ext)
+		writeImage(w, r, b, ext)
 		return nil
 	}
 	// a page range bookmark without a cbz serves the source gallery's pages (cancellation counts toward this gallery)
@@ -194,9 +213,9 @@ func (h *Handler) image(ctx context.Context, w http.ResponseWriter, key, siteID,
 		if err != nil {
 			return err
 		}
-		return h.remoteImage(ctx, w, key, src.key, src.site, src.id, src.index)
+		return h.remoteImage(ctx, w, r, key, src.key, src.site, src.id, src.index)
 	}
-	return h.remoteImage(ctx, w, key, key, siteID, id, index)
+	return h.remoteImage(ctx, w, r, key, key, siteID, id, index)
 }
 
 // sourcePage is the source gallery page corresponding to a page of a page range bookmark
@@ -215,16 +234,16 @@ func (h *Handler) sourcePage(key string, index int) (sourcePage, error) {
 }
 
 // remoteImage serves a page image from the site (trackKey is the gallery CancelGallery cancels by)
-func (h *Handler) remoteImage(ctx context.Context, w http.ResponseWriter, trackKey, key, siteID, id string, index int) error {
+func (h *Handler) remoteImage(ctx context.Context, w http.ResponseWriter, r *http.Request, trackKey, key, siteID, id string, index int) error {
 	if trackKey != key {
 		if b, ext, ok := h.lib.ReadPage(key, index); ok {
-			writeImage(w, b, ext)
+			writeImage(w, r, b, ext)
 			return nil
 		}
 	}
 	ck := key + "/" + strconv.Itoa(index)
 	if b, ext, ok := h.pages.Get(ck); ok {
-		writeImage(w, b, ext)
+		writeImage(w, r, b, ext)
 		return nil
 	}
 	p, err := site.Get(siteID)
@@ -246,25 +265,25 @@ func (h *Handler) remoteImage(ctx context.Context, w http.ResponseWriter, trackK
 			}
 		}()
 	}
-	writeImage(w, body, ext)
+	writeImage(w, r, body, ext)
 	return nil
 }
 
-func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID, id string, index int, big bool) error {
+func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, r *http.Request, key, siteID, id string, index int, big bool) error {
 	// the list cover uses the thumbnail chosen by the user if there is one
 	if index == 0 && big {
 		if p := h.lib.CustomThumb(key); p != "" {
-			return writeFile(w, p)
+			return writeFile(w, r, p)
 		}
 	}
 	// the user's own archives: a cached small thumbnail, or the page itself if it cannot be decoded
 	if siteID == model.SiteFile {
 		if b, ok := h.lib.FileThumb(key, index, big); ok {
-			writeImage(w, b, "jpeg")
+			writeImage(w, r, b, "jpeg")
 			return nil
 		}
 		if b, ext, ok := h.lib.ReadPage(key, index); ok {
-			writeImage(w, b, ext)
+			writeImage(w, r, b, ext)
 			return nil
 		}
 		return os.ErrNotExist
@@ -275,11 +294,11 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID,
 		cover := index == 0 && big
 		useSource := cover && h.st.Settings().RangeThumb == store.RangeThumbSource
 		if p := h.lib.LocalThumb(key); p != "" && useSource {
-			return writeFile(w, p)
+			return writeFile(w, r, p)
 		}
 		if !useSource {
 			if b, ext, ok := h.lib.ReadPage(key, index); ok {
-				writeImage(w, b, ext)
+				writeImage(w, r, b, ext)
 				return nil
 			}
 		}
@@ -290,16 +309,16 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID,
 		if useSource {
 			src.index = 0
 		}
-		return h.thumb(ctx, w, src.key, src.site, src.id, src.index, big)
+		return h.thumb(ctx, w, r, src.key, src.site, src.id, src.index, big)
 	}
 	if index == 0 && big {
 		if p := h.lib.LocalThumb(key); p != "" {
-			return writeFile(w, p)
+			return writeFile(w, r, p)
 		}
 	}
 	ck := key + "/" + strconv.Itoa(index) + "/" + strconv.FormatBool(big)
 	if b, ok := h.thumbs.Get(ck); ok {
-		writeImage(w, b, "webp")
+		writeImage(w, r, b, "webp")
 		return nil
 	}
 	fetch := func() ([]byte, error) {
@@ -327,12 +346,12 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, key, siteID,
 	if err != nil {
 		// offline, fall back to downloaded page images
 		if b, ext, ok := h.lib.ReadPage(key, index); ok {
-			writeImage(w, b, ext)
+			writeImage(w, r, b, ext)
 			return nil
 		}
 		return err
 	}
 	h.thumbs.Set(ck, b)
-	writeImage(w, b, "webp")
+	writeImage(w, r, b, "webp")
 	return nil
 }

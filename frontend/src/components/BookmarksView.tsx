@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
+import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
+import { creatorLabel, siteInfo } from '../browseSpec'
 import {
   type TagSource,
   allTags,
@@ -32,6 +34,7 @@ import { useApp, type BookmarkView, type Route } from '../state'
 import { loadString, saveString } from '../storage'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { useScrollMemory } from '../useScrollMemory'
+import { usePaneScroll } from '../usePaneScroll'
 import type { WorkSource } from '../workSequence'
 import { BookmarkCard, SelectionBar } from './BookmarkCard'
 import { Icon } from './Icon'
@@ -194,6 +197,36 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
     [collapse, selected, seriesOf]
   )
 
+  // works of a site that reads URLs can be added from a URL copied in the browser (the button, or pasting on this
+  // screen)
+  const fromUrl = scope === 'bookmarks' && !!site && !!siteInfo(site)?.fromURL
+  const addFromUrl = async (text?: string) => {
+    let url = (text ?? (await ClipboardGetText().catch(() => ''))).trim()
+    if (!/^https?:\/\//.test(url)) url = prompt(t('bookmarks.fromUrlPrompt'), url)?.trim() ?? ''
+    if (!url) return
+    try {
+      const had = bookmarks.has((await api.addBookmarkFromUrl(url)).key)
+      toast(had ? t('bookmarks.fromUrlAlready') : t('toasts.bookmarked'))
+    } catch (e) {
+      toast(errorText(e))
+    }
+  }
+  const addFromUrlRef = useRef(addFromUrl)
+  addFromUrlRef.current = addFromUrl
+  useEffect(() => {
+    if (!fromUrl) return
+    const onPaste = (e: ClipboardEvent) => {
+      const el = e.target as HTMLElement | null
+      if (el?.closest('input, textarea, [contenteditable]')) return
+      const text = e.clipboardData?.getData('text') ?? ''
+      if (!/^https?:\/\//.test(text.trim())) return
+      e.preventDefault()
+      void addFromUrlRef.current(text)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [fromUrl])
+
   // Ctrl+F goes to the search box; Esc in the search box ends the search
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -208,6 +241,8 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
   }, [])
 
   const pick = (g: string) => setGroup(g)
+  // the left pane keeps where it was scrolled to (this screen is made again on every move)
+  const groupScroll = usePaneScroll<HTMLUListElement>(`bm:${space}:groups:${by}`, all.length > 0)
   // if the saved group no longer exists, go back to "All"
   useEffect(() => {
     if (all.length && membersOf(all, by, group) === null) pick('__all')
@@ -235,7 +270,7 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
             }}
           >
             <Icon name={by === 'circle' ? 'users' : 'user'} size={16} />
-            <span className="seg-label">{by === 'circle' ? t('common.circle') : t('common.artist')}</span>
+            <span className="seg-label">{by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist'))}</span>
             {!localTab && <TwoStates second={by === 'artist'} />}
           </button>
           <button className={pane === 'series' ? 'active' : ''} onClick={() => setPane('series')} title={t('bookmarks.seriesTitle')}>
@@ -290,11 +325,12 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
             ))}
           </ul>
         ) : showSeries ? (
-          <SeriesList list={seriesList} selected={seriesId} onSelect={pickSeries} />
+          <SeriesList list={seriesList} selected={seriesId} onSelect={pickSeries} scrollKey={`bm:${space}:series`} />
         ) : pane === 'tags' && tagSource === 'work' ? (
-          <WorkTagList tags={workTagList} selected={htags} total={all.length} onChange={setHtags} />
+          <WorkTagList tags={workTagList} selected={htags} total={all.length} onChange={setHtags} scrollKey={`bm:${space}:worktags`} />
         ) : pane === 'tags' ? (
           <TagList
+            scrollKey={`bm:${space}:tags`}
             tags={tagList}
             selected={tags}
             total={all.length}
@@ -303,7 +339,7 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
             onRename={(tag) => void renameTag(tag)}
           />
         ) : (
-          <ul className="group-list">
+          <ul ref={groupScroll} className="group-list">
             {specials.map(([k, list]) =>
               k === '__all' || list.length > 0 ? (
                 <li key={k} className={`special ${group === k ? 'active' : ''}`} onClick={() => pick(k)}>
@@ -350,6 +386,11 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
                   title={t('library.rescanTitle')}
                 >
                   <Icon name="refresh" size={14} /> {t('library.rescan')}
+                </button>
+              )}
+              {fromUrl && (
+                <button className="btn small" onClick={() => void addFromUrl()} title={t('bookmarks.fromUrlTitle')}>
+                  <Icon name="link" size={14} /> {t('bookmarks.fromUrl')}
                 </button>
               )}
               {/* shuffle play; hovering shows its option */}

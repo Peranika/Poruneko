@@ -168,6 +168,9 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 		}
 		o := *opts
 		o.Headers = src.Headers
+		if IsVideoExt(src.Ext) {
+			o.Timeout = 3 * time.Minute // a video is much larger than a page image
+		}
 		res, err := netx.Get(ctx, src.URL, &o)
 		if err != nil {
 			return nil, "", err

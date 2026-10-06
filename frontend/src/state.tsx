@@ -5,8 +5,8 @@ import { UNBOOKMARK_RANGE_CONFIRM, hasRangeFile } from './bookmarkActions'
 import { applyFontScale, applyTheme } from './display'
 import { errorText, t } from './i18n'
 import { indexSeries } from './series'
-import { loadJSON, loadSkippedVersion, saveJSON } from './storage'
-import { filterDefaults, searchFilters, setBrowseSites } from './browseSpec'
+import { loadJSON, loadString, loadSkippedVersion, saveJSON } from './storage'
+import { filterDefaults, searchFilters, setBrowseSites, viewLink } from './browseSpec'
 import type { Bookmark, GallerySummary, IconFile, ListQuery, Series, Settings, SiteInfo, UpdateRelease } from './types'
 import type { WorkSource } from './workSequence'
 
@@ -20,7 +20,8 @@ export type Route =
   | { name: 'bookmarks'; site?: string; view?: BookmarkView }
   /** The works in a local folder (the same screen as Bookmarks) */
   | { name: 'local'; dir: number; view?: BookmarkView }
-  | { name: 'favorites'; site?: string; page: number; tag: string }
+  /** tag: the name narrowed to; scope: the parent name chosen above (a list), whose names alone are shown */
+  | { name: 'favorites'; site?: string; page: number; tag: string; scope?: string }
   | { name: 'history' }
   | { name: 'settings' }
 
@@ -122,8 +123,14 @@ export const loadPageRange = (): PageRange => {
   return { minPages: r.minPages || undefined, maxPages: r.maxPages || undefined }
 }
 
-/** A site's list with the filters' default values */
-export const defaultQuery = (site?: string): ListQuery => ({ site, query: '', filters: filterDefaults('browse', site), page: 1, ...loadPageRange() })
+/** A site's list with the filters' default values (view: one of the plugin's own screens, with what was entered last) */
+export const defaultQuery = (site?: string, view?: string): ListQuery =>
+  view
+    ? { site, view, query: loadString(viewInputKey(site, view), ''), filters: filterDefaults(view, site), page: 1 }
+    : { site, query: '', filters: filterDefaults('browse', site), page: 1, ...loadPageRange() }
+
+/** Where the input last entered on a plugin's own screen is kept */
+export const viewInputKey = (site: string | undefined, view: string): string => `view.${site ?? ''}.${view}`
 
 /**
  * The bookmarks an action on key applies to: all the selected ones when key is one of several selected,
@@ -131,6 +138,16 @@ export const defaultQuery = (site?: string): ListQuery => ({ site, query: '', fi
  */
 export const actionTargets = (key: string, selected: string[]): string[] =>
   selected.length > 1 && selected.includes(key) ? selected : [key]
+
+/**
+ * Where a link of a work's name goes: the plugin's own screen for that kind of names (a user's screen...), or a
+ * search on the site's list
+ */
+export function nameRoute(ns: string, name: string, site: string | undefined, work?: GallerySummary, keep?: Record<string, string>): Route {
+  const v = viewLink(site, ns, name, work)
+  if (v) return { name: 'browse', q: { ...defaultQuery(site, v.view.id), query: v.query } }
+  return { name: 'browse', q: searchQuery(tagToken(ns, name), keep, site) }
+}
 
 /** Search token (in the form "artist:foo_bar") */
 export const tagToken = (ns: string, name: string): string => `${ns}:${name.replace(/ /g, '_')}`
@@ -147,7 +164,7 @@ export const searchQuery = (query: string, keep?: Record<string, string>, site?:
 
 /** Which tab a screen belongs to (each site's list, bookmarks and Favorites are tabs of their own) */
 export function tabOf(r: Route): string {
-  if (r.name === 'browse') return 'browse:' + (r.q.site ?? '')
+  if (r.name === 'browse') return (r.q.view ? 'view.' + r.q.view : 'browse') + ':' + (r.q.site ?? '')
   if (r.name === 'bookmarks' || r.name === 'favorites') return r.name + ':' + (r.site ?? '')
   if (r.name === 'local') return 'local:' + r.dir
   return r.name

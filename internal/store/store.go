@@ -58,6 +58,9 @@ type Store struct {
 	dirty     bool            // the settings changed
 	changed   map[string]bool // keys of bookmarks to write (deleted if gone)
 	changedS  map[string]bool // IDs of series to write (deleted if gone)
+	// owners are the settings kept per owner of works (owners.go)
+	owners   map[string]*model.OwnerSettings
+	changedO map[string]bool // keys of owners' settings to write (deleted if gone)
 
 	history      []model.HistoryEntry // works opened in the viewer, newest first (history.go)
 	hf           *jsonFile
@@ -103,11 +106,14 @@ func Open() *Store {
 		db:        &bookmarkDB{path: filepath.Join(dir, "bookmarks.db")},
 		changed:   map[string]bool{},
 		changedS:  map[string]bool{},
+		owners:    map[string]*model.OwnerSettings{},
+		changedO:  map[string]bool{},
 	}
 	s.sf.load(&s.settings)
 	s.hf.load(&s.history)
 	s.loadBookmarks(dir)
 	s.loadSeries()
+	s.loadOwners()
 	normalizeSettings(&s.settings, filepath.Join(dir, "library"))
 	if migrateSources(&s.settings) {
 		s.dirty = true
@@ -189,18 +195,20 @@ func (s *Store) Flush() {
 
 // flushBookmarks writes changed bookmarks and series (call with the lock held; on failure retries next time)
 func (s *Store) flushBookmarks() error {
-	if len(s.changed) == 0 && len(s.changedS) == 0 {
+	if len(s.changed) == 0 && len(s.changedS) == 0 && len(s.changedO) == 0 {
 		return nil
 	}
 	err := s.db.write(map[table]changes{
 		bookmarksTable: collect(s.changed, s.bookmarks, func(b *model.Bookmark) int64 { return b.AddedAt }),
 		seriesTable:    collect(s.changedS, s.series, func(x *model.Series) int64 { return x.CreatedAt }),
+		ownersTable:    collect(s.changedO, s.owners, func(o *model.OwnerSettings) int64 { return o.UpdatedAt }),
 	})
 	if err != nil {
 		return err
 	}
 	clear(s.changed)
 	clear(s.changedS)
+	clear(s.changedO)
 	return nil
 }
 
@@ -340,9 +348,37 @@ func normalizeSettings(v *model.Settings, libraryDir string) {
 	if !slices.Contains([]string{"top", "bottom", "left", "right"}, v.Viewer.SlideEdge) {
 		v.Viewer.SlideEdge = ""
 	}
+	if !slices.Contains([]string{"weak", "strong"}, v.Viewer.Moire) {
+		v.Viewer.Moire = ""
+	}
 	v.DownloadConcurrency = max(v.DownloadConcurrency, 1)
 	if v.LibraryDir == "" {
 		v.LibraryDir = libraryDir
+	}
+	if v.SiteOrder == nil {
+		v.SiteOrder = []string{}
+	}
+	if v.SiteScreenOrder == nil {
+		v.SiteScreenOrder = map[string][]string{}
+	}
+	if v.SiteScreens != "grid" {
+		v.SiteScreens = ""
+	}
+	if v.SiteLoadMore == nil {
+		v.SiteLoadMore = map[string]string{}
+	}
+	for k, m := range v.SiteLoadMore {
+		if !model.IsLoadMore(m) {
+			delete(v.SiteLoadMore, k)
+		}
+	}
+	if v.SiteFileNameFormats == nil {
+		v.SiteFileNameFormats = map[string]string{}
+	}
+	for k, f := range v.SiteFileNameFormats {
+		if strings.TrimSpace(f) == "" {
+			delete(v.SiteFileNameFormats, k)
+		}
 	}
 	if v.SiteDirs == nil {
 		v.SiteDirs = map[string]string{}

@@ -7,6 +7,7 @@ import { artistsBesideCircle } from '../labels'
 import { useApp } from '../state'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { useScrollMemory } from '../useScrollMemory'
+import { usePaneScroll } from '../usePaneScroll'
 import type { Bookmark, Series } from '../types'
 import { BookmarkCard } from './BookmarkCard'
 import { Icon } from './Icon'
@@ -15,8 +16,10 @@ import { SeriesTagPopover } from './TagEditor'
 // Series view of the Bookmarks screen (the list on the left and the works of the selected series)
 
 /** List of series and a field to create a new one */
-export function SeriesList({ list, selected, onSelect }: { list: Series[]; selected: string; onSelect(id: string): void }) {
+/** scrollKey: where the list keeps its scroll position across moves (none if absent) */
+export function SeriesList({ list, selected, onSelect, scrollKey }: { list: Series[]; selected: string; onSelect(id: string): void; scrollKey?: string }) {
   const { toast } = useApp()
+  const scroll = usePaneScroll<HTMLUListElement>(scrollKey ?? '', !!scrollKey && list.length > 0)
   const [name, setName] = useState('')
   const create = async () => {
     if (!name.trim()) return
@@ -29,7 +32,7 @@ export function SeriesList({ list, selected, onSelect }: { list: Series[]; selec
     }
   }
   return (
-    <ul className="group-list">
+    <ul ref={scroll} className="group-list">
       {list.length === 0 && <li className="muted small">{t('series.noSeries')}</li>}
       {list.map((s) => (
         <li key={s.id} className={selected === s.id ? 'active' : ''} onClick={() => onSelect(s.id)} title={s.name}>

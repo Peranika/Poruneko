@@ -8,7 +8,7 @@ import { HistoryView } from './components/HistoryView'
 import { CreatorDialog } from './components/CreatorDialog'
 import { GalleryView } from './components/GalleryView'
 import { Icon } from './components/Icon'
-import { SiteTab } from './components/SiteTab'
+import { SiteTabs } from './components/SiteTab'
 import { TabIcon } from './components/TabIcon'
 import { SeriesDialog } from './components/SeriesDialog'
 import { SettingsView } from './components/SettingsView'
@@ -100,7 +100,7 @@ export default function App() {
           </button>
           {/* each site is one tab: its list, bookmarks and Favorites pop up from it */}
           {!!sites?.length && <div className="sidebar-sep" />}
-          {sites?.map((s) => <SiteTab key={s.id} site={s} />)}
+          <SiteTabs sites={sites ?? []} />
           {!!sites?.length && <div className="sidebar-sep" />}
           <button className={r.name === 'history' ? 'active' : ''} onClick={() => nav.go({ name: 'history' })} title={t('app.historyTitle')}>
             <Icon name="history" size={20} />
@@ -134,7 +134,7 @@ export default function App() {
               </div>
             )
           ) : r.name === 'favorites' ? (
-            <FavoritesView key={r.site} site={r.site ?? sites?.[0]?.id} page={r.page} tag={r.tag} />
+            <FavoritesView key={r.site} site={r.site ?? sites?.[0]?.id} page={r.page} tag={r.tag} scope={r.scope ?? ''} />
           ) : r.name === 'history' ? (
             <HistoryView />
           ) : (

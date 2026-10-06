@@ -46,12 +46,13 @@ export function estimatePredecodeBytes(pages: PageInfo[], shown: number[], n: nu
  * Decode and keep n pages around the shown page. Pages out of range are released
  * (dropping references lets the browser free the decoded data).
  */
-export function usePredecode(galleryKey: string, total: number, shown: number[], n: number): void {
+export function usePredecode(galleryKey: string, total: number, shown: number[], n: number, skip: ReadonlySet<number>): void {
   const decoded = useRef(new Map<number, HTMLImageElement>())
   const key = shown.join(',')
 
   useEffect(() => {
-    const want = new Set(predecodeWindow(shown, total, n))
+    // videos are not images to decode
+    const want = new Set(predecodeWindow(shown, total, n).filter((i) => !skip.has(i)))
     const map = decoded.current
     for (const [i, im] of map) {
       if (!want.has(i)) {

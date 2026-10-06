@@ -4,6 +4,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"poruneko/internal/apperr"
@@ -47,6 +48,8 @@ type PageInfo struct {
 	Name   string `json:"name"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
+	// Video: the page is a video (mp4 / webm), played in the viewer
+	Video bool `json:"video,omitempty"`
 }
 
 type TagInfo struct {
@@ -71,6 +74,13 @@ type GallerySummary struct {
 	Characters    []string  `json:"characters"`
 	Tags          []TagInfo `json:"tags"`
 	PageCount     int       `json:"pageCount"`
+	// Description is the work's own text (such as a post's body; "" for none), shown on the work page and saved
+	// in ComicInfo.xml
+	Description string `json:"description,omitempty"`
+	// Stats are the site's numbers for the work (likes, views...: the ids in the plugin's BrowseSpec.Stats)
+	Stats map[string]int `json:"stats,omitempty"`
+	// Owner is the account the work belongs to (such as an X user's id), for settings kept per owner ("" for none)
+	Owner string `json:"owner,omitempty"`
 	// Origin is the source of a work made from a page range (local works only)
 	Origin *Origin `json:"origin,omitempty"`
 }
@@ -126,11 +136,48 @@ func (s *GallerySummary) AltTitle() string {
 type GalleryDetail struct {
 	GallerySummary
 	Pages []PageInfo `json:"pages"`
+	// Attachments are the work's files that are not pages (archives, documents...), in the site's order. They are
+	// kept in the work info (also in the cbz), so a saved work still knows them
+	Attachments []Attachment `json:"attachments,omitempty"`
+}
+
+// Attachment is a file of a work that is not a page. Where it is fetched from is asked of the site when needed
+// (the plugin's "attachment", like a page image), so an expiring URL is no problem
+type Attachment struct {
+	// Index is its place among the work's attachments (0-based; what the site is asked for it by)
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+	// Kind is what it is (AttachmentKind of its name when the site does not say): archive | document | audio | other
+	Kind string `json:"kind"`
+	// Size in bytes (0 when unknown)
+	Size int64 `json:"size,omitempty"`
+}
+
+// kinds of attachments, by file extension (an archive can later be opened and its images and videos shown as pages)
+var attachmentKinds = map[string]string{
+	"zip": "archive", "rar": "archive", "7z": "archive", "cbz": "archive", "cbr": "archive", "lzh": "archive", "tar": "archive", "gz": "archive",
+	"pdf": "document", "psd": "document", "clip": "document", "ai": "document", "txt": "document", "doc": "document", "docx": "document",
+	"mp3": "audio", "wav": "audio", "flac": "audio", "ogg": "audio", "m4a": "audio",
+}
+
+// AttachmentKind is the kind of an attachment by its name: archive, document, audio or other
+func AttachmentKind(name string) string {
+	i := strings.LastIndexByte(name, '.')
+	if i < 0 {
+		return "other"
+	}
+	if k, ok := attachmentKinds[strings.ToLower(name[i+1:])]; ok {
+		return k
+	}
+	return "other"
 }
 
 type ListQuery struct {
 	// Site is the site listed (the first site if empty)
-	Site  SiteID `json:"site,omitempty"`
+	Site SiteID `json:"site,omitempty"`
+	// View is the plugin's own screen listed (one of its BrowseSpec.Views; "" for its list screen). Query is then
+	// what was entered on that screen
+	View  string `json:"view,omitempty"`
 	Query string `json:"query"`
 	// Filters are the values of the site plugin's filters (BrowseSpec), such as its sort order and language
 	Filters map[string]string `json:"filters"`
@@ -149,6 +196,8 @@ type ListResult struct {
 	PerPage int              `json:"perPage"`
 	// Hidden is the number of works removed from this page by the filters (page count etc.)
 	Hidden int `json:"hidden"`
+	// More: there is a next page. Used when the total is not known (Total -1), such as a timeline
+	More bool `json:"more,omitempty"`
 }
 
 // FilterPages removes works not within MinPages / MaxPages and adds the count to Hidden
@@ -159,6 +208,53 @@ func (r *ListResult) FilterPages(minPages, maxPages int) {
 	kept := r.Items[:0]
 	for _, it := range r.Items {
 		if (minPages > 0 && it.PageCount < minPages) || (maxPages > 0 && it.PageCount > maxPages) {
+			r.Hidden++
+			continue
+		}
+		kept = append(kept, it)
+	}
+	r.Items = kept
+}
+
+// FilterStats removes works whose stats are below the minimums chosen in the filters with a Stat (filters: the
+// filters' values) and adds the count to Hidden. owners are the values kept for owners of works (owner -> filter
+// id -> value): a work of such an owner uses them in place of the filters'. A work without the stat is kept
+func (r *ListResult) FilterStats(spec *BrowseSpec, filters map[string]string, owners map[string]map[string]string) {
+	if spec == nil {
+		return
+	}
+	minsOf := func(values ...map[string]string) map[string]int {
+		mins := map[string]int{}
+		for _, f := range spec.Filters {
+			if f.Stat == "" {
+				continue
+			}
+			v := filters[f.ID]
+			for _, over := range values {
+				if o, ok := over[f.ID]; ok {
+					v = o
+				}
+			}
+			if n, err := strconv.Atoi(v); err == nil && n > 0 {
+				mins[f.Stat] = n
+			}
+		}
+		return mins
+	}
+	common := minsOf()
+	kept := r.Items[:0]
+	for _, it := range r.Items {
+		mins := common
+		if o := owners[it.Owner]; it.Owner != "" && o != nil {
+			mins = minsOf(o)
+		}
+		low := false
+		for stat, min := range mins {
+			if v, ok := it.Stats[stat]; ok && v < min {
+				low = true
+			}
+		}
+		if low {
 			r.Hidden++
 			continue
 		}
@@ -338,6 +434,8 @@ type ViewerSettings struct {
 	SlideTimeLeft bool `json:"slideTimeLeft,omitempty"`
 	// BarLocked keeps the bottom toolbar shown, with the pages above it (otherwise it hides over the pages)
 	BarLocked bool `json:"barLocked"`
+	// Moire is how strongly pages shown smaller than their size are smoothed against moire ("" off | weak | strong)
+	Moire string `json:"moire"`
 }
 
 type Settings struct {
@@ -375,6 +473,18 @@ type Settings struct {
 	Keybindings map[string][]string `json:"keybindings"`
 	// InfiniteScroll loads the next page automatically when scrolling a list
 	InfiniteScroll bool `json:"infiniteScroll"`
+	// SiteOrder is the order of the sites' tabs in the sidebar as the user arranged them (site ids; sites not in it
+	// follow in their own order)
+	SiteOrder []string `json:"siteOrder"`
+	// SiteScreenOrder is the order of each site's screens under its tab (site id -> screen ids: "browse",
+	// "bookmarks", "favorites", "view.<id>")
+	SiteScreenOrder map[string][]string `json:"siteScreenOrder"`
+	// SiteScreens is how the screens of the site being used are laid out under its tab in the sidebar ("" icons with
+	// their names, one a row | grid: icons only, two a row)
+	SiteScreens string `json:"siteScreens"`
+	// SiteLoadMore is when a site's list loads its next page while scrolling (site id -> LoadMore*); a site without
+	// one uses its plugin's choice, or LoadMoreNear
+	SiteLoadMore map[string]string `json:"siteLoadMore"`
 	// RememberWindow restores the window position, size and maximized state from the last exit at the next start
 	RememberWindow bool `json:"rememberWindow"`
 	// RememberScreen opens the screen shown at the last exit at the next start (the tab, its list or the open work)
@@ -391,6 +501,9 @@ type Settings struct {
 	FolderSeriesOff []string `json:"folderSeriesOff"`
 	// FileNameFormat is the zip file name format ({title} {artist} {group} etc.; / makes folders)
 	FileNameFormat string `json:"fileNameFormat"`
+	// SiteFileNameFormats are the formats chosen for sites (site id -> format). A site without one uses its
+	// plugin's format, or FileNameFormat
+	SiteFileNameFormats map[string]string `json:"siteFileNameFormats"`
 }
 
 // WindowState is the window position and size at exit (if maximized, the restored position and size)
@@ -433,6 +546,34 @@ type SiteInfo struct {
 	Dir string `json:"dir"`
 	// Browse is what the site's list screen offers (from its plugin; nil for none)
 	Browse *BrowseSpec `json:"browse"`
+	// FromURL: works can be added from their URL on the site (the plugin reads the URL)
+	FromURL bool `json:"fromURL"`
+	// OwnFavorites: Favorites lists the plugin's own choice of works, not works by the bookmarked artists
+	OwnFavorites bool `json:"ownFavorites"`
+	// FavoriteNames: with OwnFavorites, the plugin gives the names Favorites can be narrowed by (its lists and
+	// users...)
+	FavoriteNames bool `json:"favoriteNames"`
+	// FileNameFormat is the file name format the plugin suggests for its works ("" to use the common one)
+	FileNameFormat string `json:"fileNameFormat"`
+	// Status: the plugin tells its state (SiteStatus), shown on the site's tab
+	Status bool `json:"status"`
+	// Version and Hosts are the plugin's version and the hosts it connects to (shown on the site's tab)
+	Version string   `json:"version"`
+	Hosts   []string `json:"hosts"`
+	// LoadMore is when the plugin suggests loading the next page while scrolling ("" for LoadMoreNear)
+	LoadMore string `json:"loadMore"`
+}
+
+// when a list loads its next page while scrolling (Settings.SiteLoadMore, SiteInfo.LoadMore)
+const (
+	LoadMoreNear   = "near"   // when the end of the list comes near
+	LoadMoreBottom = "bottom" // when scrolling on at the bottom of the list
+	LoadMoreButton = "button" // only with the button at the bottom
+)
+
+// IsLoadMore reports whether s is one of the LoadMore* values
+func IsLoadMore(s string) bool {
+	return s == LoadMoreNear || s == LoadMoreBottom || s == LoadMoreButton
 }
 
 // Text is a text in each UI language ({"ja": ..., "en": ...})
@@ -445,6 +586,90 @@ type BrowseSpec struct {
 	Filters     []FilterSpec `json:"filters"`
 	// Namespaces are the kinds of the site's tags ("female", "artist"...): how the app names and colors them
 	Namespaces []Namespace `json:"namespaces,omitempty"`
+	// Stats are the numbers the site's works have (GallerySummary.Stats), shown on the works
+	Stats []StatSpec `json:"stats,omitempty"`
+	// CreatorLabels are what the site calls the creators the app calls circle ("group") and artist ("artist"),
+	// such as an account's display name and id
+	CreatorLabels map[string]Text `json:"creatorLabels,omitempty"`
+	// Views are the plugin's own screens, added to the site's tab: a list of works for what is entered on it (such
+	// as a user's posts for a user)
+	Views []ViewSpec `json:"views,omitempty"`
+	// FavoritesLabel / FavoritesIcon name the Favorites screen when it shows the plugin's own choice (such as the
+	// user's lists; "Favorites" and its heart if empty)
+	FavoritesLabel Text   `json:"favoritesLabel,omitempty"`
+	FavoritesIcon  string `json:"favoritesIcon,omitempty"`
+}
+
+// ViewSpec is a plugin's own screen: an input (which can be taken from the clipboard) and the works the plugin
+// lists for it (ListQuery.View, ListQuery.Query)
+type ViewSpec struct {
+	ID    string `json:"id"`
+	Label Text   `json:"label"`
+	// Icon is one of the app's icons for the screen ("user"...)
+	Icon        string `json:"icon,omitempty"`
+	Placeholder Text   `json:"placeholder,omitempty"`
+	// Hint is shown while nothing has been entered
+	Hint Text `json:"hint,omitempty"`
+	// Namespaces are the kinds of the works' names (such as "artist") whose links open this screen with the name
+	Namespaces []string `json:"namespaces,omitempty"`
+	// Aliases are kinds of names that stand for a work's name of the first of Namespaces (such as a display name
+	// for a user id): their links open this screen with the work's name of that kind
+	Aliases []string `json:"aliases,omitempty"`
+}
+
+// ViewHeader is what the plugin shows above the works of its own screen for an input (the plugin's "viewHeader")
+type ViewHeader struct {
+	// Owner is the owner of works the screen is about (such as a user's id): the app offers the values of the
+	// filters with a Stat kept for them in the header
+	Owner    string `json:"owner,omitempty"`
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle,omitempty"`
+	Text     string `json:"text,omitempty"`
+	// Image is a small picture's URL (an icon)
+	Image   string       `json:"image,omitempty"`
+	Actions []ViewAction `json:"actions,omitempty"`
+}
+
+// ViewAction is a button of a view's header: it asks the plugin to do it ("viewAction"), or with Items opens a menu
+// of more actions
+type ViewAction struct {
+	ID    string `json:"id"`
+	Label Text   `json:"label"`
+	Icon  string `json:"icon,omitempty"`
+	// Active shows it as on (such as following, or being on a list)
+	Active bool `json:"active,omitempty"`
+	// Confirm is asked before doing it ("" to do it at once)
+	Confirm Text         `json:"confirm,omitempty"`
+	Items   []ViewAction `json:"items,omitempty"`
+}
+
+// OwnerSettings are the values of a site's filters kept for one owner of its works (overriding the common ones)
+type OwnerSettings struct {
+	Site      SiteID            `json:"site"`
+	Owner     string            `json:"owner"`
+	Values    map[string]string `json:"values"` // filter id -> value
+	UpdatedAt int64             `json:"updatedAt"`
+}
+
+// StatusLine is a line of a site's state shown on its tab (such as the API calls left). The lines are shown as a
+// table, each part in a column of its own so the numbers line up
+type StatusLine struct {
+	Label Text   `json:"label"`
+	Value string `json:"value"`
+	// Max is what Value is out of ("" for none), shown after it as "/ Max"
+	Max string `json:"max,omitempty"`
+	// Note is a small text at the end (such as the time until it resets)
+	Note string `json:"note,omitempty"`
+	// Warn shows the line as a warning
+	Warn bool `json:"warn,omitempty"`
+}
+
+// StatSpec is a number the site's works have (likes, views...)
+type StatSpec struct {
+	ID    string `json:"id"`
+	Label Text   `json:"label"`
+	// Icon is the name of one of the app's icons shown before the number ("heart", "repeat"...; the label if none)
+	Icon string `json:"icon,omitempty"`
 }
 
 // Namespace is a kind of the site's tags
@@ -473,6 +698,14 @@ type FilterSpec struct {
 	Multi bool `json:"multi,omitempty"`
 	// OnSearch is the value used while there is a search query (the setting comes back when it is cleared)
 	OnSearch string `json:"onSearch,omitempty"`
+	// Stat makes it a minimum of one of the works' stats (BrowseSpec.Stats): its values are numbers ("" or "0" for
+	// none) and the app hides the works below the chosen one
+	Stat string `json:"stat,omitempty"`
+	// Kind of a setting ("in": settings): "" a choice of Options, "text" a line of text, "secret" a line of text
+	// shown hidden (such as a login cookie)
+	Kind string `json:"kind,omitempty"`
+	// Hint is shown under a setting (how to fill it in)
+	Hint Text `json:"hint,omitempty"`
 }
 
 type FilterOption struct {
@@ -505,8 +738,21 @@ type FavoritesQuery struct {
 type FavoriteName struct {
 	Tag       string `json:"tag"` // the site's search tag ("artist:xxx" / "group:yyy")
 	Name      string `json:"name"`
-	NS        string `json:"ns"`        // artist | group
+	NS        string `json:"ns"`        // artist | group (or a kind of the plugin's own names)
 	Bookmarks int    `json:"bookmarks"` // number of bookmarks with that name
+	// Note is a small text after the name (the kind of a plugin's own name, such as "list")
+	Note string `json:"note,omitempty"`
+	// Parents are the tags of the names it belongs to (such as the lists a user is on). Names that are parents are
+	// shown apart, above the others; choosing one shows only the names that belong to it
+	Parents []string `json:"parents,omitempty"`
+	// Open is one of the plugin's own screens the name can be opened in (such as a user's screen), with its input
+	Open *ViewLink `json:"open,omitempty"`
+}
+
+// ViewLink opens one of a plugin's own screens (ViewSpec) with an input
+type ViewLink struct {
+	View  string `json:"view"`
+	Query string `json:"query"`
 }
 
 type FavoritesResult struct {

@@ -1,4 +1,6 @@
 :root {
+  /* numbers that line up (counts, times) */
+  --mono: 'Noto Sans Mono Variable', 'Cascadia Mono', Consolas, monospace;
   --bg: #0f1115;
   --bg-1: #151821;
   --bg-2: #1b1f2a;
@@ -243,6 +245,10 @@ select { cursor: pointer; }
 .page-divider span { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg-1); font-variant-numeric: tabular-nums; }
 .load-prev { display: flex; justify-content: center; padding: 14px 20px 0; }
 .page-end { min-height: 60px; display: flex; align-items: center; justify-content: center; padding-bottom: 20px; }
+/* the next page by hand: the button, and how far scrolling on at the bottom has gone */
+.load-next { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pull-bar { width: 160px; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.pull-bar > span { display: block; height: 100%; background: var(--accent); }
 .results { padding: 14px 20px 20px; }
 .results.list { display: flex; flex-direction: column; gap: 12px; }
 .results.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 180px), 1fr)); gap: 18px 16px; }
@@ -264,6 +270,8 @@ select { cursor: pointer; }
 .row-head .title { flex: 1; margin: 0; font-size: 1.1429rem; line-height: 1.4; font-weight: 600; }
 .alt-title { color: var(--text-3); font-size: 0.8571rem; }
 .row-foot { display: flex; align-items: center; gap: 14px; color: var(--text-3); font-size: 0.8571rem; margin-top: auto; }
+.stats { display: inline-flex; flex-wrap: wrap; gap: 10px; color: var(--text-3); font-size: 0.7857rem; font-variant-numeric: tabular-nums; }
+.stats > span { display: inline-flex; align-items: center; gap: 3px; }
 
 .type { flex-shrink: 0; font-size: 0.7857rem; padding: 2px 8px; border-radius: 6px; background: var(--bg-3); color: var(--text-2); margin-top: 2px; display: inline-block; }
 
@@ -377,6 +385,13 @@ select { cursor: pointer; }
 .scroll-list { margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .page { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .page img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.page video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; cursor: pointer; }
+/* a video's controls in the viewer's toolbar, in place of the page slider */
+.video-controls { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.video-controls .slider { flex: 1; min-width: 60px; }
+.video-controls .video-volume { flex: 0 0 70px; min-width: 50px; }
+.video-time { font-variant-numeric: tabular-nums; font-size: 0.8571rem; color: var(--text-2); white-space: nowrap; }
+.page .page-smooth { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 /* keep the image visible while loading (shows what has arrived); hide it only on error */
 .page.err img { opacity: 0; }
 /* do not show the spinner right away (prefetched pages finish before it appears) */
@@ -384,6 +399,7 @@ select { cursor: pointer; }
 @keyframes spinner-in { to { opacity: 1; } }
 .page .spinner, .page .btn { position: absolute; }
 .page.placeholder { background: rgba(255, 255, 255, 0.02); }
+.page.video .spinner { pointer-events: none; }
 
 .viewer-bar {
   display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--bg-1); border-top: 1px solid var(--line);
@@ -461,7 +477,51 @@ select { cursor: pointer; }
 .score { font-size: 0.8571rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------- Settings */
-.settings-inner { max-width: 760px; margin: 0 auto; padding: 24px 24px 60px; }
+/* the input of a plugin's own screen (in place of the search box) */
+.view-input { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; max-width: 640px; padding: 0 6px 0 12px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); color: var(--text-3); }
+.view-input input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; }
+/* the header of a plugin's own screen (a user's picture, name and buttons) */
+.view-header { display: flex; gap: 14px; align-items: flex-start; margin: 16px 20px 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-1); }
+.view-header-image { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.view-header-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.view-header-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.view-header-title strong { font-size: 1.0714rem; }
+.view-header-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-2); font-size: 0.9286rem; }
+.view-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* the filter values kept for the user (marked when one is set) */
+.view-header-own { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.8571rem; color: var(--text-2); }
+.view-header-own label { display: flex; align-items: center; gap: 8px; }
+.view-header-own label.on span { color: var(--accent); font-weight: 600; }
+.view-header-action { position: relative; }
+.view-header-actions .btn.on { color: var(--accent); border-color: var(--accent-line); }
+.view-header-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 200px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
+.view-header-menu .btn { justify-content: flex-start; }
+/* a site's state at the bottom of its tab's popup */
+/* a table: each row's parts line up in the columns of the whole */
+.site-status { border-top: 1px solid var(--line); margin-top: 4px; padding: 6px 10px 2px; display: grid; grid-template-columns: 1fr auto auto auto; column-gap: 6px; row-gap: 2px; font-size: 0.7857rem; color: var(--text-3); }
+.site-status-row { display: contents; }
+.site-status-row > span { white-space: nowrap; }
+.site-status-row .label { padding-right: 8px; }
+.site-status-row .num { font-family: var(--mono); text-align: right; }
+.site-status-row .value { color: var(--text); }
+.site-status-row .note { padding-left: 4px; }
+.site-status-row.warn .value { color: var(--warn); }
+/* a name's own screen (a user's screen) beside narrowing to it: shown on the row under the pointer */
+.group-list li .name-open { opacity: 0; flex-shrink: 0; }
+.group-list li:hover .name-open, .group-list li .name-open:focus-visible { opacity: 1; }
+/* Favorites: the parents (lists) above the names that belong to them */
+.group-list.parent-list { flex: 0 0 auto; max-height: 40%; overflow-y: auto; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 4px; }
+.settings-layout { display: flex; justify-content: center; gap: 8px; }
+/* the contents on the left: stays in view while the sections scroll */
+.settings-nav { position: sticky; top: 0; align-self: flex-start; flex-shrink: 0; width: 180px; max-height: 100vh; overflow-y: auto; padding: 70px 0 24px 16px; display: flex; flex-direction: column; gap: 2px; }
+.settings-nav button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 10px; border-radius: 8px; color: var(--text-2); font-size: 0.9286rem; }
+.settings-nav button:hover { background: var(--bg-hover); color: var(--text); }
+.settings-nav button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.settings-nav-sep { margin: 12px 10px 4px; font-size: 0.7857rem; color: var(--text-3); }
+.settings-site-head { display: flex; align-items: center; gap: 8px; }
+.settings-site-head small { font-weight: 400; }
+.site-head-icon { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; }
+.settings-inner { flex: 1; min-width: 0; max-width: 760px; padding: 24px 24px 60px; }
 .settings-inner h2 { margin: 0 0 16px; }
 .settings-inner section { background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px; padding: 6px 18px 12px; margin-bottom: 16px; }
 .settings-inner h3 { font-size: 0.9286rem; color: var(--text-3); margin: 12px 0 6px; font-weight: 600; }
@@ -779,13 +839,6 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* an on/off filter at the top of a left pane list (Favorites: hide artists only in anthologies) */
-.pane-toggle {
-  display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 0.8571rem;
-  color: var(--text-2); border: 1px solid var(--line); background: var(--bg-1);
-}
-.pane-toggle:hover { border-color: var(--line-strong); color: var(--text); }
-.pane-toggle.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 
 /* editing a bookmark's title on the gallery page (the edit button appears on hover) */
 .editable-title .icon-btn { opacity: 0; vertical-align: middle; margin-left: 4px; transition: opacity 0.15s; }
@@ -1026,7 +1079,27 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .rot90 { transform: rotate(90deg); }
 
 /* ---------------------------------------------------------------- A site's tab and its popup */
-.site-tab { position: relative; display: flex; flex-direction: column; }
+.site-tab { position: relative; display: flex; flex-direction: column; border-radius: 12px; }
+/* reordering by dragging: the dragged item fades, a line marks where it lands */
+.dragging { opacity: 0.4; }
+.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+.site-screens.grid .drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.site-screens.grid .drop-after { box-shadow: inset -2px 0 0 var(--accent); }
+/* the site being used: a faint ground under it and its screens; the screen shown stronger */
+.site-tab.expanded { margin: 0 -4px; padding: 2px 4px 6px; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.site-head { position: relative; display: flex; flex-direction: column; }
+.sidebar .site-head button.current { color: var(--accent-2); font-weight: 600; background: transparent; }
+.site-screens { display: flex; flex-direction: column; gap: 2px; }
+.sidebar .site-screens button { gap: 2px; padding: 6px 0; border-radius: 8px; font-size: 0.6786rem; color: var(--text-2); }
+.sidebar .site-screens button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.sidebar .site-screens button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
+.sidebar .site-screens button.active { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); font-weight: 600; }
+.sidebar .site-screens .badge { top: 2px; right: 6px; }
+/* icons only, two a row, with the shown one's name under them */
+.site-screens.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+.sidebar .site-screens.grid button { height: 30px; padding: 0; justify-content: center; }
+.site-screen-name { grid-column: 1 / -1; text-align: center; font-size: 0.6786rem; color: var(--accent-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .site-icon { position: relative; display: inline-flex; }
 /* the screen a click opens, marked at the icon's corner */
 .site-last { position: absolute; right: -9px; bottom: -5px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: var(--bg-2); color: var(--text-2); }
@@ -1038,11 +1111,21 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 }
 /* a bridge over the gap to the tab, so the pointer can move into the popup */
 .site-pop::before { content: ''; position: absolute; left: -8px; top: 0; bottom: 0; width: 8px; }
-.site-pop-head { padding: 2px 8px 4px; font-size: 0.7857rem; color: var(--text-3); }
-.sidebar .site-pop button {
-  flex-direction: row; justify-content: flex-start; gap: 8px; padding: 7px 8px; border-radius: 7px; font-size: 0.8929rem; color: var(--text-2);
-}
-.sidebar .site-pop button:hover { background: var(--bg-3); color: var(--text); }
-.sidebar .site-pop button.on { background: var(--accent-bg); color: var(--accent); }
-.sidebar .site-pop em { margin-left: auto; font-style: normal; font-size: 0.7143rem; color: var(--text-3); }
-.sidebar .site-pop em.badge { position: static; margin-left: 4px; color: var(--on-accent); }
+.site-pop-head { display: flex; align-items: baseline; gap: 8px; padding: 2px 10px 4px; font-size: 0.7857rem; color: var(--text-3); }
+.site-pop-head strong { font-size: 0.9286rem; color: var(--text); }
+.site-pop-foot { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; row-gap: 2px; border-top: 1px solid var(--line); margin-top: 4px; padding: 6px 10px 2px; font-size: 0.7857rem; color: var(--text-3); }
+.site-pop-foot .num { font-family: var(--mono); text-align: right; color: var(--text); }
+
+/* a work's files that are not pages, on its page */
+.attachments { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; }
+.attachments-head { font-size: 0.7857rem; color: var(--text-3); margin-bottom: 2px; }
+.attachment { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; color: var(--text-2); font-size: 0.8571rem; }
+.attachment:hover { background: var(--bg-2); color: var(--text); }
+.attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-size { font-family: var(--mono); font-size: 0.7857rem; color: var(--text-3); }
+/* a work's own text (a post's body) on its page */
+.description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; color: var(--text-2); line-height: 1.6; }
+
+/* a plugin's text setting (a login cookie and the like) */
+.plugin-text { display: inline-flex; align-items: center; gap: 4px; }
+.plugin-text input { width: 280px; }

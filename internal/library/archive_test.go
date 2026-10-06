@@ -245,3 +245,40 @@ func TestWorkDirs(t *testing.T) {
 		t.Fatalf(".parts should be removed: %v", err)
 	}
 }
+
+// a video page is packed into the cbz and read back in parts, as the viewer seeks in it
+func TestPackVideoOpenPage(t *testing.T) {
+	lib, _, d := setup(t)
+	d.Pages = []model.PageInfo{{Index: 0}, {Index: 1, Video: true}}
+	video := []byte(strings.Repeat("0123456789", 1000))
+	if err := lib.SavePage(d.Key, 0, "jpg", []byte("jpeg")); err != nil {
+		t.Fatal(err)
+	}
+	if err := lib.SavePage(d.Key, 1, "mp4", video); err != nil {
+		t.Fatal(err)
+	}
+	// before packing: the file in the work dir
+	r, ok := lib.OpenPage(d.Key, 1)
+	if !ok || r.Ext != "mp4" || r.Size() != int64(len(video)) {
+		t.Fatalf("work dir page: %v %v", r, ok)
+	}
+	r.Close()
+	if _, err := lib.Pack(d.Key, d); err != nil {
+		t.Fatal(err)
+	}
+	r, ok = lib.OpenPage(d.Key, 1)
+	if !ok || r.Ext != "mp4" || r.Size() != int64(len(video)) {
+		t.Fatalf("cbz page: %v %v", r, ok)
+	}
+	defer r.Close()
+	buf := make([]byte, 10)
+	if _, err := r.ReadAt(buf, 5005); err != nil || string(buf) != "5678901234" {
+		t.Errorf("read at 5005: %q %v", buf, err)
+	}
+	if b, ext, ok := lib.ReadPage(d.Key, 1); !ok || ext != "mp4" || len(b) != len(video) {
+		t.Errorf("ReadPage: %d %s %v", len(b), ext, ok)
+	}
+	if lib.LocalInfo(d.Key).Pages[1].Video != true {
+		t.Error("the work info lost the video flag")
+	}
+}

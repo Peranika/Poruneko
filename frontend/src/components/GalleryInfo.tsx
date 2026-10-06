@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { api, isFileKey, isLocalKey, localDirOfKey, siteOfBookmark, thumbUrl } from '../api'
 import { DOWNLOAD_ACTION_ICON, downloadAction, hasSavedFiles, runDownloadAction, type DownloadAction } from '../bookmarkActions'
 import { downloadErrorText, errorText, t } from '../i18n'
-import { optionLabel, tagStyle, typeStyle } from '../browseSpec'
+import { creatorLabel, optionLabel, statsOf, tagStyle, textOf, typeStyle } from '../browseSpec'
 import { altTitle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLabel } from '../labels'
-import { searchQuery, tagToken, useApp } from '../state'
+import { nameRoute, searchQuery, tagToken, useApp } from '../state'
 import { loadPagePos, savePagePos } from '../storage'
-import type { Bookmark, GallerySummary } from '../types'
+import type { Attachment, Bookmark, GallerySummary } from '../types'
 import { BookmarkButton, RangeChip } from './GalleryItem'
 import { SiteNamePicker, type SiteNames } from './SiteNamePicker'
 import { Icon } from './Icon'
@@ -26,10 +26,18 @@ interface Props {
   s?: GallerySummary
   /** Work summary passed from the list (used without waiting for the work info to load) */
   summary?: GallerySummary
+  /** The work's files that are not pages (from its details) */
+  attachments?: Attachment[]
 }
 
+/** The icon of each kind of attachment */
+const ATTACHMENT_ICON: Record<Attachment['kind'], string> = { archive: 'archive', document: 'book', audio: 'play', other: 'link' }
+
+/** A size in bytes, short (KB / MB / GB) */
+const shortSize = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+
 /** Info panel on the left of the gallery page (work info, creator info, download, tags) */
-export function GalleryInfo({ galleryKey, s, summary }: Props) {
+export function GalleryInfo({ galleryKey, s, summary, attachments }: Props) {
   const { nav, bookmarks, setEditCreatorKey, seriesOf, setSeriesDialogKey, toast } = useApp()
   const inSeries = seriesOf.get(galleryKey)
   const isLocal = isLocalKey(galleryKey)
@@ -58,9 +66,10 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
   // a tag searches the work's site (a page range work: its source's)
   const workSite = b ? siteOfBookmark(b) : galleryKey.slice(0, galleryKey.indexOf(':'))
   const search = (token: string) => nav.go({ name: 'browse', q: searchQuery(token, undefined, workSite) })
+  // a name opens the plugin's screen for it if there is one (a user's posts...), otherwise a search
   const links = (ns: string, names: string[]) =>
     names.map((n) => (
-      <button key={n} className="link" onClick={() => search(tagToken(ns, n))}>
+      <button key={n} className="link" onClick={() => nav.go(nameRoute(ns, n, workSite, s ?? undefined))}>
         {n}
       </button>
     ))
@@ -147,8 +156,8 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
             <div className="muted">{t('gallery.creatorResolving')}</div>
           ) : (
             <>
-              <div className="kv"><span>{t('common.circle')}</span><strong>{c?.circle || '—'}</strong></div>
-              <div className="kv"><span>{t('common.artist')}</span><strong>{c?.artists.join(t('common.listSeparator')) || '—'}</strong></div>
+              <div className="kv"><span>{creatorLabel('group', s.site, t('common.circle'))}</span><strong>{c?.circle || '—'}</strong></div>
+              <div className="kv"><span>{creatorLabel('artist', s.site, t('common.artist'))}</span><strong>{c?.artists.join(t('common.listSeparator')) || '—'}</strong></div>
               <div className="kv small">
                 <span>{t('gallery.source')}</span>
                 <span>
@@ -227,14 +236,40 @@ export function GalleryInfo({ galleryKey, s, summary }: Props) {
         </section>
       )}
 
+      {s.description && <p className="description">{s.description}</p>}
+      {/* files that are not pages: opened from the site for now (downloading and opening archives comes later) */}
+      {attachments && attachments.length > 0 && (
+        <section className="attachments">
+          <div className="attachments-head">{t('gallery.attachments', { n: attachments.length })}</div>
+          {attachments.map((a) => (
+            <button
+              key={a.index}
+              className="attachment"
+              title={t('gallery.openAttachment', { name: a.name })}
+              onClick={() => void api.openAttachment(galleryKey, a.index).catch((e) => toast(errorText(e)))}
+            >
+              <Icon name={ATTACHMENT_ICON[a.kind] ?? 'link'} size={14} />
+              <span className="attachment-name">{a.name}</span>
+              {a.size ? <span className="attachment-size">{shortSize(a.size)}</span> : null}
+              <Icon name="external" size={12} />
+            </button>
+          ))}
+        </section>
+      )}
       <dl className="meta">
-        {s.artists.length > 0 && (<><dt>{t('meta.artists')}</dt><dd>{links('artist', s.artists)}</dd></>)}
-        {s.groups.length > 0 && (<><dt>{t('meta.groups')}</dt><dd>{links('group', s.groups)}</dd></>)}
+        {s.artists.length > 0 && (<><dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt><dd>{links('artist', s.artists)}</dd></>)}
+        {s.groups.length > 0 && (<><dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt><dd>{links('group', s.groups)}</dd></>)}
         {s.parodies.length > 0 && (<><dt>{t('meta.parodies')}</dt><dd>{links('series', s.parodies)}</dd></>)}
         {s.characters.length > 0 && (<><dt>{t('meta.characters')}</dt><dd>{links('character', s.characters)}</dd></>)}
         <dt>{t('meta.language')}</dt><dd>{s.languageLocal || s.language || '—'}</dd>
         <dt>{t('meta.pages')}</dt><dd>{s.pageCount}</dd>
         <dt>{t('meta.date')}</dt><dd>{s.date.slice(0, 16)}</dd>
+        {statsOf(s).map(({ spec, value }) => (
+          <Fragment key={spec.id}>
+            <dt>{textOf(spec.label)}</dt>
+            <dd>{value.toLocaleString()}</dd>
+          </Fragment>
+        ))}
       </dl>
       <div className="tags">
         {s.tags.map((t) => (

@@ -7,8 +7,9 @@ const PREFETCH_CONCURRENCY = 3
  * Load every page of a work in advance (loaded images stay in the browser cache and show at once).
  * Nearest to the current page first, pages ahead first, up to PREFETCH_CONCURRENCY at a time.
  * When the page changes, the order is rebuilt from there. Returns the number of loaded pages.
+ * Videos (skip) are not loaded ahead: they are large and the player loads them as it plays
  */
-export function usePrefetchAll(galleryKey: string, total: number, page: number): number {
+export function usePrefetchAll(galleryKey: string, total: number, page: number, skip: ReadonlySet<number>): number {
   const state = useRef({ key: '', loaded: new Set<number>(), inflight: new Set<number>(), images: new Map<number, HTMLImageElement>() })
   const [count, setCount] = useState(0)
   const pageRef = useRef(page)
@@ -21,7 +22,8 @@ export function usePrefetchAll(galleryKey: string, total: number, page: number):
     s.loaded = new Set()
     s.inflight = new Set()
     s.images = new Map()
-    setCount(0)
+    for (const i of skip) s.loaded.add(i)
+    setCount(s.loaded.size)
     let alive = true
     pump.current = () => {
       if (!alive) return
@@ -53,6 +55,7 @@ export function usePrefetchAll(galleryKey: string, total: number, page: number):
       // stop in-flight loads when leaving the work
       for (const im of s.images.values()) im.src = ''
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [galleryKey, total])
 
   // on page change rebuild the order nearest-first from the new position (in-flight loads continue)

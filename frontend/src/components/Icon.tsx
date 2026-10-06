@@ -15,6 +15,15 @@ const PATHS: Record<string, string> = {
   gauge: 'M4 18a8 8 0 1 1 16 0M12 18l4-6M12 6v1.5M6.3 8.3l1 1M17.7 8.3l-1 1',
   history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
   play: 'M7 4v16l13-8z',
+  // two arrows going round (a repost)
+  repost: 'M17 2l3 3-3 3M20 5H8a4 4 0 0 0-4 4v2M7 22l-3-3 3-3M4 19h12a4 4 0 0 0 4-4v-2',
+  // an eye (views)
+  eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  // a speaker, with waves / crossed out (a video's sound)
+  volume: 'M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12',
+  volumeOff: 'M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6',
+  // a frame with a play mark (a video)
+  video: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM10 9v6l5-3z',
   // a globe (a site from a site plugin)
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3C9.5 5.6 8.2 8.6 8.2 12s1.3 6.4 3.8 9',
   // back to the first page: a bar with an arrow pointing to it (flipped for right-to-left)

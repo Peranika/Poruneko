@@ -162,3 +162,37 @@ func TestPluginFetchMany(t *testing.T) {
 		t.Fatalf("not in parallel (peak %d)", peak.Load())
 	}
 }
+
+// values kept with store_set are seen by every instance of the plugin
+func TestPluginStore(t *testing.T) {
+	p := loadTestPlugin(t)
+	ctx := context.Background()
+	if err := p.Call(ctx, "storeSet", map[string]string{"key": "k", "value": "日本語"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if v, ok := p.kept().Get("k"); !ok || string(v) != "日本語" {
+		t.Fatalf("kept %q %v", v, ok)
+	}
+	// another instance reads it too (calls at the same time run in separate instances)
+	var wg sync.WaitGroup
+	var bad atomic.Int32
+	for range maxInstances {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var r struct {
+				Value string
+				OK    bool
+			}
+			if err := p.Call(ctx, "storeGet", map[string]string{"key": "k"}, &r); err != nil || !r.OK || r.Value != "日本語" {
+				bad.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+	var r struct{ OK bool }
+	_ = p.Call(ctx, "storeGet", map[string]string{"key": "missing"}, &r)
+	if bad.Load() > 0 || r.OK {
+		t.Errorf("bad reads %d, missing found %v", bad.Load(), r.OK)
+	}
+}

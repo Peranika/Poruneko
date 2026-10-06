@@ -3,6 +3,7 @@ package library
 import (
 	"encoding/xml"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -76,6 +77,19 @@ func comicInfo(d *model.GalleryDetail, c model.CreatorInfo, customTitle string) 
 	if customTitle != "" {
 		ci.Summary = d.DisplayTitle() // the work's own title, since the user's title replaces it
 	}
+	if d.Description != "" {
+		ci.Summary = d.Description
+	}
+	if len(d.Stats) > 0 {
+		keys := make([]string, 0, len(d.Stats))
+		for k := range d.Stats {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			ci.Notes += fmt.Sprintf(" %s=%d", k, d.Stats[k])
+		}
+	}
 	// works made from a page range keep the source title and range
 	if o := d.Origin; o != nil {
 		ci.Summary = originSummary(o)
@@ -87,8 +101,11 @@ func comicInfo(d *model.GalleryDetail, c model.CreatorInfo, customTitle string) 
 	if d.Language == "japanese" {
 		ci.Manga = "YesAndRightToLeft"
 	}
-	if t, err := time.Parse("2006-01-02 15:04:05-07", d.Date); err == nil {
-		ci.Year, ci.Month, ci.Day = t.Year(), int(t.Month()), t.Day()
+	for _, layout := range []string{"2006-01-02 15:04:05-07", time.RFC3339, "2006-01-02"} {
+		if t, err := time.Parse(layout, d.Date); err == nil {
+			ci.Year, ci.Month, ci.Day = t.Year(), int(t.Month()), t.Day()
+			break
+		}
 	}
 	b, err := xml.MarshalIndent(ci, "", "  ")
 	if err != nil {
