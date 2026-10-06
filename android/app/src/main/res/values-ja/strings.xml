@@ -3,4 +3,6 @@
     <string name="backend_failed">Poruneko を起動できませんでした。ログはアプリのデータ内の poruneko.log にあります。</string>
     <string name="storage_denied">フォルダを追加するには、すべてのファイルへのアクセスを許可してください</string>
     <string name="folder_unsupported">端末のストレージか SD カードのフォルダを選んでください</string>
+    <string name="downloads_channel">ダウンロード</string>
+    <string name="downloads_title">作品をダウンロードしています</string>
 </resources>

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"poruneko/internal/apperr"
@@ -67,6 +68,26 @@ func (s *androidShell) minimise()       {}
 func (s *androidShell) toggleMaximise() {}
 
 func (s *androidShell) quit() { _ = s.native("quit", nil, nil, 10*time.Second) }
+
+// chooseFile asks for a file; the Android app copies it into its cache, as the file it chose may not be a path
+func (s *androidShell) chooseFile(title string, exts []string) (string, error) {
+	var path string
+	err := s.native("chooseFile", map[string]any{"title": title, "exts": exts}, &path, time.Hour)
+	return path, err
+}
+
+// restart restarts the backend: the Android app stops this program, starts it again and reloads the screen
+func (s *androidShell) restart() error { return s.native("restart", nil, nil, 10*time.Second) }
+
+// busy runs a foreground service (with its notification) while there are downloads, so that Android does not
+// freeze or stop the app in the background
+func (s *androidShell) busy(on bool) {
+	if err := s.native("busy", map[string]bool{"on": on}, nil, 10*time.Second); err != nil {
+		log.Printf("[android] busy %v: %v", on, err)
+	}
+}
+
+func (s *androidShell) canLogin() bool { return true }
 
 // login opens the site's sign-in page in a WebView of the Android app, which waits for the cookies
 func (s *androidShell) login(o loginwin.Options) (map[string]string, error) {

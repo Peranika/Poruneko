@@ -80,11 +80,20 @@ func DataDir() string {
 	return filepath.Join(d, "Poruneko")
 }
 
+// defaultLibraryDir is where works are saved until the user chooses: PORUNEKO_LIBRARY_DIR (set by the Android
+// app: a folder the user can reach without a permission), else the data folder's
+func defaultLibraryDir(dataDir string) string {
+	if d := os.Getenv("PORUNEKO_LIBRARY_DIR"); d != "" {
+		return d
+	}
+	return filepath.Join(dataDir, "library")
+}
+
 func Open() *Store {
 	dir := DataDir()
 	s := &Store{
 		settings: model.Settings{
-			LibraryDir:          filepath.Join(dir, "library"),
+			LibraryDir:          defaultLibraryDir(dir),
 			MouseGestures:       true,
 			InfiniteScroll:      true,
 			RememberWindow:      true,

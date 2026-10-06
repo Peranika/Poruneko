@@ -11,10 +11,15 @@ class NativeCall(val id: Long, val method: String, val params: JSONObject)
 
 /**
  * The backend's calls to the Android app (internal/webapi): they are read from /native/calls, one JSON object per
- * line, and each is answered with a POST to /native/reply. The calls are handed to [handler] (on the reading
- * thread); a call with no handler is answered with an error.
+ * line, and each is answered with a POST to /native/reply. The calls are handed (on the reading thread) to
+ * [appHandler] first, which does what needs no screen, then to [handler], the screen's; a call that neither takes
+ * is answered with an error.
  */
 class NativeBridge(private val backend: Backend) {
+    /** Takes the calls that need no screen (returns false for the others) */
+    @Volatile
+    var appHandler: ((NativeCall) -> Boolean)? = null
+
     @Volatile
     var handler: ((NativeCall) -> Unit)? = null
 
@@ -25,8 +30,11 @@ class NativeBridge(private val backend: Backend) {
         if (started) return
         started = true
         thread(name = "native-bridge", isDaemon = true) {
-            while (!backend.awaitReady()) Thread.sleep(1000)
             while (true) {
+                if (!backend.awaitReady()) {
+                    Thread.sleep(1000)
+                    continue
+                }
                 try {
                     read()
                 } catch (e: Exception) {
@@ -44,29 +52,33 @@ class NativeBridge(private val backend: Backend) {
             if (line.isBlank()) return@forEachLine
             val o = JSONObject(line)
             val call = NativeCall(o.getLong("id"), o.getString("method"), o.optJSONObject("params") ?: JSONObject())
+            if (appHandler?.invoke(call) == true) return@forEachLine
             val h = handler
             if (h == null) reply(call, error = "the app is not on screen") else h(call)
         }
     }
 
     /** Answers a call with its result (a String, Boolean, Map, null...) or an error ("unsupported" for a call the
-     * app cannot do) */
+     * app cannot do). It is sent on another thread */
     fun reply(call: NativeCall, result: Any? = null, error: String? = null) {
+        thread(name = "native-reply", isDaemon = true) { replyNow(call, result, error) }
+    }
+
+    /** Answers a call on this thread (not the main one), returning once the backend has the answer */
+    fun replyNow(call: NativeCall, result: Any? = null, error: String? = null) {
         val body = JSONObject().put("id", call.id)
         body.put("result", toJSON(result))
         if (error != null) body.put("error", error)
-        thread(name = "native-reply", isDaemon = true) {
-            try {
-                val conn = open("/native/reply")
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.outputStream.use { it.write(body.toString().toByteArray()) }
-                conn.responseCode
-                conn.disconnect()
-            } catch (e: Exception) {
-                Log.w(Backend.TAG, "native reply: $e")
-            }
+        try {
+            val conn = open("/native/reply")
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.outputStream.use { it.write(body.toString().toByteArray()) }
+            conn.responseCode
+            conn.disconnect()
+        } catch (e: Exception) {
+            Log.w(Backend.TAG, "native reply: $e")
         }
     }
 

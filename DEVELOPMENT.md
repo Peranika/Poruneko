@@ -82,10 +82,24 @@ cd android
 ```
 
 Gradle builds the frontend (`npm run build`) and the Go backend for each ABI itself. Plugins are the desktop's
-`.wasm` files, unchanged: put them in `Android/data/io.github.peranika.poruneko/files/plugins` on the device
-(over USB, or `adb push x.wasm /sdcard/Android/data/io.github.peranika.poruneko/files/plugins/`) and restart the
-app. The backend's log goes to logcat (`adb logcat -s poruneko`) and to `poruneko.log` in the app's data. In a
-debug build the WebView can be inspected from `chrome://inspect`.
+`.wasm` files, unchanged: add them in Settings → Plugins (the app restarts the backend to load them), or put them
+in `Android/data/io.github.peranika.poruneko/files/plugins` on the device (over USB, or
+`adb push x.wasm /sdcard/Android/data/io.github.peranika.poruneko/files/plugins/`) and restart the app. The backend's
+log goes to logcat (`adb logcat -s poruneko`) and to `poruneko.log` in the app's data. In a debug build the WebView
+can be inspected from `chrome://inspect`.
+
+Differences on Android:
+
+- **Storage**: works are saved in `Android/data/io.github.peranika.poruneko/files/library` until another folder is
+  chosen. Choosing a folder (a save location or a local folder) asks for access to all files first, as the backend
+  opens files by path.
+- **Downloads** go on in the background: while there are any, a foreground service with a notification keeps the
+  app running (`busy` in `shell_android.go`, `BackgroundService.kt`).
+- **SQLite** is the C library's (`mattn/go-sqlite3`, built with the NDK) instead of modernc's, which makes system
+  calls that Android forbids (the app is killed with SIGSYS).
+- **The back button** goes back in the app (closing a dialog first); with nothing to go back to, the app goes to the
+  background.
+- **Updates** come as a new APK: the app does not look for them.
 
 ### Environment variables
 
@@ -94,7 +108,8 @@ debug build the WebView can be inspected from `chrome://inspect`.
 | `PORUNEKO_DATA_DIR` | Use this folder instead of `%AppData%\Poruneko` for app data |
 | `PORUNEKO_DEBUG=1` | Log every image request served by imgserver |
 | `PORUNEKO_START_HIDDEN=1` | Start without showing the window (to operate it from the browser in dev mode) |
-| `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first (the Android app sets it) |
+| `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first, and add the plugins chosen in the settings there (the Android app sets it) |
+| `PORUNEKO_LIBRARY_DIR` | Save works here until the user chooses a folder (the Android app sets it) |
 
 ## Project layout
 

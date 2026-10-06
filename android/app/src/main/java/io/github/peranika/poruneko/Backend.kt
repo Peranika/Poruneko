@@ -24,7 +24,8 @@ class Backend(private val context: Context) {
     var port = 0
         private set
 
-    private val ready = CountDownLatch(1)
+    @Volatile
+    private var ready = CountDownLatch(1)
     private var process: Process? = null
     private var stdin: OutputStream? = null
 
@@ -34,14 +35,21 @@ class Backend(private val context: Context) {
     /** The folder the user puts plugins (.wasm) in: Android/data/<app>/files/plugins, reachable over USB */
     val pluginDir: File get() = File(context.getExternalFilesDir(null), "plugins").also { it.mkdirs() }
 
+    /** Where works are saved until the user chooses: Android/data/<app>/files/library, which needs no permission */
+    private val libraryDir: File get() = File(context.getExternalFilesDir(null), "library").also { it.mkdirs() }
+
     @Synchronized
     fun start() {
         if (process != null) return
+        port = 0
+        ready = CountDownLatch(1)
+        val ready = ready
         val exe = File(context.applicationInfo.nativeLibraryDir, "libporuneko.so")
         val pb = ProcessBuilder(exe.path)
         val env = pb.environment()
         env["PORUNEKO_DATA_DIR"] = context.filesDir.path
         env["PORUNEKO_PLUGIN_DIR"] = pluginDir.path
+        env["PORUNEKO_LIBRARY_DIR"] = libraryDir.path
         env["PORUNEKO_TOKEN"] = token
         env["TMPDIR"] = context.cacheDir.path
         env["HOME"] = context.filesDir.path
@@ -70,6 +78,21 @@ class Backend(private val context: Context) {
             Log.w(TAG, "the backend ended ($code)")
             ready.countDown()
         }
+    }
+
+    /** Stops the backend (it saves its data and ends when its stdin closes) and starts it again */
+    fun restart() {
+        synchronized(this) {
+            val p = process ?: return start()
+            try {
+                stdin?.close()
+            } catch (_: Exception) {
+            }
+            if (!p.waitFor(10, TimeUnit.SECONDS)) p.destroyForcibly()
+            process = null
+            stdin = null
+        }
+        start()
     }
 
     /** Waits until the backend listens; false if it ended or did not start in time */

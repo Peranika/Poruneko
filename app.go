@@ -53,6 +53,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 	a.dl.OnProgress = a.emitProgress
+	a.dl.OnBusy = a.sh.busy
 	a.img.OnPageSaved = a.pageCached
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()

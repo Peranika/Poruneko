@@ -18,6 +18,10 @@ export function AddLocalDir(arg1) {
   return window['go']['main']['App']['AddLocalDir'](arg1);
 }
 
+export function AddPlugin(arg1) {
+  return window['go']['main']['App']['AddPlugin'](arg1);
+}
+
 export function AddToSeries(arg1, arg2) {
   return window['go']['main']['App']['AddToSeries'](arg1, arg2);
 }
@@ -192,6 +196,10 @@ export function ReorderSeries(arg1, arg2) {
 
 export function ResolveCreator(arg1) {
   return window['go']['main']['App']['ResolveCreator'](arg1);
+}
+
+export function RestartApp() {
+  return window['go']['main']['App']['RestartApp']();
 }
 
 export function RestoreIgnoredArchives() {

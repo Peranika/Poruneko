@@ -25,10 +25,13 @@ type Downloader struct {
 	queue      []string
 	running    map[string]context.CancelFunc
 	OnProgress func(key string, state model.DownloadState)
+	// OnBusy is told when the queue starts having work (true: a work is queued or downloading) and when it ends
+	OnBusy func(busy bool)
+	busy   bool
 }
 
 func NewDownloader(lib *Library, st *store.Store) *Downloader {
-	return &Downloader{lib: lib, st: st, running: map[string]context.CancelFunc{}, OnProgress: func(string, model.DownloadState) {}}
+	return &Downloader{lib: lib, st: st, running: map[string]context.CancelFunc{}, OnProgress: func(string, model.DownloadState) {}, OnBusy: func(bool) {}}
 }
 
 func (d *Downloader) setState(key string, fn func(s *model.DownloadState)) {
@@ -66,6 +69,7 @@ func (d *Downloader) Pause(key string) {
 	if cancel != nil {
 		cancel()
 	}
+	d.updateBusy()
 	d.setState(key, func(s *model.DownloadState) {
 		if s.Status != model.DownloadDone {
 			s.Status = model.DownloadPaused
@@ -82,7 +86,20 @@ func (d *Downloader) ResumeAll() {
 	}
 }
 
+// updateBusy tells OnBusy when the queue starts or stops having work
+func (d *Downloader) updateBusy() {
+	d.mu.Lock()
+	busy := len(d.running)+len(d.queue) > 0
+	changed := busy != d.busy
+	d.busy = busy
+	d.mu.Unlock()
+	if changed {
+		d.OnBusy(busy)
+	}
+}
+
 func (d *Downloader) pump() {
+	defer d.updateBusy()
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for len(d.running) < maxParallelGalleries && len(d.queue) > 0 {

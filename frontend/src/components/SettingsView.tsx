@@ -33,11 +33,41 @@ function AccentPicker({ value, onChange }: { value: string; onChange(v: string):
   )
 }
 
-/** The plugins loaded at startup (they are added by putting .wasm files in a plugins folder) */
+/** The plugins loaded at startup (they are added here, or by putting .wasm files in a plugins folder) */
 function PluginList({ list }: { list: PluginInfo[] | null }) {
+  const { toast } = useApp()
+  // the plugins added since the start (loaded once the app starts again)
+  const [added, setAdded] = useState<PluginInfo[]>([])
+  const add = async () => {
+    try {
+      const p = await api.addPlugin(t('settings.addPluginTitle'))
+      if (p) setAdded((xs) => [...xs.filter((x) => x.id !== p.id), p])
+    } catch (e) {
+      toast(errorText(e))
+    }
+  }
   return (
     <section id="set-plugins">
       <h3>{t('settings.plugins')}</h3>
+      <div className="row-setting">
+        <span>
+          {t('settings.addPlugin')}
+          <small className="muted">{t('settings.addPluginHint')}</small>
+        </span>
+        <button className="btn" onClick={() => void add()}>
+          {t('settings.addPluginButton')}
+        </button>
+      </div>
+      {added.length > 0 && (
+        <div className="row-setting">
+          <span>
+            {t('settings.pluginsAdded', { names: added.map((p) => `${p.name} ${p.version}`).join(', ') })}
+          </span>
+          <button className="btn" onClick={() => void api.restartApp().catch((e) => toast(errorText(e)))}>
+            {t('settings.restart')}
+          </button>
+        </div>
+      )}
       <div className="row-setting">
         <span>
           {list && list.length > 0 ? (
@@ -49,7 +79,9 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
           ) : (
             <span className="muted">{t('settings.noPlugins')}</span>
           )}
-          <small className="muted">{t('settings.pluginsHint')}</small>
+          <small className="muted">
+            {document.documentElement.dataset.platform === 'android' ? t('settings.pluginsHintAndroid') : t('settings.pluginsHint')}
+          </small>
         </span>
       </div>
     </section>

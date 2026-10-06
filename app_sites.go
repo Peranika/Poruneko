@@ -48,7 +48,7 @@ func (a *App) Sites() []model.SiteInfo {
 		info := model.SiteInfo{
 			ID: p.ID(), Name: p.Name(), Favorites: any, Dir: a.st.SiteDir(p.ID()),
 			Icon: pi.Icon, Browse: pi.Browse, Version: pi.Version, Hosts: pi.DisplayHosts,
-			FromURL: pi.Has("fromURL"), Status: pi.Has("status"), Login: pi.Login != nil && loginwin.Supported(),
+			FromURL: pi.Has("fromURL"), Status: pi.Has("status"), Login: pi.Login != nil && a.sh.canLogin(),
 			OwnFavorites: pi.OwnFavorites, FavoriteNames: pi.OwnFavorites && pi.Has("favoriteNames"),
 			FileNameFormat: pi.FileNameFormat,
 		}

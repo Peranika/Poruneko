@@ -25,6 +25,10 @@ export const api = {
   sites: (): Promise<SiteInfo[]> => go.Sites(),
   /** The plugins loaded at startup */
   plugins: (): Promise<PluginInfo[]> => go.Plugins(),
+  /** Choose a plugin file and copy it into the plugins folder, loaded at the next start (null if cancelled) */
+  addPlugin: (title: string): Promise<PluginInfo | null> => go.AddPlugin(title),
+  /** Start the app again (to load the plugins added) */
+  restartApp: (): Promise<void> => go.RestartApp(),
   /** Register the archives in the local folders that are not works yet (returns how many were added) */
   scanLibrary: (): Promise<number> => go.ScanLibrary(),
   /** Let the archives removed from the library come back, and scan */

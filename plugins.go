@@ -1,11 +1,13 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"poruneko/internal/apperr"
 	"poruneko/internal/library"
 	"poruneko/internal/plugin"
 	"poruneko/internal/site"
@@ -139,4 +141,73 @@ func (a *App) TagNamesJa() map[string]string {
 		}
 	}
 	return out
+}
+
+// AddPlugin asks for a plugin (.wasm), checks that it is one and copies it into the plugins folder: over the file of
+// the loaded plugin with the same id (an update), else into the folder for the user's plugins. It is loaded at the
+// next start (RestartApp). nil when the user cancelled
+func (a *App) AddPlugin(title string) (*PluginInfo, error) {
+	src, err := a.sh.chooseFile(title, []string{"wasm"})
+	if err != nil || src == "" {
+		return nil, err
+	}
+	if !strings.EqualFold(filepath.Ext(src), ".wasm") {
+		return nil, apperr.New("plugin.notWasm", "not a plugin (.wasm) file")
+	}
+	p, err := plugin.Load(src, filepath.Join(store.DataDir(), "plugincache"))
+	if err != nil {
+		return nil, apperr.Wrap(err, "plugin.invalid", "the file is not a Poruneko plugin")
+	}
+	dst := filepath.Join(userPluginDir(), filepath.Base(src))
+	for _, l := range loaded {
+		if l.Info.ID == p.Info.ID {
+			dst = l.Path
+		}
+	}
+	if filepath.Clean(src) != filepath.Clean(dst) {
+		if err := copyFile(src, dst); err != nil {
+			return nil, apperr.Wrap(err, "plugin.copyFailed", "failed to copy the plugin")
+		}
+	}
+	log.Printf("[plugin] added %s %s (%s)", p.Info.ID, p.Info.Version, dst)
+	return &PluginInfo{Info: p.Info, File: dst, Formats: []string{}}, nil
+}
+
+// RestartApp starts the app again (to load the plugins added)
+func (a *App) RestartApp() error { return a.sh.restart() }
+
+// userPluginDir is where the plugins the user adds go: PORUNEKO_PLUGIN_DIR (on Android), else the data folder's
+func userPluginDir() string {
+	if d := os.Getenv("PORUNEKO_PLUGIN_DIR"); d != "" {
+		return d
+	}
+	return filepath.Join(store.DataDir(), "plugins")
+}
+
+// copyFile copies src to dst through a temporary file, so a failed copy leaves dst as it was
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(dst), ".plugin-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := io.Copy(tmp, in); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), dst)
 }

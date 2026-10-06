@@ -625,6 +625,13 @@ export const ja = {
     duckduckgoHint: 'アーティスト名で Web 検索し、結果のページ名（pixiv・X・FANBOX など）から作者名を読みます。短時間に何度も検索すると DuckDuckGo に拒否されることがあり、その時は次の補完先に進みます',
     plugins: 'プラグイン',
     noPlugins: '読み込まれたプラグインはありません',
+    pluginsHintAndroid: 'プラグイン（.wasm）は、端末の Android/data/io.github.peranika.poruneko/files/plugins に置くと、次の起動で読み込まれます。プラグインは指定した接続先にだけ、アプリを通して接続できます',
+    addPlugin: 'プラグインを追加',
+    addPluginHint: 'プラグインのファイル（.wasm）を plugins フォルダにコピーします。同じプラグインの新しい版は古い版と置き換わります',
+    addPluginButton: 'ファイルを選ぶ',
+    addPluginTitle: 'プラグイン（.wasm）を選ぶ',
+    pluginsAdded: '追加しました: {names}。使うには再起動してください',
+    restart: '再起動',
     pluginHosts: '接続先: {hosts}',
     pluginFormats: 'Susie 書庫プラグイン（{formats}）',
     pluginDefault: '既定の{filter}',
@@ -783,7 +790,10 @@ export const ja = {
   /** Errors returned from Go (code -> text). {detail} is the English text of the original error */
   errors: {
     plugin: {
-      message: '{text}'
+      message: '{text}',
+      notWasm: 'プラグインのファイル（.wasm）を選んでください',
+      invalid: 'Poruneko のプラグインではありません: {detail}',
+      copyFailed: 'プラグインをコピーできませんでした: {detail}'
     },
     platform: {
       unsupported: 'この端末では使えません'

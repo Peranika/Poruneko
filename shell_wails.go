@@ -3,7 +3,9 @@
 package main
 
 import (
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -50,6 +52,32 @@ func (s wailsShell) toggleFullscreen() bool {
 func (s wailsShell) minimise()       { runtime.WindowMinimise(s.a.ctx) }
 func (s wailsShell) toggleMaximise() { runtime.WindowToggleMaximise(s.a.ctx) }
 func (s wailsShell) quit()           { runtime.Quit(s.a.ctx) }
+
+func (s wailsShell) chooseFile(title string, exts []string) (string, error) {
+	pattern := "*." + strings.Join(exts, ";*.")
+	return runtime.OpenFileDialog(s.a.ctx, runtime.OpenDialogOptions{
+		Title:   title,
+		Filters: []runtime.FileFilter{{DisplayName: pattern, Pattern: pattern}},
+	})
+}
+
+// restart starts a new instance and quits this one
+func (s wailsShell) restart() error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if err := exec.Command(exe, os.Args[1:]...).Start(); err != nil {
+		return err
+	}
+	runtime.Quit(s.a.ctx)
+	return nil
+}
+
+// a desktop app keeps running in the background anyway
+func (s wailsShell) busy(bool) {}
+
+func (s wailsShell) canLogin() bool { return loginwin.Supported() }
 
 func (s wailsShell) login(o loginwin.Options) (map[string]string, error) {
 	return loginwin.Run(s.a.ctx, o)

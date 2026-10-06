@@ -24,6 +24,29 @@ export default function App() {
 
   useGlobalNavigation(settings, nav.back, nav.forward)
 
+  // the Android back button (MainActivity calls window.poruneko.back): first what Esc closes (a dialog, the
+  // viewer's full screen), then back. false when there is nothing to go back to (the app goes to the background)
+  const backState = useRef({ nav, immersive })
+  backState.current = { nav, immersive }
+  useEffect(() => {
+    const w = window as unknown as { poruneko?: { back(): boolean } }
+    w.poruneko = {
+      back: () => {
+        const { nav, immersive } = backState.current
+        if (immersive || document.querySelector('.modal-backdrop')) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+          return true
+        }
+        if (!nav.canBack) return false
+        nav.back()
+        return true
+      }
+    }
+    return () => {
+      delete w.poruneko
+    }
+  }, [])
+
   const r = nav.route
   // the sidebar keeps the tab of the screen a work was opened from while it is open
   const tab = nav.tab

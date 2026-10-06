@@ -622,6 +622,13 @@ export const en: Dict = {
     duckduckgoHint: 'Searches the web for the artist name and reads the creator name from result page titles (pixiv, X, FANBOX, etc.). DuckDuckGo may refuse frequent searches; then the next source is tried',
     plugins: 'Plugins',
     noPlugins: 'No plugins loaded',
+    pluginsHintAndroid: 'Plugins (.wasm) in Android/data/io.github.peranika.poruneko/files/plugins on the device are loaded at the next start. A plugin can connect only to the hosts it lists, through the app',
+    addPlugin: 'Add a plugin',
+    addPluginHint: 'Copies a plugin file (.wasm) into the plugins folder. A newer version of a plugin replaces the old one',
+    addPluginButton: 'Choose a file',
+    addPluginTitle: 'Choose a plugin (.wasm)',
+    pluginsAdded: 'Added: {names}. Restart to use them',
+    restart: 'Restart',
     pluginHosts: 'connects to: {hosts}',
     pluginFormats: 'Susie archive plug-in ({formats})',
     pluginDefault: 'Default {filter}',
@@ -779,7 +786,10 @@ export const en: Dict = {
 
   errors: {
     plugin: {
-      message: '{text}'
+      message: '{text}',
+      notWasm: 'Choose a plugin file (.wasm)',
+      invalid: 'The file is not a Poruneko plugin: {detail}',
+      copyFailed: 'Could not copy the plugin: {detail}'
     },
     platform: {
       unsupported: 'Not available on this device'
