@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { t } from '../../i18n'
 import { Icon } from '../Icon'
+import type { MediaLike } from './animation'
 
 /** Seconds as m:ss (h:mm:ss for an hour or more) */
 function clock(sec: number): string {
@@ -14,9 +15,10 @@ function clock(sec: number): string {
 
 /**
  * The video shown, controlled from the viewer's toolbar in place of the page slider: play / pause, where it is
- * (the slider seeks), and sound. The video itself has no controls of its own, as the toolbar would cover them
+ * (the slider seeks), and sound. The video itself has no controls of its own, as the toolbar would cover them. An
+ * animation's player works the same, without sound
  */
-export function VideoControls({ video }: { video: HTMLVideoElement }) {
+export function VideoControls({ video }: { video: MediaLike }) {
   const [, setTick] = useState(0)
   // seeking by the slider: the position follows the pointer until it is let go
   const [dragging, setDragging] = useState<number | null>(null)
@@ -54,26 +56,30 @@ export function VideoControls({ video }: { video: HTMLVideoElement }) {
         onPointerUp={() => setDragging(null)}
         onKeyUp={() => setDragging(null)}
       />
-      <button
-        className="icon-btn"
-        onClick={() => (video.muted = !video.muted)}
-        title={video.muted ? t('viewer.videoUnmute') : t('viewer.videoMute')}
-      >
-        <Icon name={video.muted || video.volume === 0 ? 'volumeOff' : 'volume'} />
-      </button>
-      <input
-        className="slider video-volume"
-        type="range"
-        min={0}
-        max={1}
-        step={0.05}
-        value={video.muted ? 0 : video.volume}
-        title={t('viewer.videoVolume')}
-        onChange={(e) => {
-          video.volume = Number(e.target.value)
-          video.muted = video.volume === 0
-        }}
-      />
+      {!video.silent && (
+        <>
+          <button
+            className="icon-btn"
+            onClick={() => (video.muted = !video.muted)}
+            title={video.muted ? t('viewer.videoUnmute') : t('viewer.videoMute')}
+          >
+            <Icon name={video.muted || video.volume === 0 ? 'volumeOff' : 'volume'} />
+          </button>
+          <input
+            className="slider video-volume"
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={video.muted ? 0 : video.volume}
+            title={t('viewer.videoVolume')}
+            onChange={(e) => {
+              video.volume = Number(e.target.value)
+              video.muted = video.volume === 0
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

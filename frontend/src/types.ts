@@ -7,6 +7,8 @@ export interface PageInfo {
   height: number
   /** The page is a video (played in the viewer) */
   video?: boolean
+  /** How long the page is shown (ms) as a frame of an animation: a work whose pages all have one is played as one */
+  delay?: number
 }
 
 export interface TagInfo {

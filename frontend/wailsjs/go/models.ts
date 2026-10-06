@@ -677,6 +677,7 @@ export namespace model {
 	    width: number;
 	    height: number;
 	    video?: boolean;
+	    delay?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PageInfo(source);
@@ -689,6 +690,7 @@ export namespace model {
 	        this.width = source["width"];
 	        this.height = source["height"];
 	        this.video = source["video"];
+	        this.delay = source["delay"];
 	    }
 	}
 	export class GalleryDetail {

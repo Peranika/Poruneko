@@ -659,6 +659,7 @@ export const en: Dict = {
     pickEnd: 'Click the end page',
     pickHint: 'Either side of a spread works. Use keys to turn pages, Esc to cancel',
     cancelPick: 'Cancel',
+    framesLoaded: 'Loading frames {n} / {total}',
     reload: 'Reload',
     prefetching: 'Prefetching all pages',
     prefetch: 'Prefetch {done}/{total}',

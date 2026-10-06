@@ -160,7 +160,10 @@ them in `hidden` itself, so a plugin can leave them alone (doing it too is harml
 index 0. Give the real size when the site tells it: the viewer uses it for spreads (a page wider than tall is shown
 alone) and for the layout before the image arrives. Use 0 when unknown. A page that is a video has `"video": true`
 (and `image` gives its `mp4` / `webm`): the viewer plays it, shows it alone in spreads, and the slideshow waits for
-it to end. Videos are saved in the cbz like pages and played from it.
+it to end. Videos are saved in the cbz like pages and played from it. When every page has a `delay` (ms), the pages
+are the frames of an animation (a pixiv ugoira): the viewer shows the work as one page and plays the frames by their
+times, with the same controls as a video. The frames are saved in the cbz like pages, and their times with the
+work info.
 
 **image** / **thumb** do not return the image itself but where the app fetches it: `url`, the `headers` to send
 (such as `Referer`) and `ext`, the file extension (`webp`...). The app fetches it with its own timeouts, retries
@@ -410,6 +413,8 @@ func handle(method string, params json.RawMessage) (any, error) {
   サイトから大きさが分かるなら入れてください。見開き（横長のページは単独で表示）や、画像が届く前のレイアウトに使います。
   分からなければ 0 にします。動画のページは `"video": true` にします（`image` は `mp4` / `webm` を返します）。
   ビューアは再生し、見開きでは単独で表示し、スライドショーは再生が終わるまで待ちます。動画も cbz に入り、そこから再生されます。
+  すべてのページに `delay`（ms）があると、ページはアニメーションのコマ（pixiv のうごイラなど）として扱われます。ビューアは
+  作品を 1 ページとして表示し、コマをそれぞれの時間で、動画と同じ操作で再生します。コマはページと同じく cbz に入り、時間は作品情報に残ります。
 - **image** / **thumb**：画像そのものではなく、取得先を返します。`url`、送るべき `headers`（`Referer` など）、
   拡張子の `ext`（`webp` など）です。取得・タイムアウト・リトライ・同時接続数・キャッシュ・cbz への保存はアプリがします。
   取得が 403 / 404 になると、アプリは `invalidate` を呼び（あれば）、もう一度 `image` を聞きます。期限付きの URL や鍵を

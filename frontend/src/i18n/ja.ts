@@ -662,6 +662,7 @@ export const ja = {
     pickEnd: '終了ページをクリックしてください',
     pickHint: '見開きの左右どちらでも選べます。ページ送りはキーで、Esc で取り消し',
     cancelPick: '取り消し',
+    framesLoaded: 'コマを読み込み中 {n} / {total}',
     reload: '再読み込み',
     prefetching: '全ページを先読みしています',
     prefetch: '先読み {done}/{total}',

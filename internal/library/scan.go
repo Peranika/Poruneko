@@ -132,6 +132,9 @@ func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 			_ = json.Unmarshal(b, d)
 		}
 	}
+	// the frames of an animation keep their times from the app's work info (the pages are listed again below, under
+	// the names they have in the archive: the same pages in the same order)
+	meta := d.Pages
 	if d.Title == "" && d.JapaneseTitle == "" {
 		if f := z.files[comicInfoEntry]; f != nil {
 			if b, err := readFile(f); err == nil {
@@ -144,6 +147,9 @@ func (l *Library) ArchiveDetail(rel string) (*model.GalleryDetail, error) {
 	for i, f := range z.order {
 		w, h := imageSize(f)
 		d.Pages[i] = model.PageInfo{Index: i, Name: filepath.Base(f.Name), Width: w, Height: h, Video: isVideoName(f.Name)}
+		if len(meta) == len(z.order) {
+			d.Pages[i].Delay = meta[i].Delay
+		}
 	}
 	d.PageCount = len(d.Pages)
 	return d, nil

@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from 'react'
 import type { ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { Icon } from '../Icon'
+import type { MediaLike } from './animation'
 import { SlideshowControl, type SlideTimerState } from './Slideshow'
 import { VideoControls } from './VideoControls'
 
@@ -35,7 +36,7 @@ interface Props {
   onSlideshow(on: boolean): void
   slideTimer: SlideTimerState
   /** The video shown: the toolbar controls it in place of the page slider */
-  video?: HTMLVideoElement | null
+  video?: MediaLike | null
 }
 
 /** Toolbar at the bottom of the viewer (page position, view mode, display size, etc.) */

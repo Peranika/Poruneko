@@ -4,6 +4,7 @@ import type { MoireLevel } from '../../types'
 import { loadJSON, saveJSON } from '../../storage'
 import { Icon } from '../Icon'
 import { prepareMoire, preparedMoire } from './moire'
+import { AnimationPlayer } from './animation'
 
 const AUTO_RETRIES = 3
 
@@ -171,6 +172,125 @@ export function PageVideo({
             e.stopPropagation()
             setState('loading')
             ref.current?.load()
+          }}
+        >
+          <Icon name="refresh" size={14} /> {t('viewer.reload')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A page that is an animation: the work's frames, played by their times once all have loaded (the first is shown
+ * as soon as it is there). Like a video it has no controls of its own: onElement hands its player to the toolbar, and
+ * a click plays or pauses it. It loops unless onEnded is given (the slideshow then turns the page when it ends)
+ */
+export function PageAnimation({
+  srcs,
+  delays,
+  w,
+  h,
+  index,
+  marker,
+  onEnded,
+  onDuration,
+  onElement
+}: {
+  srcs: string[]
+  delays: number[]
+  w: number
+  h: number
+  index: number
+  marker?: string
+  onEnded?(): void
+  onDuration?(seconds: number): void
+  onElement?(player: AnimationPlayer | null): void
+}) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const frames = useRef<HTMLImageElement[]>([])
+  const [loaded, setLoaded] = useState(0)
+  const [failed, setFailed] = useState(false)
+  const [retry, setRetry] = useState(0)
+  const draw = (i: number) => {
+    const c = canvas.current
+    const im = frames.current[i]
+    if (!c || !im?.naturalWidth) return
+    if (c.width !== im.naturalWidth || c.height !== im.naturalHeight) {
+      c.width = im.naturalWidth
+      c.height = im.naturalHeight
+    }
+    c.getContext('2d')?.drawImage(im, 0, 0)
+  }
+  const [player] = useState(() => new AnimationPlayer(delays, draw))
+  useEffect(() => {
+    onElement?.(player)
+    return () => {
+      player.dispose()
+      onElement?.(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player])
+  player.loop = !onEnded
+  useEffect(() => {
+    if (!onEnded) return
+    player.addEventListener('ended', onEnded)
+    return () => player.removeEventListener('ended', onEnded)
+  }, [player, onEnded])
+
+  // load every frame (decoded, so playing never waits); the first is drawn as soon as it is there
+  useEffect(() => {
+    let cancelled = false
+    setLoaded(0)
+    setFailed(false)
+    frames.current = srcs.map((src, i) => {
+      const im = new Image()
+      im.src = retry ? `${src}?r=${retry}` : src
+      im.decode().then(
+        () => {
+          if (cancelled) return
+          if (i === 0 && player.paused) draw(0)
+          setLoaded((n) => n + 1)
+        },
+        () => !cancelled && setFailed(true)
+      )
+      return im
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcs.join('\n'), retry])
+  const ready = loaded === srcs.length
+  useEffect(() => {
+    if (!ready) return
+    onDuration?.(player.duration)
+    void player.play()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
+  return (
+    <div className={`page video animation ${ready ? 'ok' : failed ? 'err' : 'loading'} ${marker ? 'marked' : ''}`} style={{ width: w, height: h }} data-index={index}>
+      {marker && <span className="page-marker">{marker}</span>}
+      <canvas
+        ref={canvas}
+        onClick={(e) => {
+          e.stopPropagation()
+          void (player.paused ? player.play() : player.pause())
+        }}
+      />
+      {!ready && !failed && (
+        <>
+          <div className="spinner" />
+          <span className="anim-progress">{t('viewer.framesLoaded', { n: loaded, total: srcs.length })}</span>
+        </>
+      )}
+      {failed && (
+        <button
+          className="btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            setRetry((r) => r + 1)
           }}
         >
           <Icon name="refresh" size={14} /> {t('viewer.reload')}

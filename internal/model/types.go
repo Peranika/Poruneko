@@ -50,6 +50,9 @@ type PageInfo struct {
 	Height int    `json:"height"`
 	// Video: the page is a video (mp4 / webm), played in the viewer
 	Video bool `json:"video,omitempty"`
+	// Delay is how long the page is shown (ms) when it is a frame of an animation: a work whose pages all have one
+	// (a pixiv ugoira) is played in the viewer as one animation
+	Delay int `json:"delay,omitempty"`
 }
 
 type TagInfo struct {

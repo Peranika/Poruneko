@@ -5,7 +5,8 @@ import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../key
 import type { PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
-import { PageImage, PageVideo } from './PageImage'
+import { PageAnimation, PageImage, PageVideo } from './PageImage'
+import { isAnimation, type MediaLike } from './animation'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
 import { PREDECODE_BEHIND, estimatePredecodeBytes, formatBytes, usePredecode } from './usePredecode'
 import { usePrefetchAll } from './usePrefetchAll'
@@ -61,7 +62,10 @@ export interface RangeControl {
 let slideshowCarriedAt = 0
 
 export function Viewer(props: Props) {
-  const { galleryKey, pages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, range } = props
+  const { galleryKey, pages: allPages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, range } = props
+  // a work whose pages are an animation's frames (a ugoira) is one page here, played as a whole
+  const animation = useMemo(() => isAnimation(allPages), [allPages])
+  const pages = useMemo(() => (animation ? allPages.slice(0, 1) : allPages), [animation, allPages])
   const { mode, direction, coverSingle, fit } = settings
   const moire = settings.moire || undefined
   const rtl = direction === 'rtl'
@@ -93,12 +97,12 @@ export function Viewer(props: Props) {
   // pages shown alone via "Shift by one" (saved per work)
   const [singles, setSingles] = useState<Set<number>>(() => loadSingles(galleryKey))
   const spreads = useMemo(() => buildSpreads(pages, mode, coverSingle, singles), [pages, mode, coverSingle, singles])
-  // pages that are videos (played instead of shown; not prefetched, decoded or smoothed)
-  const videos = useMemo(() => new Set(pages.filter((p) => p.video).map((p) => p.index)), [pages])
-  // the video elements on screen by page, so the toolbar can control the one shown
-  const videoEls = useRef(new Map<number, HTMLVideoElement>())
+  // pages that are videos or an animation (played instead of shown; not prefetched, decoded or smoothed)
+  const videos = useMemo(() => new Set(animation ? [0] : pages.filter((p) => p.video).map((p) => p.index)), [animation, pages])
+  // the videos (or the animation's player) on screen by page, so the toolbar can control the one shown
+  const videoEls = useRef(new Map<number, MediaLike>())
   const [videoTick, setVideoTick] = useState(0)
-  const onVideoElement = useCallback((i: number, el: HTMLVideoElement | null) => {
+  const onVideoElement = useCallback((i: number, el: MediaLike | null) => {
     if (el) videoEls.current.set(i, el)
     else if (videoEls.current.get(i)) videoEls.current.delete(i)
     setVideoTick((n) => n + 1)
@@ -368,8 +372,8 @@ export function Viewer(props: Props) {
       return
     }
     if (mode === 'scroll') return
-    // clicks on a video are for its controls
-    if ((e.target as HTMLElement).closest('video')) return
+    // clicks on a video (or an animation) are for its controls
+    if ((e.target as HTMLElement).closest('video, .page.animation')) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     if (x < 0.3) rtl ? next() : prev()
@@ -476,9 +480,26 @@ export function Viewer(props: Props) {
     }
   }, [shownKey, mode, rtl])
 
-  // a page: its image, or its video
+  // the animation's frames and their times
+  const frameSrcs = useMemo(() => (animation ? allPages.map((p) => imageUrl(galleryKey, p.index)) : []), [animation, allPages, galleryKey])
+  const frameDelays = useMemo(() => allPages.map((p) => p.delay ?? 0), [allPages])
+
+  // a page: its image, its video, or the animation
   const renderPage = (i: number, w: number, h: number) =>
-    videos.has(i) ? (
+    animation ? (
+      <PageAnimation
+        key={galleryKey}
+        index={i}
+        marker={markerOf(i)}
+        srcs={frameSrcs}
+        delays={frameDelays}
+        w={w}
+        h={h}
+        onEnded={slideshow ? () => videoEnded.current?.() : undefined}
+        onDuration={(sec) => videoLength.current?.(sec)}
+        onElement={(el) => onVideoElement(i, el)}
+      />
+    ) : videos.has(i) ? (
       <PageVideo
         key={i}
         index={i}
