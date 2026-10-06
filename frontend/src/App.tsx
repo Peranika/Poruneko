@@ -25,6 +25,8 @@ export default function App() {
   useGlobalNavigation(settings, nav.back, nav.forward)
 
   const r = nav.route
+  // the sidebar keeps the tab of the screen a work was opened from while it is open
+  const tab = nav.tab
   // without a site, the first screen is the first local folder
   const dirs = settings?.localDirs ?? []
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function App() {
           {dirs.map((d) => (
             <button
               key={d.id}
-              className={r.name === 'local' && r.dir === d.id ? 'active' : ''}
+              className={tab.name === 'local' && tab.dir === d.id ? 'active' : ''}
               onClick={() => nav.go({ name: 'local', dir: d.id })}
               title={`${d.name}\n${d.path}`}
             >
@@ -102,12 +104,12 @@ export default function App() {
           {!!sites?.length && <div className="sidebar-sep" />}
           <SiteTabs sites={sites ?? []} />
           {!!sites?.length && <div className="sidebar-sep" />}
-          <button className={r.name === 'history' ? 'active' : ''} onClick={() => nav.go({ name: 'history' })} title={t('app.historyTitle')}>
+          <button className={tab.name === 'history' ? 'active' : ''} onClick={() => nav.go({ name: 'history' })} title={t('app.historyTitle')}>
             <Icon name="history" size={20} />
             <span>{t('app.history')}</span>
           </button>
           <div className="spacer" />
-          <button className={r.name === 'settings' ? 'active' : ''} onClick={() => nav.go({ name: 'settings' })} title={t('app.settings')}>
+          <button className={tab.name === 'settings' ? 'active' : ''} onClick={() => nav.go({ name: 'settings' })} title={t('app.settings')}>
             <Icon name="settings" size={20} />
             <span>{t('app.settings')}</span>
           </button>

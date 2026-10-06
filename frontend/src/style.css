@@ -46,7 +46,7 @@
   --icon-lg: 38px;
   --overlay: 28px; /* buttons and marks on thumbnails */
   --titlebar: 40px;
-  --sidebar: 80px;
+  --sidebar: 5.7143rem; /* 80px at the base size: it grows with the text size, so its labels fit */
   font-family: 'Noto Sans JP Variable', 'Noto Sans JP', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
   /* base text size (changed by the "Text size" setting; other text sizes are given in rem relative to it) */
   font-size: 14px;
@@ -483,8 +483,11 @@ select { cursor: pointer; }
 
 /* ---------------------------------------------------------------- Settings */
 /* the input of a plugin's own screen (in place of the search box) */
-.view-input { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; max-width: 640px; padding: 0 6px 0 12px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); color: var(--text-3); }
-.view-input input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; }
+.view-input { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; max-width: 640px; padding: 0 0 0 12px; min-height: var(--ctl-md); border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); color: var(--text-3); }
+.view-input:focus-within { border-color: var(--accent); }
+.view-input input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; min-height: calc(var(--ctl-md) - 2px); }
+.view-input .btn { align-self: stretch; min-height: 0; border: 0; border-left: 1px solid var(--line); border-radius: 0 7px 7px 0; padding: 0 12px; font-size: 0.8571rem; color: var(--text-2); }
+.view-input .btn:hover:not(:disabled) { color: var(--text); background: var(--line); }
 /* the header of a plugin's own screen (a user's picture, name and buttons) */
 .view-header { display: flex; gap: 14px; align-items: flex-start; margin: 16px 20px 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-1); }
 .view-header-image { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -538,6 +541,14 @@ select { cursor: pointer; }
 .row-setting input[type='number'] { width: 80px; }
 .row-setting .inline { display: flex; align-items: center; gap: 10px; }
 .path-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* buttons side by side that go one under the other when there is no room (never narrower than the widest) */
+.login-buttons { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+/* the label takes the room left; when it would get narrower than about 16 characters (a narrow window or large
+   text), the controls go to the next line, on the right, instead of squeezing it or covering it */
+.row-setting { flex-wrap: wrap; row-gap: 8px; }
+.row-setting > span:first-child { flex: 1 1 16em; min-width: 0; }
+.row-setting > :not(:first-child) { margin-left: auto; }
+.settings-inner .btn.small { min-height: var(--ctl-md); padding: 0 12px; font-size: 0.9286rem; border-radius: 8px; }
 .local-dirs { list-style: none; margin: 8px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .local-dirs-actions { display: flex; align-items: center; gap: 8px; }
 .local-dir-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -554,6 +565,10 @@ select { cursor: pointer; }
 .fname { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .fname-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .fname-head > span { display: flex; flex-direction: column; gap: 2px; }
+/* like a settings row: the preset goes under the label when there is no room beside it */
+.fname-head { flex-wrap: wrap; row-gap: 8px; }
+.fname-head > span { flex: 1 1 16em; min-width: 0; }
+.fname-head > :not(:first-child) { margin-left: auto; max-width: 100%; }
 .fname-input { width: 100%; font-family: Consolas, 'Cascadia Mono', monospace; }
 .fname-holders { display: flex; flex-wrap: wrap; gap: 5px; }
 .fname-holders .tag { font-family: Consolas, monospace; cursor: pointer; }
@@ -1098,7 +1113,10 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .sidebar .site-head button.current { color: var(--accent-2); font-weight: 600; background: transparent; }
 .site-screens { display: flex; flex-direction: column; gap: 2px; }
 .sidebar .site-screens button { gap: 2px; padding: 6px 0; border-radius: 8px; font-size: 0.6786rem; color: var(--text-2); }
-.sidebar .site-screens button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.sidebar .site-screens button span {
+  max-width: 100%; white-space: normal; text-align: center; line-height: 1.2;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
 .sidebar .site-screens button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
 .sidebar .site-screens button.active { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); font-weight: 600; }
 .sidebar .site-screens .badge { top: 2px; right: 6px; }

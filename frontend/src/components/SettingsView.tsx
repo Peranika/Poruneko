@@ -115,7 +115,7 @@ function SiteSection({ site, plugin, onDirChanged }: { site: SiteInfo; plugin?: 
             {t('settings.login')}
             <small className="muted">{t('settings.loginHint')}</small>
           </span>
-          <div className="path-pick">
+          <div className="login-buttons">
             <button className="btn" disabled={signingIn} onClick={() => void login(false)}>
               {t('settings.loginOpen')}
             </button>

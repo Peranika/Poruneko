@@ -5,7 +5,7 @@ import { UNBOOKMARK_RANGE_CONFIRM, hasRangeFile } from './bookmarkActions'
 import { applyFontScale, applyTheme } from './display'
 import { errorText, t } from './i18n'
 import { indexSeries } from './series'
-import { loadJSON, loadString, loadSkippedVersion, saveJSON } from './storage'
+import { loadJSON, loadString, loadSkippedVersion, removeItem, saveJSON } from './storage'
 import { filterDefaults, searchFilters, setBrowseSites, viewLink } from './browseSpec'
 import type { Bookmark, GallerySummary, IconFile, ListQuery, Series, Settings, SiteInfo, UpdateRelease } from './types'
 import type { WorkSource } from './workSequence'
@@ -53,6 +53,11 @@ const pushEntry = (h: { stack: Entry[]; i: number }, e: Entry) => {
 
 interface Nav {
   route: Route
+  /**
+   * The screen whose tab the sidebar shows: the screen shown, or while a work is open, the screen it was opened from
+   * (the tab stays as it was before the viewer)
+   */
+  tab: Route
   go(r: Route): void
   /**
    * Open a sidebar tab, returning to the screen last shown in it (query, page and scroll position).
@@ -116,10 +121,28 @@ export const useApp = (): AppState => {
   return v
 }
 
-/** Page count filter for browsing (carries over the last one set) */
+/** Page count filter for browsing (carries over the last one set, for each site on its own) */
 export type PageRange = Pick<ListQuery, 'minPages' | 'maxPages'>
-const loadPageRange = (): PageRange => {
-  const r = loadJSON<PageRange>('browse.pages', {})
+
+/** Where a site's page count filter is kept (screen: browse or fav) */
+export const pageRangeKey = (screen: 'browse' | 'fav', site: string | undefined): string => `${screen}.pages.${site ?? ''}`
+
+/**
+ * The page count filters were once one for every site (set for hitomi's works): the one kept goes to hitomi, so
+ * the other sites start without one
+ */
+function movePageRanges(): void {
+  for (const screen of ['browse', 'fav'] as const) {
+    const old = loadJSON<PageRange | null>(`${screen}.pages`, null)
+    if (!old) continue
+    if (!loadJSON<PageRange | null>(pageRangeKey(screen, 'hitomi'), null)) saveJSON(pageRangeKey(screen, 'hitomi'), old)
+    removeItem(`${screen}.pages`)
+  }
+}
+movePageRanges()
+
+const loadPageRange = (site: string | undefined): PageRange => {
+  const r = loadJSON<PageRange>(pageRangeKey('browse', site), {})
   return { minPages: r.minPages || undefined, maxPages: r.maxPages || undefined }
 }
 
@@ -127,7 +150,7 @@ const loadPageRange = (): PageRange => {
 export const defaultQuery = (site?: string, view?: string): ListQuery =>
   view
     ? { site, view, query: loadString(viewInputKey(site, view), ''), filters: filterDefaults(view, site), page: 1 }
-    : { site, query: '', filters: filterDefaults('browse', site), page: 1, ...loadPageRange() }
+    : { site, query: '', filters: filterDefaults('browse', site), page: 1, ...loadPageRange(site) }
 
 /** Where the input last entered on a plugin's own screen is kept */
 export const viewInputKey = (site: string | undefined, view: string): string => `view.${site ?? ''}.${view}`
@@ -215,6 +238,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const back = useCallback(() => setHist((h) => ({ ...h, i: Math.max(0, h.i - 1) })), [])
   const forward = useCallback(() => setHist((h) => ({ ...h, i: Math.min(h.stack.length - 1, h.i + 1) })), [])
   const entry = hist.stack[hist.i]
+  // the last screen before the works being viewed (a work opened from another work keeps the first one's)
+  let tabAt = hist.i
+  while (tabAt > 0 && hist.stack[tabAt].r.name === 'gallery') tabAt--
+  const tab = hist.stack[tabAt].r
   // the screen is saved only after the first screen is decided (the default one shown before that would overwrite it)
   const firstScreenSet = useRef(false)
   useEffect(() => {
@@ -223,6 +250,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [entry])
   const nav: Nav = {
     route: entry.r,
+    tab,
     go,
     openTab,
     replace,

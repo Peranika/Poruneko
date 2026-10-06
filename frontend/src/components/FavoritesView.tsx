@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, isFileKey } from '../api'
 import { t } from '../i18n'
-import { filtersOn, filterDefaults, loadMoreOf, siteInfo, textOf, typeStyle, viewOf } from '../browseSpec'
+import { filtersOn, filterDefaults, loadMoreOf, siteInfo, textOf, viewOf } from '../browseSpec'
 import { SITE_NAME_LABEL } from '../labels'
-import { defaultQuery, searchQuery, useApp, type PageRange } from '../state'
+import { defaultQuery, pageRangeKey, searchQuery, useApp, type PageRange } from '../state'
 import { loadJSON, loadString, saveJSON, saveString } from '../storage'
 import type { FavoriteName, FavoritesResult } from '../types'
 import { GalleryItem } from './GalleryItem'
 import { Icon } from './Icon'
+import { MultiFilter } from './MultiFilter'
 import { PageRangeFilter } from './PageRangeFilter'
 import { listSource } from '../workSequence'
 import { LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useListLayout, useThumbSize } from './ListControls'
@@ -25,8 +26,8 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
   const [filters, setFilters] = useState<Record<string, string>>(() => ({ ...filterDefaults('favorites', site), ...loadJSON<Record<string, string>>(filtersKey, {}) }))
   const specs = filtersOn('favorites', site)
   const [hideBookmarked, setHideBookmarked] = useState(() => loadString('fav.hide', '0') === '1')
-  // page count filter (kept separately from Browse's)
-  const [pages, setPages] = useState<PageRange>(() => loadJSON<PageRange>('fav.pages', {}))
+  // page count filter (kept separately from Browse's, for each site)
+  const [pages, setPages] = useState<PageRange>(() => loadJSON<PageRange>(pageRangeKey('fav', site), {}))
   // leave out the artists of bookmarked anthologies and magazines
   const [excludeCollective, setExcludeCollective] = useState(() => loadString('fav.noCollective', '0') === '1')
   const [layout, setLayout] = useListLayout()
@@ -198,29 +199,9 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
         {/* the plugin's filters with several choices, as chips (none chosen means all) */}
         {specs
           .filter((f) => f.multi)
-          .map((f) => {
-            const chosen = (filters[f.id] ?? '').split(',').filter(Boolean)
-            const set = (next: string[]) => setFilter(f.id, next.join(','))
-            return (
-              <div key={f.id} className="toolbar type-filter">
-                <span className="muted small">{textOf(f.label)}</span>
-                <button className={`chip-btn ${chosen.length === 0 ? 'on' : ''}`} onClick={() => set([])}>
-                  {t('common.all')}
-                </button>
-                {f.options.map((o) => (
-                  <button
-                    key={o.value}
-                    className={`chip-btn ${chosen.includes(o.value) ? 'on' : ''}`}
-                    style={chosen.includes(o.value) ? undefined : typeStyle(o.value)}
-                    onClick={() => set(chosen.includes(o.value) ? chosen.filter((x) => x !== o.value) : [...chosen, o.value])}
-                    title={t('favorites.multiSelect')}
-                  >
-                    {textOf(o.label)}
-                  </button>
-                ))}
-              </div>
-            )
-          })}
+          .map((f) => (
+            <MultiFilter key={f.id} f={f} site={site} value={filters[f.id] ?? ''} onChange={(v) => setFilter(f.id, v)} />
+          ))}
         <div className="toolbar">
           <h2>{current ? current.name : siteInfo(site)?.browse?.favoritesLabel ? textOf(siteInfo(site)!.browse!.favoritesLabel) : t('favorites.newest')}</h2>
           <div className="spacer" />
@@ -239,7 +220,7 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
             value={pages}
             onChange={(r) => {
               setPages(r)
-              saveJSON('fav.pages', r)
+              saveJSON(pageRangeKey('fav', site), r)
               if (page !== 1) go({ page: 1 })
             }}
           />

@@ -35,7 +35,8 @@ export function SiteTabs({ sites }: { sites: SiteInfo[] }) {
  */
 export function SiteTab({ site, drag }: { site: SiteInfo; drag: { props: ReturnType<ReturnType<typeof useDragReorder>['itemProps']>; className: string } }) {
   const { nav, bookmarks, settings, updateSettings } = useApp()
-  const r = nav.route
+  // while a work is open, the tab of the screen it was opened from
+  const r = nav.tab
   const own = site.browse?.views ?? []
   // the site's screens, in the order the user arranged them by dragging
   const views: View[] = inOrder(

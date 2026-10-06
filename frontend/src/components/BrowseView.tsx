@@ -3,7 +3,7 @@ import { api } from '../api'
 import { t } from '../i18n'
 import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
 import { filtersOn, loadMoreOf, savedValue, searchPlaceholder, siteInfo, textOf, viewOf } from '../browseSpec'
-import { searchQuery, useApp, viewInputKey, type PageRange } from '../state'
+import { pageRangeKey, searchQuery, useApp, viewInputKey, type PageRange } from '../state'
 import { saveJSON, saveString } from '../storage'
 import type { GallerySummary, ListResult, ListQuery } from '../types'
 import { GalleryItem } from './GalleryItem'
@@ -13,6 +13,7 @@ import { useCardKeyNav } from '../useCardKeyNav'
 import { PagedResults } from './PagedResults'
 import { PageRangeFilter } from './PageRangeFilter'
 import { Icon } from './Icon'
+import { MultiFilter } from './MultiFilter'
 import { SearchBar } from './SearchBar'
 import { ViewHeader } from './ViewHeader'
 
@@ -100,13 +101,29 @@ export function BrowseView({ q }: { q: ListQuery }) {
         {!view && <PageRangeFilter
           value={{ minPages: q.minPages, maxPages: q.maxPages }}
           onChange={(r: PageRange) => {
-            saveJSON('browse.pages', r) // carry it over to the next search
+            saveJSON(pageRangeKey('browse', site), r) // carry it over to the site's next search
             setQ(r)
           }}
         />}
         <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
         <LayoutToggle value={layout} onChange={setLayout} />
       </div>
+
+      {/* filters with several choices (the site's categories...), as chips under the toolbar */}
+      {filtersOn(q.view ?? 'browse', site)
+        .filter((f) => f.multi)
+        .map((f) => (
+          <MultiFilter
+            key={f.id}
+            f={f}
+            site={site}
+            value={q.filters?.[f.id] ?? savedValue(f, site)}
+            onChange={(v) => {
+              setPluginSetting(site, f.id, v)
+              setQ({ filters: { ...q.filters, [f.id]: v } })
+            }}
+          />
+        ))}
 
       <div className="scroll" ref={scroller}>
         {view && q.query && (
