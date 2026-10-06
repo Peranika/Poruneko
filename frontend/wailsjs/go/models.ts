@@ -993,6 +993,7 @@ export namespace model {
 	    siteOrder: string[];
 	    siteScreenOrder: Record<string, Array<string>>;
 	    siteScreens: string;
+	    siteScreensOpen: boolean;
 	    siteLoadMore: Record<string, string>;
 	    rememberWindow: boolean;
 	    rememberScreen: boolean;
@@ -1031,6 +1032,7 @@ export namespace model {
 	        this.siteOrder = source["siteOrder"];
 	        this.siteScreenOrder = source["siteScreenOrder"];
 	        this.siteScreens = source["siteScreens"];
+	        this.siteScreensOpen = source["siteScreensOpen"];
 	        this.siteLoadMore = source["siteLoadMore"];
 	        this.rememberWindow = source["rememberWindow"];
 	        this.rememberScreen = source["rememberScreen"];

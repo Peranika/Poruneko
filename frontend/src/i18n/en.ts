@@ -545,6 +545,8 @@ export const en: Dict = {
     siteScreensHint: 'How the screens (browse, bookmarks...) of the site in use are laid out under its tab',
     siteScreensList: 'With names, one a row',
     siteScreensGrid: 'Icons, two a row',
+    siteScreensOpen: 'Always show the screens of every site',
+    siteScreensOpenHint: 'When off, only the screens of the site in use are shown',
     loadMore: 'When to load the next page',
     loadMoreHint: 'Later loading calls the site less (for sites with rate limits)',
     loadMoreNear: 'Automatically as the end comes near',

@@ -548,6 +548,8 @@ export const ja = {
     siteScreensHint: '左のタブで、使っているサイトの下に並ぶ画面（ブラウズ・ブックマークなど）の並べ方',
     siteScreensList: '名前付きで縦に',
     siteScreensGrid: 'アイコンを 2 列に',
+    siteScreensOpen: 'すべてのサイトの画面を常に表示する',
+    siteScreensOpenHint: 'オフにすると、使っているサイトの画面だけを表示します',
     loadMore: '次のページを読み込むタイミング',
     loadMoreHint: '遅いほど、サイトへの読み込みが減ります（回数制限のあるサイト向け）',
     loadMoreNear: '最後に近づいたら自動で',

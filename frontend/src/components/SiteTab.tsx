@@ -101,7 +101,9 @@ export function SiteTab({ site, drag }: { site: SiteInfo; drag: { props: ReturnT
     }
   }, [pop, site.id, site.status])
 
-  const expanded = current !== null
+  // the site in use opens out with its screens; with the setting, every site does (only the one in use is tinted)
+  const inUse = current !== null
+  const expanded = inUse || !!settings?.siteScreensOpen
   const grid = settings?.siteScreens === 'grid'
   const screenDrag = useDragReorder(
     'screen-' + site.id,
@@ -110,9 +112,9 @@ export function SiteTab({ site, drag }: { site: SiteInfo; drag: { props: ReturnT
     grid
   )
   return (
-    <div className={`site-tab ${expanded ? 'expanded' : ''} ${drag.className}`} {...drag.props}>
+    <div className={`site-tab ${expanded ? 'expanded' : ''} ${inUse ? 'in-use' : ''} ${drag.className}`} {...drag.props}>
       <div className="site-head" onMouseEnter={show} onMouseLeave={hide}>
-        <button className={expanded ? 'current' : ''} onClick={() => open(expanded ? current : last)} title={site.name}>
+        <button className={inUse ? 'current' : ''} onClick={() => open(current ?? last)} title={site.name}>
           <span className="site-icon">
             {site.icon ? <ImageIcon url={site.icon} /> : <Icon name="globe" size={20} />}
             {/* closed: the screen a click opens (the one used last) */}

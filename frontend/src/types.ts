@@ -459,6 +459,8 @@ export interface Settings {
   siteScreenOrder?: Record<string, string[]>
   /** How the screens of the site being used are laid out under its tab ('' with names, one a row; grid: icons, two a row) */
   siteScreens?: '' | 'grid'
+  /** The screens of every site are shown under its tab, not only of the site in use */
+  siteScreensOpen?: boolean
   /** When a site's list loads its next page while scrolling (a site without one uses its plugin's choice) */
   siteLoadMore?: Record<string, LoadMore>
   /** Restore the window position and size from the last exit at the next start */

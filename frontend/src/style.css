@@ -1087,7 +1087,8 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .site-screens.grid .drop-before { box-shadow: inset 2px 0 0 var(--accent); }
 .site-screens.grid .drop-after { box-shadow: inset -2px 0 0 var(--accent); }
 /* the site being used: a faint ground under it and its screens; the screen shown stronger */
-.site-tab.expanded { margin: 0 -4px; padding: 2px 4px 6px; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.site-tab.expanded { margin: 0 -4px; padding: 2px 4px 6px; }
+.site-tab.in-use { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .site-head { position: relative; display: flex; flex-direction: column; }
 .sidebar .site-head button.current { color: var(--accent-2); font-weight: 600; background: transparent; }
 .site-screens { display: flex; flex-direction: column; gap: 2px; }

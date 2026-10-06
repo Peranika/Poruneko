@@ -482,6 +482,8 @@ type Settings struct {
 	// SiteScreens is how the screens of the site being used are laid out under its tab in the sidebar ("" icons with
 	// their names, one a row | grid: icons only, two a row)
 	SiteScreens string `json:"siteScreens"`
+	// SiteScreensOpen shows the screens of every site under its tab, not only of the site in use
+	SiteScreensOpen bool `json:"siteScreensOpen"`
 	// SiteLoadMore is when a site's list loads its next page while scrolling (site id -> LoadMore*); a site without
 	// one uses its plugin's choice, or LoadMoreNear
 	SiteLoadMore map[string]string `json:"siteLoadMore"`

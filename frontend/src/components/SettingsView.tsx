@@ -312,6 +312,13 @@ export function SettingsView() {
                   <option value="grid">{t('settings.siteScreensGrid')}</option>
                 </select>
               </label>
+              <label className="row-setting">
+                <span>
+                  {t('settings.siteScreensOpen')}
+                  <small className="muted">{t('settings.siteScreensOpenHint')}</small>
+                </span>
+                <input type="checkbox" checked={!!s.siteScreensOpen} onChange={(e) => updateSettings({ siteScreensOpen: e.target.checked })} />
+              </label>
               <div className="row-setting">
                 <span>{t('settings.accent')}</span>
                 <AccentPicker value={s.accent || DEFAULT_ACCENT} onChange={(accent) => updateSettings({ accent: accent === DEFAULT_ACCENT ? '' : accent })} />
