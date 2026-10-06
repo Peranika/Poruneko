@@ -238,6 +238,10 @@ export function SetSettings(arg1) {
   return window['go']['main']['App']['SetSettings'](arg1);
 }
 
+export function SiteLogin(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SiteLogin'](arg1, arg2, arg3);
+}
+
 export function SiteStatus(arg1) {
   return window['go']['main']['App']['SiteStatus'](arg1);
 }

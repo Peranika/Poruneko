@@ -92,6 +92,26 @@ type Info struct {
 	Icon string `json:"icon,omitempty"`
 	// Browse is what a site plugin's list screen offers (its filters and the search box's hint)
 	Browse *model.BrowseSpec `json:"browse,omitempty"`
+	// Login lets the user sign in to the site in a window of the app, which then fills the plugin's login settings
+	// with the site's cookies (instead of pasting them)
+	Login *LoginSpec `json:"login,omitempty"`
+}
+
+// LoginSpec is where a site's sign-in page is and which of its cookies make the plugin's login settings
+type LoginSpec struct {
+	URL string `json:"url"` // the sign-in page (https)
+	// CookieURL is the URL whose cookies are read (URL if empty), such as the site's top page
+	CookieURL string        `json:"cookieUrl,omitempty"`
+	Cookies   []LoginCookie `json:"cookies"`
+}
+
+// LoginCookie is a cookie read after signing in and the setting it goes to
+type LoginCookie struct {
+	Name    string `json:"name"`
+	Setting string `json:"setting"` // the id of the plugin's setting ("in": ["settings"]) that gets the value
+	// Match is a regular expression the value has once the user is signed in, for a cookie the site also sets for
+	// visitors (empty for any value)
+	Match string `json:"match,omitempty"`
 }
 
 // Has reports whether the plugin answers an optional method

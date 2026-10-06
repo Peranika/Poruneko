@@ -236,6 +236,8 @@ export interface BrowseSpec {
   /** The name and icon of the Favorites screen (when it is the plugin's own choice, such as the user's lists) */
   favoritesLabel?: Text
   favoritesIcon?: string
+  /** One of the names above is always chosen on Favorites, the first at first (no "all" above them) */
+  favoritesScoped?: boolean
 }
 
 /** A plugin's own screen: an input (which can come from the clipboard) and the works listed for it */
@@ -360,6 +362,8 @@ export interface SiteInfo {
   loadMore: LoadMore | ''
   /** The plugin tells its state (shown on the site's tab) */
   status: boolean
+  /** The user can sign in to the site in a window of the app, which fills the plugin's login settings */
+  login: boolean
   /** The plugin's version and the hosts it connects to */
   version: string
   hosts: string[]
@@ -518,6 +522,8 @@ export interface FavoriteName {
   note?: string
   /** The tags of the names it belongs to (a user's lists); names that are parents are shown apart, above */
   parents?: string[]
+  /** Shown above even when no name belongs to it */
+  parent?: boolean
   /** One of the plugin's own screens the name opens in (a user's screen), with its input */
   open?: { view: string; query: string }
 }

@@ -20,6 +20,9 @@ type BrowseSpec struct {
 	// FavoritesLabel / FavoritesIcon name the Favorites screen (such as "Lists" for the user's lists)
 	FavoritesLabel Text   `json:"favoritesLabel,omitempty"`
 	FavoritesIcon  string `json:"favoritesIcon,omitempty"`
+	// FavoritesScoped: one of the names above (the parents of favoriteNames) is always chosen, the first at first
+	// (no "all" above them), for Favorites made of different lists
+	FavoritesScoped bool `json:"favoritesScoped,omitempty"`
 }
 
 // View is a plugin's own screen
@@ -129,4 +132,21 @@ type Namespace struct {
 	Color string `json:"color,omitempty"`
 	// Translated: its tags have names in the plugin's tagNamesJa
 	Translated bool `json:"translated,omitempty"`
+}
+
+// Login is the "login" field of a site plugin's info: the app opens URL in a window of its own, the user signs in
+// there, and the app fills the plugin's settings with the site's cookies (each Setting gets its cookie's value)
+type Login struct {
+	URL string `json:"url"` // the sign-in page (https)
+	// CookieURL is the URL whose cookies are read (URL if empty), such as the site's top page
+	CookieURL string        `json:"cookieUrl,omitempty"`
+	Cookies   []LoginCookie `json:"cookies"`
+}
+
+// LoginCookie is a cookie read after signing in. Match is a regular expression its value has once the user is signed
+// in, for a cookie the site also sets for visitors (empty for any value)
+type LoginCookie struct {
+	Name    string `json:"name"`
+	Setting string `json:"setting"`
+	Match   string `json:"match,omitempty"`
 }

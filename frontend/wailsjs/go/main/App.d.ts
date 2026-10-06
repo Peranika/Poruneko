@@ -122,6 +122,8 @@ export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):
 
 export function SetSettings(arg1:model.Settings):Promise<model.Settings>;
 
+export function SiteLogin(arg1:string,arg2:string,arg3:boolean):Promise<Record<string, string>>;
+
 export function SiteStatus(arg1:string):Promise<Array<model.StatusLine>>;
 
 export function Sites():Promise<Array<model.SiteInfo>>;

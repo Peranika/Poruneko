@@ -86,6 +86,8 @@ internal/
   site/                  abstraction of sites (Provider); sites come from plugins, the base app has none
   plugin/                runs plugins (.wasm) with wazero, and makes site plugins sites
   susie/                 Susie 64-bit archive plug-ins (.sph) for more archive formats (Windows)
+  loginwin/              a window where the user signs in to a site, whose login cookies fill a plugin's settings
+                         (WebView2, Windows; its own browser profile LoginWebView in the data folder)
   meta/                  creator info from DLsite / FANZA, fallbacks (pawchive, DuckDuckGo), title matching
   library/               the local folders' archives as works (scan), the sites' save locations, reading archives (archive),
                          cbz storage for works from sites (locate / naming / comicinfo), page range works (range),
@@ -94,7 +96,7 @@ internal/
   store/                 persistence of settings (JSON) and bookmarks / series / settings per owner of works (SQLite)
   update/                finding a newer release on GitHub and replacing the exe (Windows only)
 pluginsdk/               the plugin side of the plugin interface (for plugins written in Go; spec.go: the types of a
-                         site plugin's browse spec)
+                         site plugin's browse spec and login)
 frontend/src/            React UI
   components/viewer/     viewer (spreads, page images and videos, prefetching, predecoding, moire reduction)
   state.tsx              app state and routing (history entries)

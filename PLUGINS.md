@@ -100,6 +100,7 @@ func handle(method string, params json.RawMessage) (any, error) {
 | `siteCreators` | optional: `true` takes the works' creators from their own `artists` / `groups` (no lookup on DLsite / FANZA) |
 | `loadMore` | optional: when the list screens load the next page while scrolling: `near` (the default), `bottom` (only when scrolling on at the bottom) or `button`. The later ones call the site less (for a site with rate limits); the user can choose another |
 | `fileNameFormat` | optional: the file name format suggested for the site's works (such as `[{creator}] {id} {title}`); the user can choose another for the site in the settings |
+| `login` | optional: sign-in in a window of the app (Windows): `{url, cookieUrl, cookies: [{name, setting, match}]}` (`pluginsdk.Login`). The site's settings get a button that opens `url`; once every cookie is there (and its value matches `match`, for a cookie the site also sets for visitors), the window closes and each `setting` gets its cookie's value. HttpOnly cookies are read too. The window keeps its own browser profile, so signing in again is only opening it; "Another account" deletes the cookies first. Keep the settings so the user can still paste them (other platforms) |
 | `ownFavorites` | optional: `true` makes Favorites the plugin's own choice of works (such as the user's lists on the site): `listAny` gets no `tags` and the screen shows no artists |
 
 ## 4. Methods
@@ -120,7 +121,7 @@ plugin answers in `capabilities`. The types are in `internal/model/types.go` and
 | `invalidate` | none | nothing |
 | `fromURL` | `{url}` | the id of the work at a URL on the site (`""` if it is not one) |
 | `attachment` | `{id, index}` | where an attachment of the work is fetched from, like `image`: `{url, headers, ext}` |
-| `favoriteNames` | `{lang}` | with `ownFavorites`: what Favorites can be narrowed by, `[{tag, name, ns, bookmarks, note, parents}]` (shown on its left; the chosen one's `tag` comes as `listAny`'s only tag). Names that are some name's `parents` (such as lists) are shown apart above the others; choosing one shows only the names belonging to it below. `open: {view, query}` adds a button that opens one of the plugin's views with that input (a user's screen) |
+| `favoriteNames` | `{lang}` | with `ownFavorites`: what Favorites can be narrowed by, `[{tag, name, ns, bookmarks, note, parents, parent}]` (shown on its left; the chosen one's `tag` comes as `listAny`'s only tag). Names that are some name's `parents` (such as lists), or have `parent: true`, are shown apart above the others; choosing one shows only the names belonging to it below. `open: {view, query}` adds a button that opens one of the plugin's views with that input (a user's screen) |
 | `status` | `{lang}` | lines of the site's state shown on its tab, such as the API calls left: `[{label, value, max, note, warn}]` (a table: the parts line up in columns) |
 | `viewHeader` | `{view, query, lang}` | the header above a view's works: `{title, subtitle, text, image, actions}` (`null` for none) |
 | `viewAction` | `{view, query, action, lang}` | does a header button (`actions[].id`); `{message}` is shown after it |
@@ -231,6 +232,9 @@ Every text is given per UI language (`{"ja": ..., "en": ...}`).
   and its `actions` as buttons (`active` shows one as on, `items` makes a menu, `confirm` asks first).
 - `favoritesLabel` / `favoritesIcon`: the name and icon of the Favorites screen on the site's tab (for a plugin
   whose Favorites is its own choice, such as `Lists`).
+- `favoritesScoped`: Favorites is made of different lists (such as new works and bookmarks), the names above: one
+  of them is always chosen and there is no "all" above them. At first the first is chosen, and `listAny` then gets
+  no tag (`""` stands for the first).
 - `creatorLabels`: what the site calls the creators the app calls circle (`group`) and artist (`artist`), such as an
   account's display name and id. The screens use them in place of "circle" and "artist".
 - A filter with `stat` is a minimum of that number: its options' values are numbers (`"0"` for none) and the app
@@ -350,6 +354,7 @@ func handle(method string, params json.RawMessage) (any, error) {
 | `siteCreators` | 任意。`true` にすると作者情報を作品の `artists` / `groups` から取ります（DLsite・FANZA を調べません） |
 | `loadMore` | 任意。スクロールで次のページを読み込むタイミング：`near`（既定。最後に近づいたら）、`bottom`（最下部でさらにスクロールしたとき）、`button`（ボタンだけ）。後ろのものほどサイトへの呼び出しが減ります（回数制限のあるサイト向け）。ユーザーは設定で変えられます |
 | `fileNameFormat` | 任意。このサイトの作品に勧めるファイル名の書式（`[{creator}] {id} {title}` など）。ユーザーは設定でサイトごとに変えられます |
+| `login` | 任意。アプリのウィンドウでのログイン（Windows）：`{url, cookieUrl, cookies: [{name, setting, match}]}`（`pluginsdk.Login`）。サイトの設定に `url` を開くボタンが出ます。すべての Cookie がそろうと（訪問者にも発行される Cookie は、値が `match` に合ったとき）ウィンドウが閉じ、各 `setting` にその Cookie の値が入ります。HttpOnly の Cookie も読めます。ウィンドウは専用のブラウザのプロファイルを持つので、2 回目からは開くだけで済みます。「別のアカウントで」は先に Cookie を消します。手で貼れるよう（ほかの環境向け）、設定の欄は残してください |
 | `ownFavorites` | 任意。`true` にするとお気に入りはプラグインが選んだ作品（サイト上のユーザーのリストなど）になります。`listAny` に `tags` は来ず、画面にアーティストの一覧は出ません |
 
 ## 4. メソッド
@@ -412,7 +417,7 @@ func handle(method string, params json.RawMessage) (any, error) {
   `thumb` の `big: true` は作品ページ用の大きい表紙です。なければ小さいものを返してください。
 - **suggest**：検索欄の補完。`term` は入力中の語です。候補を、名前空間と作品数（分からなければ 0）付きで返します。
 - **favoriteNames**：`ownFavorites` のとき、お気に入りの左に出す絞り込みの名前。各名前の `parents`（リストなど属する名前の
-  tag）に出てくる名前は上の枠に分かれ、それを選ぶと、その名前に属するものだけが下の枠に出ます。選んだものの `tag` が
+  tag）に出てくる名前と、`parent: true` の名前は上の枠に分かれ、それを選ぶと、その名前に属するものだけが下の枠に出ます。選んだものの `tag` が
   `listAny` の唯一の tag として来ます。`open: {view, query}` を付けると、その入力でプラグインの画面（ユーザーの画面など）を
   開くボタンが出ます。
 - **status** / **viewHeader** / **viewAction**：上の表のとおりです。`viewHeader` と `viewAction` は 6 節の `views` で使います。
@@ -472,6 +477,8 @@ info に `browse`（`pluginsdk.BrowseSpec`、`pluginsdk/spec.go`）を書くと�
   `items` でメニュー、`confirm` で確認）。
 - `favoritesLabel` / `favoritesIcon`：サイトのタブでのお気に入り画面の名前とアイコン（お気に入りがプラグイン独自の
   内容のとき。「リスト」など）。
+- `favoritesScoped`：お気に入りが別々の一覧（新着とブックマークなど）からなり、それが上の枠の名前のとき。上の枠では
+  必ずどれかが選ばれ、「すべて」は出ません。最初は先頭が選ばれ、そのとき `listAny` には tag が来ません（`""` は先頭を表します）。
 - `creatorLabels`：アプリが「サークル」（`group`）と「作者」（`artist`）と呼ぶものを、このサイトで何と呼ぶか（アカウントの
   表示名と ID など）。画面の「サークル」「作者」がこの名前になります。
 - `stat` を付けた絞り込みは、その数値の下限です。選択肢の値は数値（`"0"` で制限なし）で、選んだ値より小さい作品はアプリが

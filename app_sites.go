@@ -2,13 +2,18 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"poruneko/internal/apperr"
+	"poruneko/internal/loginwin"
 	"poruneko/internal/model"
 	"poruneko/internal/site"
+	"poruneko/internal/store"
 )
 
 // API for the sites from site plugins: their lists and screens, what their plugins tell, adding works from URLs,
@@ -43,7 +48,7 @@ func (a *App) Sites() []model.SiteInfo {
 		info := model.SiteInfo{
 			ID: p.ID(), Name: p.Name(), Favorites: any, Dir: a.st.SiteDir(p.ID()),
 			Icon: pi.Icon, Browse: pi.Browse, Version: pi.Version, Hosts: pi.DisplayHosts,
-			FromURL: pi.Has("fromURL"), Status: pi.Has("status"),
+			FromURL: pi.Has("fromURL"), Status: pi.Has("status"), Login: pi.Login != nil && loginwin.Supported(),
 			OwnFavorites: pi.OwnFavorites, FavoriteNames: pi.OwnFavorites && pi.Has("favoriteNames"),
 			FileNameFormat: pi.FileNameFormat,
 		}
@@ -70,6 +75,50 @@ func (a *App) SiteStatus(siteID model.SiteID) []model.StatusLine {
 		return s.Status(ctx)
 	}
 	return []model.StatusLine{}
+}
+
+// SiteLogin opens a window where the user signs in to a site, and returns the plugin's login settings filled from
+// the site's cookies (setting id -> value; nil when the window was closed first). The window keeps its own browser
+// profile, so signing in again later is only opening it; fresh signs out of the site first (another account).
+// title is the window's title (UI text comes from the frontend)
+func (a *App) SiteLogin(siteID model.SiteID, title string, fresh bool) (map[string]string, error) {
+	spec := pluginInfoOf(siteID).Login
+	if spec == nil || len(spec.Cookies) == 0 {
+		return nil, apperr.New("login.none", "the site has no login window")
+	}
+	opts := loginwin.Options{
+		Title: title, URL: spec.URL, CookieURL: spec.CookieURL, Fresh: fresh,
+		DataPath: filepath.Join(store.DataDir(), "LoginWebView"),
+	}
+	for _, c := range spec.Cookies {
+		k := loginwin.Cookie{Name: c.Name}
+		if c.Match != "" {
+			re, err := regexp.Compile(c.Match)
+			if err != nil {
+				return nil, apperr.Wrap(err, "login.failed", "the plugin's cookie pattern is wrong")
+			}
+			k.Match = re
+		}
+		opts.Cookies = append(opts.Cookies, k)
+	}
+	got, err := loginwin.Run(a.ctx, opts)
+	switch {
+	case errors.Is(err, loginwin.ErrClosed):
+		return nil, nil
+	case errors.Is(err, loginwin.ErrBusy):
+		return nil, apperr.New("login.busy", "a login window is already open")
+	case errors.Is(err, loginwin.ErrUnsupported):
+		return nil, apperr.New("login.unsupported", "login windows are not supported here")
+	case err != nil:
+		log.Printf("[login] %s: %v", siteID, err)
+		return nil, apperr.Wrap(err, "login.failed", "the login window failed")
+	}
+	out := map[string]string{}
+	for _, c := range spec.Cookies {
+		out[c.Setting] = got[c.Name]
+	}
+	log.Printf("[login] %s: signed in", siteID)
+	return out, nil
 }
 
 // ViewHeader is the header of a plugin's own screen for its input (nil when the plugin shows none)

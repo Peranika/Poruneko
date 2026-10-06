@@ -17,7 +17,7 @@ import { ResizablePanel } from './ResizablePanel'
 import { usePaneScroll } from '../usePaneScroll'
 
 /** Favorites: lists works by the artists (and groups) of bookmarked works, newest first */
-export function FavoritesView({ site = '', page, tag, scope = '' }: { site?: string; page: number; tag: string; scope?: string }) {
+export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }: { site?: string; page: number; tag: string; scope?: string }) {
   const { nav, settings, bookmarks } = useApp()
   const [includeGroups, setIncludeGroups] = useState(() => loadString('fav.groups', '0') === '1')
   // the site plugin's filters for Favorites (kept separately from Browse's; Browse's defaults to start with)
@@ -41,8 +41,9 @@ export function FavoritesView({ site = '', page, tag, scope = '' }: { site?: str
         .join('|'),
     [bookmarks]
   )
-  // the plugin gets the name chosen below, or the parent chosen above (a list) when none is
-  const cond = { site, filters, tag: tag || scope, includeGroups, hideBookmarked, excludeCollective, minPages: pages.minPages, maxPages: pages.maxPages }
+  // the plugin gets the name chosen below, or the parent chosen above (a list) when none is. On a scoped site the
+  // first parent is chosen at first, which the plugin takes "" for
+  const cond = { site, filters, tag: tag || chosenScope, includeGroups, hideBookmarked, excludeCollective, minPages: pages.minPages, maxPages: pages.maxPages }
   // reload from the start when the query (other than the page number) or the Favorites targets change
   const resetKey = JSON.stringify(cond) + '|' + favSig
   const [res, setRes] = useState<FavoritesResult | null>(null)
@@ -55,7 +56,9 @@ export function FavoritesView({ site = '', page, tag, scope = '' }: { site?: str
   const go = (p: { page?: number; tag?: string; scope?: string }) => {
     const nextScope = p.scope ?? scope
     const nextTag = p.scope !== undefined && p.scope !== scope ? '' : (p.tag ?? tag)
-    nav.go({ name: 'favorites', site, page: p.page ?? 1, tag: nextTag, scope: nextScope || undefined })
+    // a scoped site's first parent is its "" (the same list, not loaded again)
+    const kept = scoped && nextScope === parents[0]?.tag ? '' : nextScope
+    nav.go({ name: 'favorites', site, page: p.page ?? 1, tag: nextTag, scope: kept || undefined })
   }
   const toggle = (key: string, value: boolean, set: (v: boolean) => void) => {
     set(value)
@@ -87,8 +90,11 @@ export function FavoritesView({ site = '', page, tag, scope = '' }: { site?: str
   const own = !!siteInfo(site)?.ownFavorites
   const ownNames = own && !!siteInfo(site)?.favoriteNames
   // names that are other names' parents (lists) are shown apart above; below, only the names in the chosen one
-  const parentTags = new Set(names.flatMap((n) => n.parents ?? []))
+  const parentTags = new Set([...names.flatMap((n) => n.parents ?? []), ...names.filter((n) => n.parent).map((n) => n.tag)])
   const parents = names.filter((n) => parentTags.has(n.tag))
+  // the parent chosen above: on a scoped site always one (the first at first), else none for all
+  const scoped = !!siteInfo(site)?.browse?.favoritesScoped
+  const scope = chosenScope || (scoped ? (parents[0]?.tag ?? '') : '')
   const shownNames = names.filter(
     (n) => !parentTags.has(n.tag) && (own || n.ns === 'artist' || includeGroups || n.tag === tag) && (!scope || n.parents?.includes(scope))
   )
@@ -123,11 +129,15 @@ export function FavoritesView({ site = '', page, tag, scope = '' }: { site?: str
         {/* the parents (lists): choosing one narrows the works and the names below to it */}
         {parents.length > 0 && (
           <ul ref={parentScroll} className="group-list parent-list">
-            <li className={`special ${scope === '' ? 'active' : ''}`} onClick={() => go({ scope: '' })}>
-              <span>{t('common.all')}</span>
-              <em>{parents.length}</em>
-            </li>
-            <li className="sep" />
+            {!scoped && (
+              <>
+                <li className={`special ${scope === '' ? 'active' : ''}`} onClick={() => go({ scope: '' })}>
+                  <span>{t('common.all')}</span>
+                  <em>{parents.length}</em>
+                </li>
+                <li className="sep" />
+              </>
+            )}
             {parents.map((n) => (
               <li key={n.tag} className={scope === n.tag ? 'active' : ''} onClick={() => go({ scope: n.tag })} title={n.name}>
                 <span className="group-name">

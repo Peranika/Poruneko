@@ -588,6 +588,12 @@ export const ja = {
     siteDir: '保存先',
     libraryDirHint: '変更しても既存のファイルは移動されません',
     siteDirDialog: '{name} の保存先フォルダを選択',
+    login: 'ログイン',
+    loginHint: 'サイトのログイン画面を開きます。ログインすると下のログイン情報が自動で入り、画面は閉じます',
+    loginOpen: 'ログイン画面を開く',
+    loginOther: '別のアカウントで',
+    loginTitle: '{name} にログイン',
+    loggedIn: '{name} のログイン情報を入れました',
     libraryDirChanged: '保存先を変更しました',
     localDirs: 'ローカルのフォルダ',
     localDirsHint: 'フォルダごとにタブができ、中の cbz / zip など（サブフォルダも含む）が並びます。ファイルは読むだけで、変更しません。アイコンを押すと変えられます',
@@ -779,6 +785,12 @@ export const ja = {
     },
     site: {
       noAction: 'このサイトではその操作はできません'
+    },
+    login: {
+      none: 'このサイトにはログイン画面がありません',
+      busy: 'ログイン画面がすでに開いています',
+      unsupported: 'この環境ではログイン画面を開けません。ログイン情報を貼ってください',
+      failed: 'ログイン画面を開けませんでした: {detail}'
     },
     range: {
       invalid: 'ページ範囲が正しくありません（1〜{max}）',

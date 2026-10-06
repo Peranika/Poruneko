@@ -87,6 +87,21 @@ function SiteSection({ site, plugin, onDirChanged }: { site: SiteInfo; plugin?: 
   // it too)
   const own = specFilters(site.browse, 'settings')
   const defaults = specFilters(site.browse, 'browse').filter((f) => !f.multi)
+  const [signingIn, setSigningIn] = useState(false)
+  const login = async (fresh: boolean) => {
+    setSigningIn(true)
+    try {
+      const got = await api.siteLogin(site.id, t('settings.loginTitle', { name: site.name }), fresh)
+      if (!got) return
+      const all = settings?.pluginSettings ?? {}
+      updateSettings({ pluginSettings: { ...all, [site.id]: { ...all[site.id], ...got } } })
+      toast(t('settings.loggedIn', { name: site.name }))
+    } catch (e) {
+      toast(errorText(e))
+    } finally {
+      setSigningIn(false)
+    }
+  }
   return (
     <section id={`set-site-${site.id}`}>
       <h3 className="settings-site-head">
@@ -94,6 +109,22 @@ function SiteSection({ site, plugin, onDirChanged }: { site: SiteInfo; plugin?: 
         {site.name}
         {plugin && <small className="muted">{pluginDetail(plugin)}</small>}
       </h3>
+      {site.login && (
+        <div className="row-setting">
+          <span>
+            {t('settings.login')}
+            <small className="muted">{t('settings.loginHint')}</small>
+          </span>
+          <div className="path-pick">
+            <button className="btn" disabled={signingIn} onClick={() => void login(false)}>
+              {t('settings.loginOpen')}
+            </button>
+            <button className="btn" disabled={signingIn} onClick={() => void login(true)}>
+              {t('settings.loginOther')}
+            </button>
+          </div>
+        </div>
+      )}
       {own.map((f) => (
         <label key={f.id} className="row-setting">
           <span>

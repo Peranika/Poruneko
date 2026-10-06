@@ -585,6 +585,12 @@ export const en: Dict = {
     siteDir: 'Save location',
     libraryDirHint: 'Existing files are not moved when you change it',
     siteDirDialog: 'Choose the save folder for {name}',
+    login: 'Sign in',
+    loginHint: 'Opens the sign-in page of the site. Once you sign in, the login values below are filled in and the window closes',
+    loginOpen: 'Open the sign-in page',
+    loginOther: 'Another account',
+    loginTitle: 'Sign in to {name}',
+    loggedIn: 'Filled in the login for {name}',
     libraryDirChanged: 'Changed the save location',
     localDirs: 'Local folders',
     localDirsHint: 'Each folder becomes a tab listing its cbz / zip files and the like (subfolders included). The files are only read, never changed. Click an icon to change it',
@@ -775,6 +781,12 @@ export const en: Dict = {
     },
     site: {
       noAction: 'The site cannot do that'
+    },
+    login: {
+      none: 'The site has no sign-in page',
+      busy: 'A sign-in window is already open',
+      unsupported: 'Sign-in windows are not available here. Paste the login values instead',
+      failed: 'Could not open the sign-in window: {detail}'
     },
     range: {
       invalid: 'Invalid page range (1-{max})',

@@ -560,6 +560,9 @@ type SiteInfo struct {
 	FileNameFormat string `json:"fileNameFormat"`
 	// Status: the plugin tells its state (SiteStatus), shown on the site's tab
 	Status bool `json:"status"`
+	// Login: the user can sign in to the site in a window of the app (SiteLogin), which fills the plugin's login
+	// settings
+	Login bool `json:"login"`
 	// Version and Hosts are the plugin's version and the hosts it connects to (shown on the site's tab)
 	Version string   `json:"version"`
 	Hosts   []string `json:"hosts"`
@@ -601,6 +604,9 @@ type BrowseSpec struct {
 	// user's lists; "Favorites" and its heart if empty)
 	FavoritesLabel Text   `json:"favoritesLabel,omitempty"`
 	FavoritesIcon  string `json:"favoritesIcon,omitempty"`
+	// FavoritesScoped: one of the names above (FavoriteName.Parent / Parents) is always chosen on Favorites, the
+	// first at first: there is no "all" above, as they are different lists (such as new works and bookmarks)
+	FavoritesScoped bool `json:"favoritesScoped,omitempty"`
 }
 
 // ViewSpec is a plugin's own screen: an input (which can be taken from the clipboard) and the works the plugin
@@ -748,6 +754,8 @@ type FavoriteName struct {
 	// Parents are the tags of the names it belongs to (such as the lists a user is on). Names that are parents are
 	// shown apart, above the others; choosing one shows only the names that belong to it
 	Parents []string `json:"parents,omitempty"`
+	// Parent shows the name above even when no name belongs to it
+	Parent bool `json:"parent,omitempty"`
 	// Open is one of the plugin's own screens the name can be opened in (such as a user's screen), with its input
 	Open *ViewLink `json:"open,omitempty"`
 }

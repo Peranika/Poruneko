@@ -48,6 +48,8 @@ export const api = {
     go.SetOwnerSetting(site, owner, filterId, value),
   /** Do a button of a plugin's own screen (such as following a user); returns the message to show */
   viewAction: (site: string, view: string, query: string, action: string): Promise<Text | null> => go.ViewAction(site, view, query, action),
+  /** Opens the site's login window; the plugin's login settings (null when the window was closed first) */
+  siteLogin: (site: string, title: string, fresh: boolean): Promise<Record<string, string> | null> => go.SiteLogin(site, title, fresh),
   list: (q: ListQuery): Promise<ListResult> => go.List(q),
   gallery: (key: string): Promise<GalleryDetail> => go.Gallery(key),
   suggest: (site: string, term: string): Promise<Suggestion[]> => go.Suggest(site, term),

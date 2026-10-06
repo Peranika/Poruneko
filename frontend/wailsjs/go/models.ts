@@ -29,6 +29,8 @@ export namespace main {
 	    fileNameFormat?: string;
 	    icon?: string;
 	    browse?: model.BrowseSpec;
+	    // Go type: plugin
+	    login?: any;
 	    file: string;
 	    formats: string[];
 	
@@ -52,6 +54,7 @@ export namespace main {
 	        this.fileNameFormat = source["fileNameFormat"];
 	        this.icon = source["icon"];
 	        this.browse = this.convertValues(source["browse"], model.BrowseSpec);
+	        this.login = this.convertValues(source["login"], null);
 	        this.file = source["file"];
 	        this.formats = source["formats"];
 	    }
@@ -496,6 +499,7 @@ export namespace model {
 	    views?: ViewSpec[];
 	    favoritesLabel?: Record<string, string>;
 	    favoritesIcon?: string;
+	    favoritesScoped?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new BrowseSpec(source);
@@ -511,6 +515,7 @@ export namespace model {
 	        this.views = this.convertValues(source["views"], ViewSpec);
 	        this.favoritesLabel = source["favoritesLabel"];
 	        this.favoritesIcon = source["favoritesIcon"];
+	        this.favoritesScoped = source["favoritesScoped"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -555,6 +560,7 @@ export namespace model {
 	    bookmarks: number;
 	    note?: string;
 	    parents?: string[];
+	    parent?: boolean;
 	    open?: ViewLink;
 	
 	    static createFrom(source: any = {}) {
@@ -569,6 +575,7 @@ export namespace model {
 	        this.bookmarks = source["bookmarks"];
 	        this.note = source["note"];
 	        this.parents = source["parents"];
+	        this.parent = source["parent"];
 	        this.open = this.convertValues(source["open"], ViewLink);
 	    }
 	
@@ -1074,6 +1081,7 @@ export namespace model {
 	    favoriteNames: boolean;
 	    fileNameFormat: string;
 	    status: boolean;
+	    login: boolean;
 	    version: string;
 	    hosts: string[];
 	    loadMore: string;
@@ -1095,6 +1103,7 @@ export namespace model {
 	        this.favoriteNames = source["favoriteNames"];
 	        this.fileNameFormat = source["fileNameFormat"];
 	        this.status = source["status"];
+	        this.login = source["login"];
 	        this.version = source["version"];
 	        this.hosts = source["hosts"];
 	        this.loadMore = source["loadMore"];
