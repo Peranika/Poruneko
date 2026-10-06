@@ -54,7 +54,7 @@ macOS and Linux are not distributed as builds, but you can build the app yoursel
 
 ## Development
 
-Building from source, the project layout and the release process are described in [DEVELOPMENT.md](DEVELOPMENT.md).
+Building from source, the project layout and the release process are described in [DEVELOPMENT.md](DEVELOPMENT.md); how to write a site plugin is in [PLUGINS.md](PLUGINS.md).
 
 ---
 
@@ -112,4 +112,4 @@ macOS・Linux 向けのビルド済みファイルは配布していないが、
 
 ## 開発
 
-ソースからのビルド方法、ソースの構成、リリースの手順は [DEVELOPMENT.md](DEVELOPMENT.md) にまとめている（英語）。
+ソースからのビルド方法、ソースの構成、リリースの手順は [DEVELOPMENT.md](DEVELOPMENT.md) にまとめている（英語）。サイトプラグインの作り方は [PLUGINS.md](PLUGINS.md#japanese) にある（日本語あり）。
