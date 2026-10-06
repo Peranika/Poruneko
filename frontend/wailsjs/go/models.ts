@@ -29,6 +29,7 @@ export namespace main {
 	    fileNameFormat?: string;
 	    icon?: string;
 	    browse?: model.BrowseSpec;
+	    pace?: Record<string, number>;
 	    // Go type: plugin
 	    login?: any;
 	    file: string;
@@ -54,6 +55,7 @@ export namespace main {
 	        this.fileNameFormat = source["fileNameFormat"];
 	        this.icon = source["icon"];
 	        this.browse = this.convertValues(source["browse"], model.BrowseSpec);
+	        this.pace = source["pace"];
 	        this.login = this.convertValues(source["login"], null);
 	        this.file = source["file"];
 	        this.formats = source["formats"];

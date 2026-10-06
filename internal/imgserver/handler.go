@@ -32,6 +32,8 @@ type Handler struct {
 	lib    *library.Library
 	st     *store.Store
 	thumbs *netx.Cache[[]byte]
+	// sprites are pictures whose tiles are page thumbnails
+	sprites *sprites
 	// pages holds page images fetched from the site (so prefetched ones can be returned at once when shown)
 	pages *byteLRU
 
@@ -46,11 +48,12 @@ type Handler struct {
 
 func New(lib *library.Library, st *store.Store) *Handler {
 	return &Handler{
-		lib:    lib,
-		st:     st,
-		thumbs: netx.NewCache[[]byte](time.Hour, 1000),
-		pages:  newByteLRU(300 << 20),
-		active: map[string]map[int]context.CancelFunc{},
+		lib:     lib,
+		st:      st,
+		thumbs:  netx.NewCache[[]byte](time.Hour, 1000),
+		sprites: newSprites(),
+		pages:   newByteLRU(300 << 20),
+		active:  map[string]map[int]context.CancelFunc{},
 	}
 }
 
@@ -326,21 +329,28 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			return nil, err
 		}
+		get := func(src *site.ImageSource) ([]byte, error) {
+			if src.Crop != nil {
+				return h.sprites.tile(ctx, src)
+			}
+			res, err := netx.Get(ctx, src.URL, &netx.Opts{Headers: src.Headers})
+			if err != nil {
+				return nil, err
+			}
+			return res.Body, nil
+		}
 		src, err := p.Thumb(ctx, id, index, big)
 		if err != nil {
 			return nil, err
 		}
-		res, err := netx.Get(ctx, src.URL, &netx.Opts{Headers: src.Headers})
-		if err != nil {
+		b, err := get(src)
+		if err != nil && ctx.Err() == nil {
 			p.Invalidate()
 			if src, err = p.Thumb(ctx, id, index, big); err == nil {
-				res, err = netx.Get(ctx, src.URL, &netx.Opts{Headers: src.Headers})
+				b, err = get(src)
 			}
 		}
-		if err != nil {
-			return nil, err
-		}
-		return res.Body, nil
+		return b, err
 	}
 	b, err := fetch()
 	if err != nil {

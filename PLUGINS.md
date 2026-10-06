@@ -100,6 +100,7 @@ func handle(method string, params json.RawMessage) (any, error) {
 | `siteCreators` | optional: `true` takes the works' creators from their own `artists` / `groups` (no lookup on DLsite / FANZA) |
 | `loadMore` | optional: when the list screens load the next page while scrolling: `near` (the default), `bottom` (only when scrolling on at the bottom) or `button`. The later ones call the site less (for a site with rate limits); the user can choose another |
 | `fileNameFormat` | optional: the file name format suggested for the site's works (such as `[{creator}] {id} {title}`); the user can choose another for the site in the settings |
+| `pace` | optional: the least time between the plugin's requests to a host, in ms (`{"example.com": 1000}`; subdomains too), for a site that bans quick page loads. The app holds each request until its turn (the call waits meanwhile). It applies to the plugin's own fetches, not to the pictures the app fetches |
 | `login` | optional: sign-in in a window of the app (Windows): `{url, cookieUrl, cookies: [{name, setting, match}]}` (`pluginsdk.Login`). The site's settings get a button that opens `url`; once every cookie is there (and its value matches `match`, for a cookie the site also sets for visitors), the window closes and each `setting` gets its cookie's value. HttpOnly cookies are read too. The window keeps its own browser profile, so signing in again is only opening it; "Another account" deletes the cookies first. Keep the settings so the user can still paste them (other platforms) |
 | `ownFavorites` | optional: `true` makes Favorites the plugin's own choice of works (such as the user's lists on the site): `listAny` gets no `tags` and the screen shows no artists |
 
@@ -167,9 +168,14 @@ work info.
 
 **image** / **thumb** do not return the image itself but where the app fetches it: `url`, the `headers` to send
 (such as `Referer`) and `ext`, the file extension (`webp`...). The app fetches it with its own timeouts, retries
-and concurrency limit, caches it and saves it into the cbz. If the fetch ends in 403 or 404, the app calls
-`invalidate` (when listed) and asks `image` once more, so a plugin with expiring URLs or keys should drop them in
-`invalidate`. `format` is empty (the image format is left to the plugin's settings). `thumb` with `big: true` asks
+and concurrency limit, caches it and saves it into the cbz. If the fetch fails (an error status, or no answer), the
+app calls `invalidate` (when listed) and asks `image` once more, so a plugin with expiring URLs or keys should drop them in
+`invalidate`. `format` is empty (the image format is left to the plugin's settings). A
+`thumb` can also give `crop: {x, y, w, h}`: the thumbnail is that rectangle of the picture (for a site whose page
+thumbnails are tiles of one picture); the app fetches the picture once and cuts each out. An `image` can also
+give `entry`: the page is that file in the zip at `url` (for a site whose pages are files of one archive, such as a
+pixiv ugoira's frames); the app fetches the zip once, for the viewer and the download alike, and reads each page
+from it. `thumb` with `big: true` asks
 for a larger cover for the work page; return the small one if there is none.
 
 **suggest** completes the search box: `term` is the word being typed; return candidates with their namespace and
@@ -357,6 +363,7 @@ func handle(method string, params json.RawMessage) (any, error) {
 | `siteCreators` | 任意。`true` にすると作者情報を作品の `artists` / `groups` から取ります（DLsite・FANZA を調べません） |
 | `loadMore` | 任意。スクロールで次のページを読み込むタイミング：`near`（既定。最後に近づいたら）、`bottom`（最下部でさらにスクロールしたとき）、`button`（ボタンだけ）。後ろのものほどサイトへの呼び出しが減ります（回数制限のあるサイト向け）。ユーザーは設定で変えられます |
 | `fileNameFormat` | 任意。このサイトの作品に勧めるファイル名の書式（`[{creator}] {id} {title}` など）。ユーザーは設定でサイトごとに変えられます |
+| `pace` | 任意。プラグインがあるホストへ送るリクエストの最小間隔（ms。`{"example.com": 1000}`、サブドメインも含む）。速い読み込みを止めるサイト向けです。アプリが順番まで各リクエストを待たせます（その間、呼び出しも待ちます）。プラグイン自身の取得にだけ効き、アプリが取る画像には効きません |
 | `login` | 任意。アプリのウィンドウでのログイン（Windows）：`{url, cookieUrl, cookies: [{name, setting, match}]}`（`pluginsdk.Login`）。サイトの設定に `url` を開くボタンが出ます。すべての Cookie がそろうと（訪問者にも発行される Cookie は、値が `match` に合ったとき）ウィンドウが閉じ、各 `setting` にその Cookie の値が入ります。HttpOnly の Cookie も読めます。ウィンドウは専用のブラウザのプロファイルを持つので、2 回目からは開くだけで済みます。「別のアカウントで」は先に Cookie を消します。手で貼れるよう（ほかの環境向け）、設定の欄は残してください |
 | `ownFavorites` | 任意。`true` にするとお気に入りはプラグインが選んだ作品（サイト上のユーザーのリストなど）になります。`listAny` に `tags` は来ず、画面にアーティストの一覧は出ません |
 
@@ -417,8 +424,12 @@ func handle(method string, params json.RawMessage) (any, error) {
   作品を 1 ページとして表示し、コマをそれぞれの時間で、動画と同じ操作で再生します。コマはページと同じく cbz に入り、時間は作品情報に残ります。
 - **image** / **thumb**：画像そのものではなく、取得先を返します。`url`、送るべき `headers`（`Referer` など）、
   拡張子の `ext`（`webp` など）です。取得・タイムアウト・リトライ・同時接続数・キャッシュ・cbz への保存はアプリがします。
-  取得が 403 / 404 になると、アプリは `invalidate` を呼び（あれば）、もう一度 `image` を聞きます。期限付きの URL や鍵を
+  取得に失敗すると（エラーの応答か、応答がないとき）、アプリは `invalidate` を呼び（あれば）、もう一度 `image` を聞きます。期限付きの URL や鍵を
   使うサイトでは、`invalidate` でそれを捨ててください。`format` は空です（画像形式はプラグインの設定に任せています）。
+  `thumb` は `crop: {x, y, w, h}` も返せます。サムネイルはその画像のその範囲になります（ページのサムネイルが 1 枚の画像に
+  並んでいるサイト向け）。アプリはその画像を 1 回だけ取り、そこから切り出します。`image` は `entry` も返せます。ページは
+  `url` の zip の中のそのファイルになります（pixiv のうごイラのコマのように、ページが 1 つの書庫に入っているサイト向け）。
+  アプリは zip をビューアとダウンロードで共有して 1 回だけ取り、そこから各ページを読みます。
   `thumb` の `big: true` は作品ページ用の大きい表紙です。なければ小さいものを返してください。
 - **suggest**：検索欄の補完。`term` は入力中の語です。候補を、名前空間と作品数（分からなければ 0）付きで返します。
 - **favoriteNames**：`ownFavorites` のとき、お気に入りの左に出す絞り込みの名前。各名前の `parents`（リストなど属する名前の

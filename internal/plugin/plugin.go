@@ -92,6 +92,9 @@ type Info struct {
 	Icon string `json:"icon,omitempty"`
 	// Browse is what a site plugin's list screen offers (its filters and the search box's hint)
 	Browse *model.BrowseSpec `json:"browse,omitempty"`
+	// Pace is the least time between the plugin's requests to a host (ms; "example.com" also covers its
+	// subdomains), for a site that bans quick page loads: the app spaces them out, as the plugin cannot wait
+	Pace map[string]int `json:"pace,omitempty"`
 	// Login lets the user sign in to the site in a window of the app, which then fills the plugin's login settings
 	// with the site's cookies (instead of pasting them)
 	Login *LoginSpec `json:"login,omitempty"`
@@ -173,6 +176,10 @@ type Plugin struct {
 	// store holds what the plugin keeps for all its instances (store_set / store_get)
 	storeOnce sync.Once
 	store     *netx.Cache[[]byte]
+
+	// paced holds when the next request to each paced host may start (Info.Pace)
+	paceMu sync.Mutex
+	paced  map[string]time.Time
 }
 
 // storeTTL / storeMax limit what a plugin keeps with store_set
@@ -442,7 +449,7 @@ func hostFetch(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
 		} else if err := owner.(*Plugin).allowed(req.URL); err != nil {
 			res.Error = err.Error()
 		} else {
-			fetch(ctx, &req, &res)
+			owner.(*Plugin).fetch(ctx, &req, &res)
 		}
 	}
 	in.pending, _ = json.Marshal(res)
@@ -470,19 +477,23 @@ func hostFetchMany(ctx context.Context, m api.Module, ptr, size uint32) uint32 {
 			out[i].Error = err.Error()
 			return
 		}
-		fetch(ctx, &req, &out[i])
+		owner.(*Plugin).fetch(ctx, &req, &out[i])
 	})
 	in := inst.(*instance)
 	in.pending, _ = json.Marshal(out)
 	return uint32(len(in.pending))
 }
 
-func fetch(ctx context.Context, req *HTTPRequest, res *HTTPResponse) {
+func (p *Plugin) fetch(ctx context.Context, req *HTTPRequest, res *HTTPResponse) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	method := strings.ToUpper(req.Method)
 	if method != "" && method != "GET" && method != "POST" {
 		res.Error = "method not allowed: " + req.Method
+		return
+	}
+	if err := p.pace(ctx, req.URL); err != nil {
+		res.Error = err.Error()
 		return
 	}
 	opts := &netx.Opts{Headers: req.Headers, Method: method, Body: req.Body}
@@ -504,15 +515,57 @@ func fetch(ctx context.Context, req *HTTPRequest, res *HTTPResponse) {
 	res.Headers = firstValues(r.Header)
 }
 
-// firstValues is the first value of each header
+// firstValues are the headers, one value each: a header sent more than once (Set-Cookie) has its values on lines
+// of their own
 func firstValues(h map[string][]string) map[string]string {
 	out := map[string]string{}
 	for k, v := range h {
 		if len(v) > 0 {
-			out[k] = v[0]
+			out[k] = strings.Join(v, "\n")
 		}
 	}
 	return out
+}
+
+// pace waits until a request to the URL's host may start, when the plugin asks for its requests to that host to be
+// spaced out (Info.Pace). Each request takes the next free time, so waiting ones go one after another
+func (p *Plugin) pace(ctx context.Context, raw string) error {
+	if len(p.Info.Pace) == 0 {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil
+	}
+	host := strings.ToLower(u.Hostname())
+	for h, ms := range p.Info.Pace {
+		h = strings.ToLower(h)
+		if ms <= 0 || (host != h && !strings.HasSuffix(host, "."+h)) {
+			continue
+		}
+		p.paceMu.Lock()
+		if p.paced == nil {
+			p.paced = map[string]time.Time{}
+		}
+		now := time.Now()
+		at := p.paced[h]
+		if at.Before(now) {
+			at = now
+		}
+		p.paced[h] = at.Add(time.Duration(ms) * time.Millisecond)
+		p.paceMu.Unlock()
+		if wait := time.Until(at); wait > 0 {
+			t := time.NewTimer(wait)
+			select {
+			case <-t.C:
+			case <-ctx.Done():
+				t.Stop()
+				return ctx.Err()
+			}
+		}
+		return nil
+	}
+	return nil
 }
 
 // allowed checks a URL against the hosts the plugin may fetch from

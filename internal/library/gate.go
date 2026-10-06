@@ -161,10 +161,18 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 		// while viewing, give up sooner so the user is not kept waiting and leave retries to the frontend
 		opts = &netx.Opts{Timeout: 30 * time.Second, Retries: 3, MaxBackoff: 3 * time.Second}
 	}
+	// asked: the site told where the page is (a failure after that is the download's)
+	asked := false
 	try := func() ([]byte, string, error) {
+		asked = false
 		src, err := p.Image(ctx, id, index, format)
 		if err != nil {
 			return nil, "", err
+		}
+		asked = true
+		if src.Entry != "" {
+			body, err := pageArchives.entry(ctx, src)
+			return body, src.Ext, err
 		}
 		o := *opts
 		o.Headers = src.Headers
@@ -178,7 +186,9 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 		return res.Body, src.Ext, nil
 	}
 	body, ext, err := try()
-	if err != nil && ctx.Err() == nil && netx.IsStatus(err, 403, 404) {
+	// the URL may have expired, or its server be down: the plugin forgets what it knew and is asked once more (a
+	// site with more than one server for a page can then give another)
+	if err != nil && ctx.Err() == nil && asked {
 		p.Invalidate()
 		body, ext, err = try()
 	}

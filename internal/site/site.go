@@ -15,6 +15,20 @@ type ImageSource struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers,omitempty"`
 	Ext     string            `json:"ext"`
+	// Entry is the page's file in the zip at URL, for a site whose pages are files of one archive (a pixiv
+	// ugoira's frames): the app fetches the zip once and reads each page from it
+	Entry string `json:"entry,omitempty"`
+	// Crop is the part of the image that is the thumbnail, for a site whose page thumbnails are tiles of one
+	// picture (a sprite): the app fetches the picture once and cuts each out
+	Crop *Crop `json:"crop,omitempty"`
+}
+
+// Crop is a rectangle of a picture, in its pixels
+type Crop struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+	W int `json:"w"`
+	H int `json:"h"`
 }
 
 type Provider interface {
