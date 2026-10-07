@@ -1245,7 +1245,10 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 
   /* the viewer's bar: the slider on a row of its own above the buttons */
   .viewer-bar { flex-wrap: wrap; gap: 6px 4px; padding: 6px 8px; }
-  .viewer-bar .slider { order: -1; flex: 1 0 100%; height: 28px; }
+  .viewer-bar > .slider { order: -1; flex: 1 0 100%; height: 28px; }
+  /* a video's controls (play, time, position) take the page slider's place, on a row of their own */
+  .viewer-bar > .video-controls { order: -1; flex: 1 0 100%; }
+  .video-controls .slider { height: 28px; }
   .viewer-bar .bar-sep { display: none; }
   .page-label { min-width: 0; margin: 0 4px; }
   .viewer.immersive .viewer-bar { width: calc(100% - 16px); bottom: 8px; }
@@ -1259,6 +1262,8 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
    Nothing hovers: what hovering shows is shown by tapping instead */
 /* the bar shows and hides by tapping the page, so it is never pinned */
 :root[data-touch] .viewer-bar .icon-btn.pin-btn { display: none; }
+/* the device's own buttons set the volume: only muting stays on the bar */
+:root[data-touch] .video-controls .video-volume { display: none; }
 /* the buttons that hovering a card, a row or a cover brings out stay out */
 :root[data-touch] .bm-card .hover-actions, :root[data-touch] .bm-card .tag-add, :root[data-touch] .series-card .tag-add,
 :root[data-touch] .bm-card .select-btn, :root[data-touch] .group-list li .name-open, :root[data-touch] .info-cover.editable .thumb-change,
