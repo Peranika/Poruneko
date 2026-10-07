@@ -13,6 +13,7 @@ import { PredecodeSetting } from './PredecodeSetting'
 import { SlideCurveSetting } from './SlideCurveSetting'
 import { AndroidConnect } from './AndroidConnect'
 import { RemoteSettings } from './RemoteSettings'
+import { GestureSettings } from './GestureSettings'
 
 /** Accent color: a few presets, and any color through the color picker at the end */
 function AccentPicker({ value, onChange }: { value: string; onChange(v: string): void }) {
@@ -255,6 +256,7 @@ const SECTIONS: [id: string, label: () => string][] = [
   ['general', () => t('settings.general')],
   ['browse', () => t('settings.browse')],
   ['viewer', () => t('settings.viewer')],
+  ['gestures', () => t('gestures.title')],
   ['downloads', () => t('settings.downloads')],
   ['localDirs', () => t('settings.localDirs')],
   ['remote', () => t('remote.title')],
@@ -323,7 +325,7 @@ export function SettingsView() {
         <div className="settings-layout">
           <nav className="settings-nav">
             {SECTIONS.map(([id, label]) => (
-              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'local-only' : ''}`} onClick={() => goTo(id)}>
+              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'local-only' : ''} ${id === 'gestures' ? 'touch-only' : ''}`} onClick={() => goTo(id)}>
                 {label()}
               </button>
             ))}
@@ -440,6 +442,8 @@ export function SettingsView() {
               <PredecodeSetting />
               <SlideCurveSetting />
             </section>
+
+            <GestureSettings />
 
             <section id="set-downloads">
               <h3>{t('settings.downloads')}</h3>

@@ -480,6 +480,9 @@ type Settings struct {
 	SourcesRev int `json:"sourcesRev"`
 	// Keybindings are the key bindings per action ID (unset actions use the frontend defaults)
 	Keybindings map[string][]string `json:"keybindings"`
+	// Gestures are the actions of the touch gestures ("viewer.swipe2Up" -> action ID, "" for none; unset ones use
+	// the frontend defaults)
+	Gestures map[string]string `json:"gestures"`
 	// InfiniteScroll loads the next page automatically when scrolling a list
 	InfiniteScroll bool `json:"infiniteScroll"`
 	// SiteOrder is the order of the sites' tabs in the sidebar as the user arranged them (site ids; sites not in it

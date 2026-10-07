@@ -1258,6 +1258,9 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   .settings-inner section { padding: 4px 12px 10px; }
 }
 
+/* what only a touch screen has (the finger gestures' settings) */
+:root:not([data-touch]) .touch-only { display: none !important; }
+
 /* ---------------------------------------------------------------- Touch screens (<html data-touch>, see useCompact.ts)
    Nothing hovers: what hovering shows is shown by tapping instead */
 /* the bar shows and hides by tapping the page, so it is never pinned */

@@ -6,6 +6,7 @@ import type { PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
 import { useTouch } from '../../useCompact'
+import { setViewerGestures, type GestureAction } from '../../gestures'
 import { PageAnimation, PageImage, PageVideo } from './PageImage'
 import { isAnimation, type MediaLike } from './animation'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
@@ -37,6 +38,8 @@ interface Props {
   onToggleBookmark?(): void
   onNextWork?(): void
   onPrevWork?(): void
+  /** Closes the viewer (back to where the work was opened from) */
+  onClose?(): void
   /** Page range bookmark (the gallery page holds the state; the viewer only selects pages and shows marks) */
   range?: RangeControl
 }
@@ -63,7 +66,7 @@ export interface RangeControl {
 let slideshowCarriedAt = 0
 
 export function Viewer(props: Props) {
-  const { galleryKey, pages: allPages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, range } = props
+  const { galleryKey, pages: allPages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, onClose, range } = props
   // a work whose pages are an animation's frames (a ugoira) is one page here, played as a whole
   const animation = useMemo(() => isAnimation(allPages), [allPages])
   const pages = useMemo(() => (animation ? allPages.slice(0, 1) : allPages), [animation, allPages])
@@ -288,15 +291,25 @@ export function Viewer(props: Props) {
     const onMouse = (e: MouseEvent) => perform(comboFromMouse(e), e)
     const perform = (combo: string | null, e: Event) => {
       const action = combo ? keymap.get(combo) : undefined
-      if (!action) return
+      if (action && act(action, combo)) e.preventDefault()
+    }
+    // does an action of a key or a gesture (false when the viewer leaves it to the app or there is nothing to do)
+    const act = (action: GestureAction, combo: string | null): boolean => {
       const stage = stageRef.current
       const canScrollDown = !!stage && stage.scrollTop + stage.clientHeight < stage.scrollHeight - 2
       const canScrollUp = !!stage && stage.scrollTop > 2
       // ↑↓ and Space first scroll normally on tall pages
       const scrollFirst = combo === 'ArrowDown' || combo === 'ArrowUp' || combo === 'Space' || combo === 'Shift+Space'
       const paging = ['pageLeft', 'pageRight', 'next', 'prev'].includes(action)
-      if (paging && mode === 'scroll') return
+      if (paging && mode === 'scroll') return false
       switch (action) {
+        case 'closeViewer':
+          if (immersive) onToggleImmersive()
+          onClose?.()
+          break
+        case 'maximize':
+          if (!immersive) onToggleImmersive()
+          break
         case 'pageLeft':
           rtl ? next() : prev()
           break
@@ -304,11 +317,11 @@ export function Viewer(props: Props) {
           rtl ? prev() : next()
           break
         case 'next':
-          if (scrollFirst && canScrollDown) return
+          if (scrollFirst && canScrollDown) return false
           next()
           break
         case 'prev':
-          if (scrollFirst && canScrollUp) return
+          if (scrollFirst && canScrollUp) return false
           prev()
           break
         case 'first':
@@ -354,17 +367,19 @@ export function Viewer(props: Props) {
           onSettings({ mode: 'scroll' })
           break
         default:
-          return // back/forward and the like are handled app-wide
+          return false // back/forward and the like are handled app-wide
       }
-      e.preventDefault()
+      return true
     }
+    setViewerGestures((action) => void act(action, null))
     window.addEventListener('keydown', onKey)
     window.addEventListener('mouseup', onMouse)
     return () => {
+      setViewerGestures(null)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('mouseup', onMouse)
     }
-  }, [keymap, mode, rtl, next, prev, jumpTo, pages.length, immersive, onToggleImmersive, onToggleBookmark, onNextWork, onPrevWork, showThumbs, onSettings, shiftHere, picking, range, changeSlideSeconds, toggleSlideshow])
+  }, [keymap, mode, rtl, next, prev, jumpTo, pages.length, immersive, onToggleImmersive, onToggleBookmark, onNextWork, onPrevWork, onClose, showThumbs, onSettings, shiftHere, picking, range, changeSlideSeconds, toggleSlideshow])
 
   // in fit-to-screen views the wheel turns pages
   const onWheel = useWheelPaging(mode !== 'scroll' && fit === 'contain', step)
@@ -396,8 +411,13 @@ export function Viewer(props: Props) {
   const pointerDown = useRef<{ x: number; y: number } | null>(null)
   const swipeable = mode !== 'scroll' && fit === 'contain'
   const onStagePointerDown = (e: React.PointerEvent) => {
+    // a second finger makes it a gesture of more fingers (gestures.ts), not a swipe that turns the page
+    if (!e.isPrimary) {
+      swipeStart.current = null
+      return
+    }
     pointerDown.current = { x: e.clientX, y: e.clientY }
-    swipeStart.current = swipeable && e.pointerType === 'touch' && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
+    swipeStart.current = swipeable && e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
   }
   const onStagePointerUp = (e: React.PointerEvent) => {
     const s = swipeStart.current

@@ -201,6 +201,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             onSettings={onViewerSettings}
             immersive={immersive}
             onToggleImmersive={toggleImmersive}
+            onClose={nav.back}
             // shuffle play starts every work from its first page; otherwise from where it was left
             initialPage={from?.kind === 'playlist' ? 0 : loadPagePos(galleryKey)}
             onPageChange={onPageChange}

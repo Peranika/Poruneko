@@ -766,6 +766,24 @@ export const ja = {
     resetButton: '表紙に戻す'
   },
 
+  gestures: {
+    title: '指の操作',
+    hint: '2本指・3本指のタップと、2本指のスワイプに操作を割り当てます（指の間隔が変わる動きはピンチとして扱いません）。Android は3本指の上下スワイプがスクリーンショットになる機種が多く、iPad は3本指の操作がコピー・ペーストに使われます',
+    reset: '初期値に戻す',
+    viewer: 'ビューア',
+    list: '一覧など',
+    none: 'なし',
+    closeViewer: 'ビューアを閉じる',
+    maximize: 'ビューアを最大化（全画面）',
+    ids: {
+      swipe2Left: '2本指で左へスワイプ',
+      swipe2Right: '2本指で右へスワイプ',
+      swipe2Up: '2本指で上へスワイプ',
+      swipe2Down: '2本指で下へスワイプ',
+      tap2: '2本指でタップ',
+      tap3: '3本指でタップ'
+    }
+  },
   androidConnect: {
     title: '接続先の PC',
     current: '接続中: {url}',

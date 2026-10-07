@@ -18,6 +18,7 @@ import { useAutoReveal } from './useAutoReveal'
 import { useGlobalNavigation } from './useGlobalNavigation'
 import { useTouch } from './useCompact'
 import { useCollapseOnScroll } from './useCollapseOnScroll'
+import { gestureAction, runViewerGesture, useTouchGestures, viewerOpen } from './gestures'
 import appIcon from './assets/icon.svg'
 
 export default function App() {
@@ -88,6 +89,13 @@ export default function App() {
   const titlebarVisible = useAutoReveal(autoChrome, titlebarRef, (e) => e.clientY < 56)
   // on a touch screen the bars above a list go away while it scrolls down
   const barsHidden = useCollapseOnScroll(touch, nav.entryId)
+  // gestures with more than one finger: the viewer's while it is open, else going back and forward
+  useTouchGestures(touch, (g) => {
+    if (viewerOpen()) return runViewerGesture(gestureAction(settings, 'viewer', g))
+    const action = gestureAction(settings, 'list', g)
+    if (action === 'back') nav.back()
+    else if (action === 'forward') nav.forward()
+  })
 
   return (
     <div className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''} ${barsHidden ? 'bars-hidden' : ''}`}>

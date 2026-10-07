@@ -12,6 +12,7 @@ export const DEVICE_KEYS = [
   'uiLanguage',
   'viewer',
   'keybindings',
+  'gestures',
   'mouseGestures',
   'infiniteScroll',
   'siteLoadMore',

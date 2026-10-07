@@ -468,6 +468,8 @@ export interface Settings {
   fallbackSources: string[]
   /** Key bindings per action (unset actions use the defaults) */
   keybindings: Record<string, string[]> | null
+  /** The actions of the touch gestures ("viewer.swipe2Up" -> action, '' for none; gestures.ts) */
+  gestures?: Record<string, string> | null
   /** Load the next page automatically when scrolling a list */
   infiniteScroll: boolean
   /** The order of the sites' tabs as the user arranged them (site ids; others follow) */

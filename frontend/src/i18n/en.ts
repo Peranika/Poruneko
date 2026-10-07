@@ -763,6 +763,24 @@ export const en: Dict = {
     resetButton: 'Reset to cover'
   },
 
+  gestures: {
+    title: 'Finger gestures',
+    hint: 'Binds actions to taps with two or three fingers and swipes with two (a move that changes the distance between the fingers is a pinch, not a gesture). Many Android phones take a three-finger swipe down as a screenshot, and an iPad uses three-finger gestures for copy and paste',
+    reset: 'Reset to defaults',
+    viewer: 'Viewer',
+    list: 'Lists and other screens',
+    none: 'None',
+    closeViewer: 'Close the viewer',
+    maximize: 'Maximize the viewer (full screen)',
+    ids: {
+      swipe2Left: 'Swipe left with two fingers',
+      swipe2Right: 'Swipe right with two fingers',
+      swipe2Up: 'Swipe up with two fingers',
+      swipe2Down: 'Swipe down with two fingers',
+      tap2: 'Tap with two fingers',
+      tap3: 'Tap with three fingers'
+    }
+  },
   androidConnect: {
     title: 'The PC connected to',
     current: 'Connected to {url}',

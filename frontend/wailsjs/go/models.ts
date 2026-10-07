@@ -1018,6 +1018,7 @@ export namespace model {
 	    fallbackSources: string[];
 	    sourcesRev: number;
 	    keybindings: Record<string, Array<string>>;
+	    gestures: Record<string, string>;
 	    infiniteScroll: boolean;
 	    siteOrder: string[];
 	    siteScreenOrder: Record<string, Array<string>>;
@@ -1057,6 +1058,7 @@ export namespace model {
 	        this.fallbackSources = source["fallbackSources"];
 	        this.sourcesRev = source["sourcesRev"];
 	        this.keybindings = source["keybindings"];
+	        this.gestures = source["gestures"];
 	        this.infiniteScroll = source["infiniteScroll"];
 	        this.siteOrder = source["siteOrder"];
 	        this.siteScreenOrder = source["siteScreenOrder"];
