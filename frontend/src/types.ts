@@ -210,7 +210,8 @@ export interface RemoteStatus {
   listening: boolean
   urls: string[]
   error: string
-  sessions: number
+  /** The names of the devices signed in */
+  devices: string[]
 }
 
 /** A device paired for syncing, and how its last sync went */

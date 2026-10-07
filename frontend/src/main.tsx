@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { api } from './api'
 import { go as Go, isWails } from './backend'
 import { applyFontScale, applyTheme } from './display'
 import { resolveLanguage, setLanguage } from './i18n'
@@ -8,16 +9,15 @@ import './style.css'
 
 // decide the UI language before loading the UI modules (some keep text as constants)
 async function start() {
-  const [settings, lang, platform] = await Promise.all([
-    Go.GetSettings().catch(() => null),
-    Go.UILanguage().catch(() => ''),
-    Go.Platform().catch(() => '')
-  ])
+  const [lang, platform] = await Promise.all([Go.UILanguage().catch(() => ''), Go.Platform().catch(() => '')])
   // the styles differ by OS (no window buttons on Android), and in a browser of remote access
   document.documentElement.dataset.platform = platform
-  if (!isWails() && platform !== 'android') document.documentElement.dataset.remote = ''
-  // the backend decides the language (the setting, or the OS display language) so both sides agree
-  setLanguage(resolveLanguage(settings?.uiLanguage || lang))
+  const remote = !isWails() && platform !== 'android'
+  if (remote) document.documentElement.dataset.remote = ''
+  const settings = await api.getSettings().catch(() => null)
+  // the backend decides the language (the setting, or the OS display language) so both sides agree; a browser of
+  // remote access goes by its own language when the device has no setting
+  setLanguage(resolveLanguage(settings?.uiLanguage || (remote ? navigator.language.slice(0, 2) : lang)))
   applyFontScale(settings?.fontScale)
   applyTheme(settings?.theme, settings?.accent)
   // Japanese names of the site's tags (from a site plugin; none without one). labels keeps text as constants,

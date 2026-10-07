@@ -14,12 +14,15 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,8 +46,17 @@ type config struct {
 	Port    int    `json:"port,omitempty"`
 	Salt    []byte `json:"salt,omitempty"`
 	Hash    []byte `json:"hash,omitempty"`
-	// Sessions are the signed-in browsers: the SHA-256 of their cookie -> when it expires (Unix ms)
-	Sessions map[string]int64 `json:"sessions,omitempty"`
+	// Sessions are the signed-in browsers: the SHA-256 of their cookie -> the session
+	Sessions map[string]session `json:"sessions,omitempty"`
+	// Devices are each device's own settings (what looks and works differently on it: the viewer, the text size...),
+	// by the name it signed in with, as the screen gives them (JSON)
+	Devices map[string]json.RawMessage `json:"devices,omitempty"`
+}
+
+// session is a signed-in browser: the device it is (the name given when signing in) and when it expires (Unix ms)
+type session struct {
+	Device string `json:"device"`
+	Until  int64  `json:"until"`
 }
 
 // Server is the remote access: its settings, and the HTTP server while it is on
@@ -73,7 +85,10 @@ func New(dataDir string, handler http.Handler) *Server {
 		}
 	}
 	if s.cfg.Sessions == nil {
-		s.cfg.Sessions = map[string]int64{}
+		s.cfg.Sessions = map[string]session{}
+	}
+	if s.cfg.Devices == nil {
+		s.cfg.Devices = map[string]json.RawMessage{}
 	}
 	return s
 }
@@ -81,8 +96,8 @@ func New(dataDir string, handler http.Handler) *Server {
 // save writes the settings (call with mu held)
 func (s *Server) save() {
 	now := time.Now().UnixMilli()
-	for k, until := range s.cfg.Sessions {
-		if until < now {
+	for k, x := range s.cfg.Sessions {
+		if x.Until < now {
 			delete(s.cfg.Sessions, k)
 		}
 	}
@@ -114,13 +129,21 @@ type Status struct {
 	Listening   bool     `json:"listening"`
 	URLs        []string `json:"urls"`
 	Error       string   `json:"error"`
-	Sessions    int      `json:"sessions"`
+	// Devices are the names of the devices signed in
+	Devices []string `json:"devices"`
 }
 
 func (s *Server) Status() Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	st := Status{Enabled: s.cfg.Enabled, HasPassword: len(s.cfg.Hash) > 0, Listening: s.srv != nil, URLs: []string{}, Sessions: len(s.cfg.Sessions)}
+	st := Status{Enabled: s.cfg.Enabled, HasPassword: len(s.cfg.Hash) > 0, Listening: s.srv != nil, URLs: []string{}, Devices: []string{}}
+	now := time.Now().UnixMilli()
+	for _, x := range s.cfg.Sessions {
+		if x.Until > now && !slices.Contains(st.Devices, x.Device) {
+			st.Devices = append(st.Devices, x.Device)
+		}
+	}
+	slices.Sort(st.Devices)
 	if s.err != nil {
 		st.Error = s.err.Error()
 	}
@@ -152,7 +175,7 @@ func (s *Server) SetPassword(pw string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cfg.Salt, s.cfg.Hash = salt, hash
-	s.cfg.Sessions = map[string]int64{}
+	s.cfg.Sessions = map[string]session{}
 	s.save()
 	return nil
 }
@@ -178,7 +201,7 @@ func (s *Server) SetEnabled(on bool) error {
 func (s *Server) SignOutAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.cfg.Sessions = map[string]int64{}
+	s.cfg.Sessions = map[string]session{}
 	s.save()
 }
 
@@ -236,6 +259,13 @@ func (s *Server) guard() http.Handler {
 			s.endSession(w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
+		case "/remote/device":
+			if x, ok := s.session(r); ok {
+				s.serveDevice(w, r, x.Device)
+			} else {
+				http.Error(w, "sign in first", http.StatusUnauthorized)
+			}
+			return
 		case "/manifest.webmanifest", "/apple-touch-icon.png", "/icon-192.png", "/icon-512.png":
 			s.handler.ServeHTTP(w, r) // fetched by the browser without the cookie when adding to the home screen
 			return
@@ -258,14 +288,81 @@ func hashToken(t string) string {
 }
 
 func (s *Server) signedIn(r *http.Request) bool {
+	_, ok := s.session(r)
+	return ok
+}
+
+// session is the browser's session, if it is signed in
+func (s *Server) session(r *http.Request) (session, bool) {
 	c, err := r.Cookie(sessionCookie)
 	if err != nil || c.Value == "" {
-		return false
+		return session{}, false
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	until, ok := s.cfg.Sessions[hashToken(c.Value)]
-	return ok && until > time.Now().UnixMilli()
+	x, ok := s.cfg.Sessions[hashToken(c.Value)]
+	return x, ok && x.Until > time.Now().UnixMilli()
+}
+
+// maxDeviceSettings is the most a device's own settings may be
+const maxDeviceSettings = 256 << 10
+
+// serveDevice gives (GET) and keeps (PUT) the device's own settings: {"name": ..., "settings": {...}}
+func (s *Server) serveDevice(w http.ResponseWriter, r *http.Request, device string) {
+	switch r.Method {
+	case http.MethodGet:
+		s.mu.Lock()
+		settings := s.cfg.Devices[device]
+		s.mu.Unlock()
+		if len(settings) == 0 {
+			settings = json.RawMessage("{}")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(map[string]any{"name": device, "settings": settings})
+	case http.MethodPut:
+		var v map[string]json.RawMessage
+		if err := json.NewDecoder(io.LimitReader(r.Body, maxDeviceSettings)).Decode(&v); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		b, _ := json.Marshal(v)
+		s.mu.Lock()
+		s.cfg.Devices[device] = b
+		s.save()
+		s.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// deviceCookie keeps the name the browser signed in with last, to offer it again
+const deviceCookie = "poruneko_device"
+
+// deviceName is the name a browser signs in with, cleaned: the one given, else the one it signed in with last, else
+// one from the browser
+func deviceName(given string, r *http.Request) string {
+	n := strings.TrimSpace(given)
+	if n == "" {
+		if c, err := r.Cookie(deviceCookie); err == nil {
+			n, _ = url.QueryUnescape(c.Value)
+			n = strings.TrimSpace(n)
+		}
+	}
+	if len([]rune(n)) > 40 {
+		n = string([]rune(n)[:40])
+	}
+	if n != "" {
+		return n
+	}
+	ua := r.Header.Get("User-Agent")
+	for _, k := range []string{"iPad", "iPhone", "Android", "Macintosh", "Windows", "Linux"} {
+		if strings.Contains(ua, k) {
+			return k
+		}
+	}
+	return "Browser"
 }
 
 func (s *Server) endSession(w http.ResponseWriter, r *http.Request) {
@@ -314,10 +411,12 @@ func (s *Server) serveLogin(w http.ResponseWriter, r *http.Request) {
 	t := hex.EncodeToString(token)
 	s.mu.Lock()
 	delete(s.fails, host)
-	s.cfg.Sessions[hashToken(t)] = time.Now().Add(sessionTime).UnixMilli()
+	device := deviceName(r.PostFormValue("device"), r)
+	s.cfg.Sessions[hashToken(t)] = session{Device: device, Until: time.Now().Add(sessionTime).UnixMilli()}
 	s.save()
 	s.mu.Unlock()
-	log.Printf("[remote] signed in from %s", host)
+	log.Printf("[remote] %s signed in from %s", device, host)
+	http.SetCookie(w, &http.Cookie{Name: deviceCookie, Value: url.QueryEscape(device), Path: "/", MaxAge: 10 * 365 * 24 * 3600, SameSite: http.SameSiteLaxMode})
 	http.SetCookie(w, &http.Cookie{
 		Name: sessionCookie, Value: t, Path: "/", MaxAge: int(sessionTime / time.Second), HttpOnly: true, SameSite: http.SameSiteLaxMode,
 	})
@@ -403,6 +502,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, problem string) {
 		"title":  {"Poruneko", "Poruneko"},
 		"lead":   {"Enter the password set in the app's settings (Remote access).", "アプリの設定（リモートアクセス）で決めたパスワードを入力してください。"},
 		"button": {"Sign in", "ログイン"},
+		"device": {"This device's name (its own settings are kept under it)", "この端末の名前（表示などの設定は端末ごとに保存されます）"},
 		"wrong":  {"The password is wrong.", "パスワードが違います。"},
 		"wait":   {"Too many wrong passwords. Try again in a minute.", "パスワードの間違いが続いたため、1 分後にもう一度試してください。"},
 	}
@@ -430,12 +530,14 @@ func loginPage(w http.ResponseWriter, r *http.Request, problem string) {
 body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
 form{width:min(340px,calc(100%% - 32px));display:flex;flex-direction:column;gap:12px}
 h1{margin:0 0 4px;font-size:22px}p{margin:0;color:#a3a9b8;line-height:1.5}.err{color:#ff5d5d}
+label{display:flex;flex-direction:column;gap:6px;color:#a3a9b8;font-size:14px}
 input{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #2a3040;background:#1b1f2a;color:inherit}
 button{font:inherit;font-weight:600;padding:10px;border:0;border-radius:10px;background:#ff6b8b;color:#fff}
 </style></head><body>
 <form method="post" action="/remote/login">
 <h1>%s</h1><p>%s</p>%s
 <input type="password" name="password" autocomplete="current-password" autofocus required>
+<label>%s<input name="device" value="%s" autocomplete="nickname"></label>
 <button type="submit">%s</button>
-</form></body></html>`, tr("title"), tr("title"), tr("lead"), msg, tr("button"))
+</form></body></html>`, tr("title"), tr("title"), tr("lead"), msg, tr("device"), html.EscapeString(deviceName("", r)), tr("button"))
 }

@@ -142,7 +142,10 @@ machine also has an address in it, since internet providers use that range for c
 out what would act on the computer itself (`remoteDenied`: dialogs, the window, opening links, plugins, sign-in,
 updates, remote access itself), and the browser opens links and goes full screen on its own (`<html data-remote>`,
 `isRemote` in `backend.ts`). The browser can add the app to its home screen (`frontend/public`: the manifest and
-icons).
+icons). Each device signs in with a name and has its own value of the settings about how the app looks and works on it
+(`DEVICE_KEYS` in `deviceSettings.ts`: the viewer, the text size, the theme, the keys...), kept by the computer under
+that name (`/remote/device`), so it finds them from any of the computer's addresses; the other settings are the
+computer's.
 
 ## Syncing between devices
 

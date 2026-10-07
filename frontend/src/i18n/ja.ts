@@ -778,7 +778,8 @@ export const ja = {
     failed: '開始できませんでした: {error}',
     urls: '接続先',
     urlsHint: '使う端末のブラウザで開いてください。Meshnet や Tailscale では 100. で始まるアドレスを使います。ホーム画面に追加するとアプリのように開けます',
-    sessions: 'ログイン中の端末: {n}',
+    sessions: 'ログイン中の端末: {names}',
+    deviceSettingsHint: '表示・ビューア・キーなどの設定は、ログイン時に付けた端末の名前ごとに保存されます（この PC の設定は変わりません）',
     signOutAll: 'すべてログアウト',
     signedOut: 'すべての端末をログアウトしました'
   },

@@ -1414,7 +1414,7 @@ export namespace remote {
 	    listening: boolean;
 	    urls: string[];
 	    error: string;
-	    sessions: number;
+	    devices: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new Status(source);
@@ -1427,7 +1427,7 @@ export namespace remote {
 	        this.listening = source["listening"];
 	        this.urls = source["urls"];
 	        this.error = source["error"];
-	        this.sessions = source["sessions"];
+	        this.devices = source["devices"];
 	    }
 	}
 

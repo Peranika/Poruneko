@@ -775,7 +775,8 @@ export const en: Dict = {
     failed: 'Could not start: {error}',
     urls: 'Addresses',
     urlsHint: 'Open one in the browser of the device. Through Meshnet or Tailscale, use the one starting with 100. Adding it to the home screen opens it like an app',
-    sessions: 'Devices signed in: {n}',
+    sessions: 'Devices signed in: {names}',
+    deviceSettingsHint: 'The display, viewer and key settings are kept for each device, by the name it signed in with (this PC keeps its own)',
     signOutAll: 'Sign out all',
     signedOut: 'All devices are signed out'
   },

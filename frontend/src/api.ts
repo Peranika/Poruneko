@@ -1,5 +1,9 @@
 // Thin wrapper around the Go backend (Wails bindings on the desktop, HTTP on Android: see backend.ts)
 import { EventsOn, go, isRemote } from './backend'
+import { keepDeviceSettings, withDeviceSettings } from './deviceSettings'
+
+// the computer's own settings, as a browser of remote access last read them (its own are put on top)
+let serverSettings: Settings | null = null
 
 // in a browser of remote access, links open and full screen happens in the browser itself (not on the computer)
 function openInBrowser(url: string): Promise<void> {
@@ -140,8 +144,17 @@ export const api = {
   /** Drop the remaining loads (prefetches) of a gallery when its page closes */
   cancelViewerLoads: (key: string): Promise<void> => go.CancelViewerLoads(key),
 
-  getSettings: (): Promise<Settings> => go.GetSettings(),
-  setSettings: (s: Settings): Promise<Settings> => go.SetSettings(s),
+  /** The settings (in a browser of remote access, with the device's own on top: deviceSettings.ts) */
+  getSettings: async (): Promise<Settings> => {
+    if (!isRemote()) return go.GetSettings()
+    serverSettings = await go.GetSettings()
+    return withDeviceSettings(serverSettings!)
+  },
+  setSettings: async (s: Settings): Promise<Settings> => {
+    if (!isRemote()) return go.SetSettings(s)
+    serverSettings = await go.SetSettings(await keepDeviceSettings(s, serverSettings ?? (await go.GetSettings())))
+    return withDeviceSettings(serverSettings!)
+  },
   /** Dialog to choose the save location (title is the dialog title) */
   /** Choose where a site's works are saved ("" if cancelled) */
   chooseSiteDir: (site: string, title: string): Promise<string> => go.ChooseSiteDir(site, title),

@@ -80,9 +80,12 @@ export function RemoteSettings() {
           </span>
         </div>
       )}
-      {status.sessions > 0 && (
+      {status.devices.length > 0 && (
         <div className="row-setting">
-          <span>{t('remote.sessions', { n: status.sessions })}</span>
+          <span>
+            {t('remote.sessions', { names: status.devices.join(', ') })}
+            <small className="muted">{t('remote.deviceSettingsHint')}</small>
+          </span>
           <button className="btn ghost small" onClick={() => void run(() => api.remoteSignOutAll(), t('remote.signedOut'))}>
             {t('remote.signOutAll')}
           </button>
