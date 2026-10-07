@@ -23,7 +23,7 @@ import (
 // App is the API exposed to the frontend
 type App struct {
 	ctx       context.Context
-	sh        shell // the window around the app
+	sh        wailsShell // the window around the app
 	st        *store.Store
 	lib       *library.Library
 	dl        *library.Downloader
@@ -41,13 +41,15 @@ type App struct {
 	updateMu      sync.Mutex
 	pendingUpdate *update.Release // the newer version found (installed by InstallUpdate)
 
-	// remote access from browsers on other devices (app_remote.go; the desktop only)
+	// remote access from browsers on other devices (app_remote.go)
 	remote    *remote.Server
 	remoteAPI *webapi.Server
 }
 
 func NewApp(st *store.Store, lib *library.Library, dl *library.Downloader, img *imgserver.Handler) *App {
-	return &App{st: st, lib: lib, dl: dl, img: img, resolving: map[string]bool{}, building: map[string]bool{}}
+	a := &App{st: st, lib: lib, dl: dl, img: img, resolving: map[string]bool{}, building: map[string]bool{}}
+	a.sh = wailsShell{a}
+	return a
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -63,9 +65,7 @@ func (a *App) startup(ctx context.Context) {
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()
 	a.scaleOwnerValues()
-	if a.remote != nil {
-		_ = a.remote.Start()
-	}
+	_ = a.remote.Start()
 	go func() {
 		if n := a.lib.RenameLegacyExt(); n > 0 {
 			log.Printf("[library] renamed %d .zip files to .cbz", n)
@@ -196,10 +196,8 @@ func (a *App) beforeClose(context.Context) bool {
 }
 
 func (a *App) shutdown(context.Context) {
-	if a.remote != nil {
-		a.remote.Stop()
-		a.remoteAPI.Close()
-	}
+	a.remote.Stop()
+	a.remoteAPI.Close()
 	a.lib.Close()
 	a.st.Flush()
 }

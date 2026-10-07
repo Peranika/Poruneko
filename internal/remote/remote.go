@@ -1,6 +1,6 @@
 // Package remote lets the user use the desktop app from a browser on their other devices (a tablet, a phone), on
-// the home network or through a mesh VPN (NordVPN Meshnet, Tailscale...): it serves the same screen and API as the
-// Android app's backend, behind a password. Only devices on private networks may connect, so a port opened to the
+// the home network or through a mesh VPN (NordVPN Meshnet, Tailscale...): it serves the desktop app's screen and API
+// (internal/webapi), behind a password. Only devices on private networks may connect, so a port opened to the
 // internet by mistake does not open the app to it.
 package remote
 
@@ -35,7 +35,7 @@ const DefaultPort = 47392
 const (
 	sessionCookie = "poruneko_session"
 	sessionTime   = 30 * 24 * time.Hour
-	minPassword   = 8
+	MinPassword   = 8           // the fewest characters a password has
 	failsAllowed  = 5           // wrong passwords from one address before it waits
 	failWait      = time.Minute // how long it waits
 	hashRounds    = 600_000
@@ -155,15 +155,15 @@ func (s *Server) Status() Status {
 	return st
 }
 
-// ErrShortPassword is a password shorter than minPassword
-var ErrShortPassword = fmt.Errorf("the password needs at least %d characters", minPassword)
+// ErrShortPassword is a password shorter than MinPassword
+var ErrShortPassword = fmt.Errorf("the password needs at least %d characters", MinPassword)
 
 // ErrNoPassword is turning remote access on before a password is set
 var ErrNoPassword = errors.New("set a password first")
 
 // SetPassword sets the password; the browsers signed in with the old one are signed out
 func (s *Server) SetPassword(pw string) error {
-	if len([]rune(pw)) < minPassword {
+	if len([]rune(pw)) < MinPassword {
 		return ErrShortPassword
 	}
 	salt := make([]byte, 16)

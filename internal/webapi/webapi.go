@@ -148,13 +148,16 @@ func writeJSON(w http.ResponseWriter, v any) {
 
 // Emit sends an event to every open event stream
 func (s *Server) Emit(name string, data any) {
+	s.subMu.Lock()
+	defer s.subMu.Unlock()
+	if len(s.subs) == 0 {
+		return
+	}
 	b, err := json.Marshal(map[string]any{"name": name, "data": data})
 	if err != nil {
 		log.Printf("[webapi] event %s: %v", name, err)
 		return
 	}
-	s.subMu.Lock()
-	defer s.subMu.Unlock()
 	for ch := range s.subs {
 		select {
 		case ch <- b:

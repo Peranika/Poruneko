@@ -188,14 +188,12 @@ export const api = {
   onUpdateProgress: (cb: (p: { done: number; total: number }) => void): (() => void) => EventsOn('update:progress', cb),
 
   openExternal: (url: string): Promise<void> => (isRemote() ? openInBrowser(url) : go.OpenExternal(url)),
-  clipboardText: (): Promise<string> =>
-    isRemote()
-      ? androidPage()
-        ? Promise.resolve(androidPage()!.clipboardText())
-        : (navigator.clipboard?.readText?.() ?? Promise.resolve('')).catch(() => '')
-      : go.ClipboardText(),
-  /** The OS the app runs on ("windows"...) */
-  platform: (): Promise<string> => go.Platform(),
+  clipboardText: (): Promise<string> => {
+    if (!isRemote()) return go.ClipboardText()
+    const android = androidPage()
+    if (android) return Promise.resolve(android.clipboardText())
+    return (navigator.clipboard?.readText?.() ?? Promise.resolve('')).catch(() => '')
+  },
   setFullscreen: (on: boolean): Promise<void> => (isRemote() ? browserFullscreen(on) : go.SetFullscreen(on)),
   minimise: (): Promise<void> => go.WindowMinimise(),
   toggleMaximise: (): Promise<void> => go.WindowToggleMaximise(),

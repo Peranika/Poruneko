@@ -9,10 +9,9 @@ import './style.css'
 
 // decide the UI language before loading the UI modules (some keep text as constants)
 async function start() {
-  const [lang, platform] = await Promise.all([Go.UILanguage().catch(() => ''), Go.Platform().catch(() => '')])
-  // the styles differ by OS (no window buttons on Android), and in a browser of remote access
-  document.documentElement.dataset.platform = platform
-  const remote = !isWails() && platform !== 'android'
+  const lang = await Go.UILanguage().catch(() => '')
+  // the styles differ in a browser of remote access (outside Wails)
+  const remote = !isWails()
   if (remote) document.documentElement.dataset.remote = ''
   // in the Android app (its own back button goes back)
   if (androidPage()) document.documentElement.dataset.androidApp = ''

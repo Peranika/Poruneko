@@ -3,24 +3,22 @@ package main
 import (
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"poruneko/internal/loginwin"
 )
 
-// wailsShell is the desktop window (Wails)
+// wailsShell is the window around the app (Wails): the App reaches the screen and the OS through it
 type wailsShell struct{ a *App }
 
-// emit sends the event to the window and to the browsers of remote access
+// emit sends an event to the window and to the browsers of remote access
 func (s wailsShell) emit(event string, data any) {
 	runtime.EventsEmit(s.a.ctx, event, data)
-	if s.a.remoteAPI != nil {
-		s.a.remoteAPI.Emit(event, data)
-	}
+	s.a.remoteAPI.Emit(event, data)
 }
 
+// chooseDir asks the user for a folder ("" if cancelled)
 func (s wailsShell) chooseDir(title, defaultDir string) (string, error) {
 	return runtime.OpenDirectoryDialog(s.a.ctx, runtime.OpenDialogOptions{
 		Title:                title,
@@ -35,6 +33,7 @@ func (s wailsShell) openURL(u string) error {
 	return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
 }
 
+// reveal shows a file (or a folder) in the file manager
 func (s wailsShell) reveal(path string, isFile bool) error { return revealInExplorer(path, isFile) }
 
 func (s wailsShell) clipboardText() (string, error) { return runtime.ClipboardGetText(s.a.ctx) }
@@ -57,15 +56,16 @@ func (s wailsShell) minimise()       { runtime.WindowMinimise(s.a.ctx) }
 func (s wailsShell) toggleMaximise() { runtime.WindowToggleMaximise(s.a.ctx) }
 func (s wailsShell) quit()           { runtime.Quit(s.a.ctx) }
 
-func (s wailsShell) chooseFile(title string, exts []string) (string, error) {
-	pattern := "*." + strings.Join(exts, ";*.")
+// chooseFile asks the user for a file with the extension (such as "wasm"); "" if cancelled
+func (s wailsShell) chooseFile(title, ext string) (string, error) {
+	pattern := "*." + ext
 	return runtime.OpenFileDialog(s.a.ctx, runtime.OpenDialogOptions{
 		Title:   title,
 		Filters: []runtime.FileFilter{{DisplayName: pattern, Pattern: pattern}},
 	})
 }
 
-// restart starts a new instance and quits this one
+// restart starts a new instance and quits this one (the plugins are loaded only at startup)
 func (s wailsShell) restart() error {
 	exe, err := os.Executable()
 	if err != nil {
@@ -78,6 +78,7 @@ func (s wailsShell) restart() error {
 	return nil
 }
 
+// login opens a site's sign-in page and returns its login cookies once they are there
 func (s wailsShell) login(o loginwin.Options) (map[string]string, error) {
 	return loginwin.Run(s.a.ctx, o)
 }

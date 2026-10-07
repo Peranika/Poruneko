@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	_ "modernc.org/sqlite"
 )
 
 // bookmarkDB is the SQLite file of bookmarks and series.
@@ -58,7 +60,7 @@ func (d *bookmarkDB) open() (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(d.path), 0o755); err != nil {
 		return nil, err
 	}
-	db, err := sql.Open(sqliteDriver, sqliteDSN(d.path))
+	db, err := sql.Open("sqlite", "file:"+filepath.ToSlash(d.path)+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")
 	if err != nil {
 		return nil, err
 	}

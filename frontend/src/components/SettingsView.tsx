@@ -323,7 +323,7 @@ export function SettingsView() {
         <div className="settings-layout">
           <nav className="settings-nav">
             {SECTIONS.map(([id, label]) => (
-              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'desktop-only' : ''}`} onClick={() => goTo(id)}>
+              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'local-only' : ''}`} onClick={() => goTo(id)}>
                 {label()}
               </button>
             ))}
@@ -560,7 +560,7 @@ export function SettingsView() {
 
             <PluginList list={plugins} />
 
-            <section id="set-window" className="desktop-only">
+            <section id="set-window" className="local-only">
               <h3>{t('settings.window')}</h3>
               <label className="row-setting">
                 <span>
@@ -578,7 +578,7 @@ export function SettingsView() {
               </label>
             </section>
 
-            <section id="set-keys" className="desktop-only">
+            <section id="set-keys" className="local-only">
               <h3>{t('settings.keys')}</h3>
               <KeybindingSettings />
             </section>
@@ -671,7 +671,7 @@ function LocalDirs() {
                   </button>
                 ))}
                 <span className="icon-picker-actions">
-                  <button className="btn ghost small desktop-only" onClick={() => void api.openIconsFolder().catch((e) => toast(errorText(e)))}>
+                  <button className="btn ghost small local-only" onClick={() => void api.openIconsFolder().catch((e) => toast(errorText(e)))}>
                     <Icon name="folder" size={14} /> {t('settings.iconsFolder')}
                   </button>
                   <button className="btn ghost small" onClick={reloadLocalIcons} title={t('settings.iconsReloadTitle')}>

@@ -2,6 +2,9 @@ package main
 
 import (
 	"errors"
+	"io/fs"
+	"log"
+	"net/http"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/remote"
@@ -21,6 +24,18 @@ var remoteDenied = []string{
 	"RemoteStatus", "SetRemotePassword", "SetRemoteEnabled", "RemoteSignOutAll",
 }
 
+// webHandler serves the screen, the API and the images over HTTP (remote access)
+func (a *App) webHandler(api *webapi.Server) http.Handler {
+	dist, err := fs.Sub(assets, "frontend/dist")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/", api)
+	mux.Handle("/", a.img.Middleware(http.FileServerFS(dist)))
+	return mux
+}
+
 // setupRemote prepares remote access (it listens from startup once it is on)
 func (a *App) setupRemote() {
 	a.remoteAPI = webapi.New(a, apperr.Format)
@@ -28,33 +43,19 @@ func (a *App) setupRemote() {
 	a.remote = remote.New(store.DataDir(), a.webHandler(a.remoteAPI))
 }
 
-// errNoRemote is remote access asked for before it is set up
-var errNoRemote = apperr.New("platform.unsupported", "not supported on this platform")
-
-func (a *App) RemoteStatus() remote.Status {
-	if a.remote == nil {
-		return remote.Status{URLs: []string{}}
-	}
-	return a.remote.Status()
-}
+func (a *App) RemoteStatus() remote.Status { return a.remote.Status() }
 
 // SetRemotePassword sets the password browsers sign in with (the ones signed in are signed out)
 func (a *App) SetRemotePassword(pw string) error {
-	if a.remote == nil {
-		return errNoRemote
-	}
 	err := a.remote.SetPassword(pw)
 	if errors.Is(err, remote.ErrShortPassword) {
-		return apperr.New("remote.shortPassword", err.Error(), "min", 8)
+		return apperr.New("remote.shortPassword", err.Error(), "min", remote.MinPassword)
 	}
 	return err
 }
 
 // SetRemoteEnabled turns remote access on or off
 func (a *App) SetRemoteEnabled(on bool) error {
-	if a.remote == nil {
-		return errNoRemote
-	}
 	err := a.remote.SetEnabled(on)
 	switch {
 	case errors.Is(err, remote.ErrNoPassword):
@@ -66,8 +67,4 @@ func (a *App) SetRemoteEnabled(on bool) error {
 }
 
 // RemoteSignOutAll signs out every browser
-func (a *App) RemoteSignOutAll() {
-	if a.remote != nil {
-		a.remote.SignOutAll()
-	}
-}
+func (a *App) RemoteSignOutAll() { a.remote.SignOutAll() }

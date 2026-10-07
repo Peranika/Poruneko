@@ -81,8 +81,6 @@ export function OwnerSettings(arg1:string,arg2:string,arg3:Record<string, string
 
 export function PauseDownload(arg1:string):Promise<void>;
 
-export function Platform():Promise<string>;
-
 export function Plugins():Promise<Array<main.PluginInfo>>;
 
 export function PreviewFileName(arg1:string,arg2:string,arg3:string):Promise<string>;

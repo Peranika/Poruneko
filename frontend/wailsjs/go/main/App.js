@@ -154,10 +154,6 @@ export function PauseDownload(arg1) {
   return window['go']['main']['App']['PauseDownload'](arg1);
 }
 
-export function Platform() {
-  return window['go']['main']['App']['Platform']();
-}
-
 export function Plugins() {
   return window['go']['main']['App']['Plugins']();
 }

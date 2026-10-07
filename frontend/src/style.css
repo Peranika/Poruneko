@@ -182,10 +182,9 @@ select { cursor: pointer; }
 .titlebar { height: var(--titlebar); display: flex; align-items: center; background: var(--bg); border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .titlebar-nav { display: flex; gap: 2px; padding: 0 8px 0 calc((var(--sidebar) - 66px) / 2); }
 .titlebar-drag { flex: 1; height: 100%; display: flex; align-items: center; padding-left: 8px; }
-/* in a browser of remote access (<html data-remote>) neither is there, nor what is done on the computer itself
-   (choosing folders, adding plugins, signing in to sites, installing updates) */
-:root[data-remote] .window-controls, :root[data-remote] .desktop-only, :root[data-remote] .local-only,
-:root[data-remote] .update-notice { display: none !important; }
+/* a browser of remote access (<html data-remote>) has no window, and leaves what is done on the computer itself
+   (.local-only: choosing folders, adding plugins, signing in to sites, the window and remote access settings...) */
+:root[data-remote] .window-controls, :root[data-remote] .local-only, :root[data-remote] .update-notice { display: none !important; }
 .brand { font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); font-size: 0.9286rem; }
 .window-controls { display: flex; height: 100%; }
 .window-controls button { width: 46px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-2); }

@@ -203,16 +203,22 @@ func (a *App) List(q model.ListQuery) (*model.ListResult, error) {
 	}
 	// the app filters by page count and stats itself, for every plugin (one may have done it already)
 	r.FilterPages(q.MinPages, q.MaxPages)
-	r.FilterStats(browseSpec(p.ID()), q.Filters, a.ownerValues(p.ID(), q.Filters))
+	r.FilterStats(browseSpec(p.ID()), q.Filters, a.ownerValues(p.ID(), q.Filters, r.Items))
 	return r, nil
 }
 
-// ownerValues are the values of a site's filters kept for each owner of its works, worked out with the common
-// values of the list (owner -> filter id -> value)
-func (a *App) ownerValues(siteID model.SiteID, common map[string]string) map[string]map[string]string {
+// ownerValues are the values of a site's filters kept for the owners of the works listed, worked out with the
+// common values of the list (owner -> filter id -> value)
+func (a *App) ownerValues(siteID model.SiteID, common map[string]string, items []model.GallerySummary) map[string]map[string]string {
 	out := map[string]map[string]string{}
-	for owner, o := range a.st.OwnersOf(siteID) {
-		out[owner] = o.Resolve(common)
+	for _, it := range items {
+		if it.Owner == "" {
+			continue
+		}
+		if _, done := out[it.Owner]; !done {
+			o := a.st.Owner(siteID, it.Owner)
+			out[it.Owner] = o.Resolve(common)
+		}
 	}
 	return out
 }
@@ -236,22 +242,25 @@ func (a *App) SetOwnerSetting(siteID model.SiteID, owner, filterID, value string
 // they are used with now (the sites' saved filter values, or the plugins' defaults), so they show the same
 func (a *App) scaleOwnerValues() {
 	settings := a.st.Settings()
+	bySite := map[model.SiteID]map[string]string{}
 	a.st.ScaleOwnerValues(func(siteID model.SiteID) map[string]string {
+		if c, ok := bySite[siteID]; ok {
+			return c
+		}
 		out := map[string]string{}
-		spec := browseSpec(siteID)
-		if spec == nil {
-			return out
-		}
-		for _, f := range spec.Filters {
-			if f.Stat == "" {
-				continue
+		if spec := browseSpec(siteID); spec != nil {
+			for _, f := range spec.Filters {
+				if f.Stat == "" {
+					continue
+				}
+				v, ok := settings.PluginSettings[siteID][f.ID]
+				if !ok {
+					v = f.Default
+				}
+				out[f.ID] = v
 			}
-			v, ok := settings.PluginSettings[siteID][f.ID]
-			if !ok {
-				v = f.Default
-			}
-			out[f.ID] = v
 		}
+		bySite[siteID] = out
 		return out
 	})
 }

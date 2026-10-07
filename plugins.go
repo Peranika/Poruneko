@@ -143,7 +143,7 @@ func (a *App) TagNamesJa() map[string]string {
 // the loaded plugin with the same id (an update), else into the folder for the user's plugins. It is loaded at the
 // next start (RestartApp). nil when the user cancelled
 func (a *App) AddPlugin(title string) (*PluginInfo, error) {
-	src, err := a.sh.chooseFile(title, []string{"wasm"})
+	src, err := a.sh.chooseFile(title, "wasm")
 	if err != nil || src == "" {
 		return nil, err
 	}

@@ -322,7 +322,7 @@ function DownloadButtons({ b }: { b: Bookmark }) {
     <>
       {hasSavedFiles(b) && (
         <button
-          className={`icon-btn desktop-only ${d.status === 'done' ? 'dl-done' : ''}`}
+          className={`icon-btn local-only ${d.status === 'done' ? 'dl-done' : ''}`}
           title={[state, t('common.showFolder')].filter(Boolean).join(' — ')}
           onClick={() => api.openFolder(b.key).catch((e) => toast(errorText(e)))}
         >

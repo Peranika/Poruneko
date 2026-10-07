@@ -127,7 +127,7 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
             </button>
           )}
           {hasSavedFiles(b) && (
-            <button className="desktop-only" title={t('common.showFolder')} onClick={stop(() => void api.openFolder(b.key).catch((e) => toast(errorText(e))))}>
+            <button className="local-only" title={t('common.showFolder')} onClick={stop(() => void api.openFolder(b.key).catch((e) => toast(errorText(e))))}>
               <Icon name="folder" size={15} />
             </button>
           )}

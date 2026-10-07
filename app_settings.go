@@ -6,7 +6,6 @@ import (
 	"maps"
 	"net/url"
 	"path/filepath"
-	"runtime"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/library"
@@ -146,6 +145,3 @@ func (a *App) WindowClose()          { a.sh.quit() }
 
 // ClipboardText is the text on the clipboard
 func (a *App) ClipboardText() (string, error) { return a.sh.clipboardText() }
-
-// Platform is the OS the app runs on ("windows", "android"...), for what the screen offers
-func (a *App) Platform() string { return runtime.GOOS }

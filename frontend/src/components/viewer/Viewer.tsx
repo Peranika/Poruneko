@@ -380,10 +380,8 @@ export function Viewer(props: Props) {
     // clicks on a video (or an animation) are for its controls
     if ((e.target as HTMLElement).closest('video, .page.animation')) return
     // the click a swipe ends with turned the page already
-    if (swiped.current) {
-      swiped.current = false
-      return
-    }
+    const down = pointerDown.current
+    if (down && Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 10) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     if (x < 0.3) rtl ? next() : prev()
@@ -394,9 +392,11 @@ export function Viewer(props: Props) {
   // a sideways swipe turns the page like turning a paper one (to the right goes on when reading right to left). Only
   // where the page fits the screen: elsewhere a swipe scrolls it
   const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null)
-  const swiped = useRef(false)
+  // where the pointer went down: a click after it moved away is the end of a swipe or a drag, not a tap
+  const pointerDown = useRef<{ x: number; y: number } | null>(null)
   const swipeable = mode !== 'scroll' && fit === 'contain'
   const onStagePointerDown = (e: React.PointerEvent) => {
+    pointerDown.current = { x: e.clientX, y: e.clientY }
     swipeStart.current = swipeable && e.pointerType === 'touch' && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
   }
   const onStagePointerUp = (e: React.PointerEvent) => {
@@ -406,8 +406,6 @@ export function Viewer(props: Props) {
     const dx = e.clientX - s.x
     const dy = e.clientY - s.y
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || e.timeStamp - s.t > 800) return
-    swiped.current = true
-    window.setTimeout(() => (swiped.current = false), 400)
     if (dx > 0 === rtl) next()
     else prev()
   }

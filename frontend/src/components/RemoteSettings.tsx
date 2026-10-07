@@ -27,7 +27,7 @@ export function RemoteSettings() {
 
   if (!status) return null
   return (
-    <section id="set-remote" className="desktop-only">
+    <section id="set-remote" className="local-only">
       <h3>{t('remote.title')}</h3>
       <div className="row-setting">
         <span>{t('remote.hint')}</span>

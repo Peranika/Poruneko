@@ -823,9 +823,6 @@ export const ja = {
       invalid: 'Poruneko のプラグインではありません: {detail}',
       copyFailed: 'プラグインをコピーできませんでした: {detail}'
     },
-    platform: {
-      unsupported: 'この端末では使えません'
-    },
     remote: {
       shortPassword: 'パスワードは {min} 文字以上にしてください',
       noPassword: '先にパスワードを設定してください',

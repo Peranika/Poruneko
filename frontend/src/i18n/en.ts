@@ -819,9 +819,6 @@ export const en: Dict = {
       invalid: 'The file is not a Poruneko plugin: {detail}',
       copyFailed: 'Could not copy the plugin: {detail}'
     },
-    platform: {
-      unsupported: 'Not available on this device'
-    },
     remote: {
       shortPassword: 'The password needs {min} characters or more',
       noPassword: 'Set a password first',
