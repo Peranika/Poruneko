@@ -3,7 +3,6 @@ module poruneko
 go 1.26.0
 
 require (
-	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/tetratelabs/wazero v1.12.0
 	github.com/wailsapp/go-webview2 v1.0.22
 	github.com/wailsapp/wails/v2 v2.16.0

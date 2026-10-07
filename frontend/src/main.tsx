@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { api } from './api'
-import { go as Go, isWails } from './backend'
+import { androidPage, go as Go, isWails } from './backend'
 import { applyFontScale, applyTheme } from './display'
 import { resolveLanguage, setLanguage } from './i18n'
 import '@fontsource-variable/noto-sans-jp'
@@ -14,6 +14,8 @@ async function start() {
   document.documentElement.dataset.platform = platform
   const remote = !isWails() && platform !== 'android'
   if (remote) document.documentElement.dataset.remote = ''
+  // in the Android app (its own back button goes back)
+  if (androidPage()) document.documentElement.dataset.androidApp = ''
   const settings = await api.getSettings().catch(() => null)
   // the backend decides the language (the setting, or the OS display language) so both sides agree; a browser of
   // remote access goes by its own language when the device has no setting

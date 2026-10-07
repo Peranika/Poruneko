@@ -1,4 +1,4 @@
-// The Go backend: the Wails bindings on the desktop, HTTP (internal/webapi) on Android
+// The Go backend: the Wails bindings on the desktop, HTTP (internal/webapi) in a browser of remote access
 import { EventsOn as wailsEventsOn } from '../wailsjs/runtime/runtime'
 
 type Method = (...args: any[]) => Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -9,6 +9,19 @@ const wailsApp = (): Record<string, Method> | undefined =>
 
 /** Whether the app runs in Wails (the desktop) */
 export const isWails = (): boolean => wailsApp() !== undefined
+
+/** What the Android app (a client of the computer's remote access) lets the page do directly
+ * (MainActivity.AndroidPage), when the page is in it */
+export interface AndroidPage {
+  /** The computer's address the app opens */
+  serverUrl(): string
+  /** Opens the app's screen to change the computer's address */
+  changeServer(): void
+  setFullscreen(on: boolean): void
+  clipboardText(): string
+}
+
+export const androidPage = (): AndroidPage | undefined => (window as unknown as { PorunekoAndroid?: AndroidPage }).PorunekoAndroid
 
 /** Whether this is a browser of remote access: the screen of the desktop app on another device (main.tsx marks it
  * on <html data-remote>). It opens links and goes full screen itself */

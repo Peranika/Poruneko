@@ -11,7 +11,7 @@ import { ImageIcon, TAB_ICONS, TabIcon } from './TabIcon'
 import { KeybindingSettings } from './KeybindingSettings'
 import { PredecodeSetting } from './PredecodeSetting'
 import { SlideCurveSetting } from './SlideCurveSetting'
-import { SyncSettings } from './SyncSettings'
+import { AndroidConnect } from './AndroidConnect'
 import { RemoteSettings } from './RemoteSettings'
 
 /** Accent color: a few presets, and any color through the color picker at the end */
@@ -82,7 +82,7 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
             <span className="muted">{t('settings.noPlugins')}</span>
           )}
           <small className="muted">
-            {document.documentElement.dataset.platform === 'android' ? t('settings.pluginsHintAndroid') : t('settings.pluginsHint')}
+            {t('settings.pluginsHint')}
           </small>
         </span>
       </div>
@@ -257,7 +257,6 @@ const SECTIONS: [id: string, label: () => string][] = [
   ['viewer', () => t('settings.viewer')],
   ['downloads', () => t('settings.downloads')],
   ['localDirs', () => t('settings.localDirs')],
-  ['sync', () => t('sync.title')],
   ['remote', () => t('remote.title')],
   ['meta', () => t('settings.metaSources')],
   ['update', () => t('update.title')],
@@ -492,7 +491,7 @@ export function SettingsView() {
 
             <LocalDirs />
 
-            <SyncSettings />
+            <AndroidConnect />
 
             <RemoteSettings />
 

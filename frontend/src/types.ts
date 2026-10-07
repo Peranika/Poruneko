@@ -214,36 +214,6 @@ export interface RemoteStatus {
   devices: string[]
 }
 
-/** A device paired for syncing, and how its last sync went */
-export interface SyncPeer {
-  id: string
-  name: string
-  lastSync: number
-  lastError: string
-}
-
-/** The code this device shows while waiting to be paired, and where it can be reached */
-export interface SyncPairing {
-  code: string
-  until: number
-  addrs: string[]
-}
-
-export interface SyncStatus {
-  deviceName: string
-  peers: SyncPeer[]
-  pairing: SyncPairing | null
-  syncing: boolean
-}
-
-/** A device found on the network that is waiting to be paired */
-export interface SyncFound {
-  id: string
-  name: string
-  addr: string
-  pairing: boolean
-}
-
 export interface PluginInfo {
   id: string
   name: string

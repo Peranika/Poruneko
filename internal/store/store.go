@@ -61,9 +61,6 @@ type Store struct {
 	// owners are the settings kept per owner of works (owners.go)
 	owners   map[string]*model.OwnerSettings
 	changedO map[string]bool // keys of owners' settings to write (deleted if gone)
-	// deleted are the shared bookmarks and series deleted, kept for syncing (shared.go)
-	deleted  map[string]*deletion
-	changedD map[string]bool
 
 	history      []model.HistoryEntry // works opened in the viewer, newest first (history.go)
 	hf           *jsonFile
@@ -83,20 +80,11 @@ func DataDir() string {
 	return filepath.Join(d, "Poruneko")
 }
 
-// defaultLibraryDir is where works are saved until the user chooses: PORUNEKO_LIBRARY_DIR (set by the Android
-// app: a folder the user can reach without a permission), else the data folder's
-func defaultLibraryDir(dataDir string) string {
-	if d := os.Getenv("PORUNEKO_LIBRARY_DIR"); d != "" {
-		return d
-	}
-	return filepath.Join(dataDir, "library")
-}
-
 func Open() *Store {
 	dir := DataDir()
 	s := &Store{
 		settings: model.Settings{
-			LibraryDir:          defaultLibraryDir(dir),
+			LibraryDir:          filepath.Join(dir, "library"),
 			MouseGestures:       true,
 			InfiniteScroll:      true,
 			RememberWindow:      true,
@@ -120,15 +108,12 @@ func Open() *Store {
 		changedS:  map[string]bool{},
 		owners:    map[string]*model.OwnerSettings{},
 		changedO:  map[string]bool{},
-		deleted:   map[string]*deletion{},
-		changedD:  map[string]bool{},
 	}
 	s.sf.load(&s.settings)
 	s.hf.load(&s.history)
 	s.loadBookmarks(dir)
 	s.loadSeries()
 	s.loadOwners()
-	s.loadDeleted()
 	normalizeSettings(&s.settings, filepath.Join(dir, "library"))
 	if migrateSources(&s.settings) {
 		s.dirty = true
@@ -210,14 +195,13 @@ func (s *Store) Flush() {
 
 // flushBookmarks writes changed bookmarks and series (call with the lock held; on failure retries next time)
 func (s *Store) flushBookmarks() error {
-	if len(s.changed) == 0 && len(s.changedS) == 0 && len(s.changedO) == 0 && len(s.changedD) == 0 {
+	if len(s.changed) == 0 && len(s.changedS) == 0 && len(s.changedO) == 0 {
 		return nil
 	}
 	err := s.db.write(map[table]changes{
 		bookmarksTable: collect(s.changed, s.bookmarks, func(b *model.Bookmark) int64 { return b.AddedAt }),
 		seriesTable:    collect(s.changedS, s.series, func(x *model.Series) int64 { return x.CreatedAt }),
 		ownersTable:    collect(s.changedO, s.owners, func(o *model.OwnerSettings) int64 { return o.UpdatedAt }),
-		deletedTable:   collect(s.changedD, s.deleted, func(d *deletion) int64 { return d.At }),
 	})
 	if err != nil {
 		return err
@@ -225,7 +209,6 @@ func (s *Store) flushBookmarks() error {
 	clear(s.changed)
 	clear(s.changedS)
 	clear(s.changedO)
-	clear(s.changedD)
 	return nil
 }
 
@@ -315,34 +298,19 @@ func (s *Store) Has(key string) bool {
 func (s *Store) Put(b model.Bookmark) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if old, ok := s.bookmarks[b.Key]; ok {
-		stamp(&b, old, time.Now().UnixMilli())
-	}
 	s.bookmarks[b.Key] = &b
 	s.touch(b.Key)
 }
 
 // Update changes a bookmark (false if it does not exist)
 func (s *Store) Update(key string, fn func(b *model.Bookmark)) (model.Bookmark, bool) {
-	return s.update(key, fn, true)
-}
-
-// update changes a bookmark; with stampIt the parts the devices share that changed are stamped with the time
-func (s *Store) update(key string, fn func(b *model.Bookmark), stampIt bool) (model.Bookmark, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	b, ok := s.bookmarks[key]
 	if !ok {
 		return model.Bookmark{}, false
 	}
-	var before model.Bookmark
-	if stampIt {
-		before = cloneShared(b)
-	}
 	fn(b)
-	if stampIt {
-		stamp(b, &before, time.Now().UnixMilli())
-	}
 	s.touch(key)
 	return *b, true
 }
@@ -350,9 +318,6 @@ func (s *Store) update(key string, fn func(b *model.Bookmark), stampIt bool) (mo
 func (s *Store) Remove(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if b, ok := s.bookmarks[key]; ok && b.Shared() {
-		s.markDeleted("b:"+key, time.Now().UnixMilli())
-	}
 	delete(s.bookmarks, key)
 	s.touch(key)
 	s.removeFromSeries(key, "")

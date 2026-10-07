@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"log"
-	"runtime"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/update"
@@ -32,9 +31,6 @@ func (a *App) AppVersion() string { return appVersion }
 
 // CheckUpdate checks whether a newer version exists (nil if not)
 func (a *App) CheckUpdate() (*update.Release, error) {
-	if runtime.GOOS == "android" {
-		return nil, nil // the releases hold the Windows exe; the Android app is updated by installing its APK
-	}
 	rel, err := update.Latest(a.ctx, appVersion)
 	if err != nil {
 		log.Printf("[update] check: %v", err)

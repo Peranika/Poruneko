@@ -1,57 +1,52 @@
 package io.github.peranika.poruneko
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
-import android.provider.DocumentsContract
-import android.provider.OpenableColumns
-import android.provider.Settings
+import android.text.InputType
+import android.util.TypedValue
 import android.view.Gravity
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.view.inputmethod.EditorInfo
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
-import org.json.JSONObject
-import java.io.File
-import kotlin.concurrent.thread
 
-/** The screen: a WebView showing the frontend the Go backend serves */
+/**
+ * The app: the screen of Poruneko on the user's computer (its remote access), full screen in a WebView, with the
+ * back button. The computer's address is asked for once (and again when it cannot be reached)
+ */
 class MainActivity : Activity() {
-    private lateinit var backend: Backend
-    private lateinit var bridge: NativeBridge
     private lateinit var container: FrameLayout
     private lateinit var webView: WebView
     private var fullscreen = false
 
-    // the calls waiting for another screen (a folder chooser, the permission settings, a login page)
-    private var pendingDir: NativeCall? = null
-    private var pendingPermission: NativeCall? = null
-    private var pendingLogin: NativeCall? = null
-    private var pendingFile: NativeCall? = null
+    // the computer's address (http://host:port/), kept for the next start
+    private val prefs by lazy { getSharedPreferences("server", MODE_PRIVATE) }
+    private var serverUrl: String
+        get() = prefs.getString("url", "") ?: ""
+        set(v) = prefs.edit().putString("url", v).apply()
+
+    // the app's own screen (the address, and why the computer could not be reached) over the WebView, while shown
+    private var panel: LinearLayout? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val app = application as PorunekoApp
-        backend = app.backend
-        bridge = app.bridge
-        bridge.handler = ::handle
-        // the notification shown while downloading in the background
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS)
-        }
-
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         webView = WebView(this).apply {
             setBackgroundColor(BACKGROUND)
@@ -62,11 +57,16 @@ class MainActivity : Activity() {
             webViewClient = object : WebViewClient() {
                 // pages of other sites open in the browser
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    if (request.url.host == "127.0.0.1") return false
+                    if (isServer(request.url)) return false
                     openURL(request.url.toString())
                     return true
                 }
+
+                override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                    if (request.isForMainFrame) showPanel(getString(R.string.unreachable, serverUrl, error.description))
+                }
             }
+            addJavascriptInterface(AndroidPage(), "PorunekoAndroid")
         }
         container = FrameLayout(this).apply {
             setBackgroundColor(BACKGROUND)
@@ -80,184 +80,123 @@ class MainActivity : Activity() {
             }
         }
         setContentView(container)
-
-        load()
+        if (serverUrl.isEmpty()) showPanel(null) else open()
     }
 
-    override fun onDestroy() {
-        if (bridge.handler == ::handle) bridge.handler = null
-        super.onDestroy()
+    private fun open() {
+        hidePanel()
+        webView.loadUrl(serverUrl)
     }
 
-    /** Shows the screen once the backend listens */
-    private fun load() {
-        thread(name = "backend-wait-ready", isDaemon = true) {
-            val ok = backend.awaitReady()
-            runOnUiThread {
-                if (ok) webView.loadUrl("${backend.baseUrl}/?token=${backend.token}")
-                else showError(getString(R.string.backend_failed))
-            }
-        }
+    /** Whether a URL is on the computer (the app's pages) */
+    private fun isServer(url: Uri): Boolean {
+        val s = Uri.parse(serverUrl)
+        return url.host == s.host && url.port == s.port
     }
 
     /** The back button: the screen goes back first (closing a dialog...); with nothing to go back to, the app goes
-     * to the background (it keeps running, unlike when it is closed) */
+     * to the background. Over a page already shown, the address screen closes back to it */
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        if (panel != null) {
+            if (serverUrl.isNotEmpty() && webView.url != null) hidePanel() else moveTaskToBack(true)
+            return
+        }
         webView.evaluateJavascript("window.poruneko && window.poruneko.back ? window.poruneko.back() : false") {
             if (it != "true") moveTaskToBack(true)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // back from the permission settings: choose the folder now that the files can be read
-        pendingPermission?.let { call ->
-            pendingPermission = null
-            if (Environment.isExternalStorageManager()) chooseDir(call)
-            else bridge.reply(call, error = getString(R.string.storage_denied))
-        }
-    }
+    // ---------------------------------------------------------------- The address
 
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            REQUEST_DIR -> pendingDir?.let { call ->
-                pendingDir = null
-                val uri = data?.data
-                if (resultCode != RESULT_OK || uri == null) {
-                    bridge.reply(call, "")
-                    return
-                }
-                val path = treeToPath(uri)
-                if (path == null) bridge.reply(call, error = getString(R.string.folder_unsupported))
-                else bridge.reply(call, path)
-            }
-            REQUEST_FILE -> pendingFile?.let { call ->
-                pendingFile = null
-                val uri = data?.data
-                if (resultCode != RESULT_OK || uri == null) {
-                    bridge.reply(call, "")
-                    return
-                }
-                // the backend opens files by path, so the chosen file is copied into the cache first
-                thread(name = "copy-file", isDaemon = true) {
-                    try {
-                        bridge.reply(call, copyToCache(uri).path)
-                    } catch (e: Exception) {
-                        bridge.reply(call, error = e.message ?: e.toString())
-                    }
-                }
-            }
-            REQUEST_LOGIN -> pendingLogin?.let { call ->
-                pendingLogin = null
-                val got = data?.getStringExtra(LoginActivity.EXTRA_COOKIES)
-                if (resultCode != RESULT_OK || got == null) {
-                    bridge.reply(call, null)
-                    return
-                }
-                val o = JSONObject(got)
-                bridge.reply(call, o.keys().asSequence().associateWith { o.getString(it) })
-            }
+    /** Shows the screen asking for the computer's address, with why when it could not be reached */
+    private fun showPanel(problem: String?) {
+        hidePanel()
+        setFullscreen(false)
+        val dp = { v: Int -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt() }
+        fun text(s: String, size: Float, color: Int) = TextView(this).apply {
+            text = s
+            textSize = size
+            setTextColor(color)
+            setPadding(0, 0, 0, dp(12))
         }
-    }
-
-    private fun showError(text: String) {
-        container.removeAllViews()
-        container.addView(TextView(this).apply {
-            this.text = text
+        val input = EditText(this).apply {
+            setText(serverUrl)
+            hint = "http://100.x.x.x:$DEFAULT_PORT/"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            imeOptions = EditorInfo.IME_ACTION_GO
             setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            setPadding(48, 48, 48, 48)
-        })
-    }
-
-    // ---------------------------------------------------------------- The backend's calls
-
-    private fun handle(call: NativeCall) = runOnUiThread {
-        try {
-            when (call.method) {
-                "chooseDir" -> chooseDir(call)
-                "openURL" -> {
-                    openURL(call.params.getString("url"))
-                    bridge.reply(call)
-                }
-                "clipboardText" -> {
-                    val clip = getSystemService(ClipboardManager::class.java).primaryClip
-                    val text = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(this).toString() else ""
-                    bridge.reply(call, text)
-                }
-                "setFullscreen" -> {
-                    setFullscreen(call.params.optBoolean("on"))
-                    bridge.reply(call)
-                }
-                "toggleFullscreen" -> {
-                    setFullscreen(!fullscreen)
-                    bridge.reply(call, fullscreen)
-                }
-                "quit" -> {
-                    bridge.reply(call)
-                    finishAndRemoveTask()
-                }
-                "chooseFile" -> {
-                    pendingFile?.let { bridge.reply(it, "") }
-                    pendingFile = call
-                    @Suppress("DEPRECATION")
-                    startActivityForResult(
-                        Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
-                        REQUEST_FILE
-                    )
-                }
-                "restart" -> {
-                    webView.loadUrl("about:blank")
-                    thread(name = "backend-restart", isDaemon = true) {
-                        bridge.replyNow(call)
-                        backend.restart()
-                        runOnUiThread { load() }
-                    }
-                }
-                "login" -> {
-                    pendingLogin?.let { bridge.reply(it, null) }
-                    pendingLogin = call
-                    @Suppress("DEPRECATION")
-                    startActivityForResult(
-                        Intent(this, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_PARAMS, call.params.toString()),
-                        REQUEST_LOGIN
-                    )
-                }
-                else -> bridge.reply(call, error = "unsupported")
+            setHintTextColor(Color.GRAY)
+            isSingleLine = true
+        }
+        val connect = {
+            val url = normalize(input.text.toString())
+            if (url == null) input.error = getString(R.string.bad_address)
+            else {
+                serverUrl = url
+                open()
             }
-        } catch (e: Exception) {
-            bridge.reply(call, error = e.message ?: e.toString())
         }
+        input.setOnEditorActionListener { _, _, _ -> connect(); true }
+        val p = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(BACKGROUND)
+            setPadding(dp(24), dp(24), dp(24), dp(24))
+            isClickable = true
+            addView(text(getString(R.string.server_title), 22f, Color.WHITE))
+            if (problem != null) addView(text(problem, 14f, Color.rgb(255, 93, 93)))
+            addView(text(getString(R.string.server_hint), 14f, Color.LTGRAY))
+            addView(input)
+            addView(Button(this@MainActivity).apply {
+                text = getString(R.string.connect)
+                setOnClickListener { connect() }
+            })
+        }
+        container.addView(p, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        panel = p
     }
 
-    /** Copies a chosen file into the cache (the folder is emptied first: it holds only the last one) */
-    private fun copyToCache(uri: Uri): File {
-        val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
-            if (it.moveToFirst()) it.getString(0) else null
-        } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "file"
-        val dir = File(cacheDir, "chosen")
-        dir.deleteRecursively()
-        dir.mkdirs()
-        val out = File(dir, name.replace('/', '_'))
-        contentResolver.openInputStream(uri)!!.use { input -> out.outputStream().use { input.copyTo(it) } }
-        return out
+    private fun hidePanel() {
+        panel?.let { container.removeView(it) }
+        panel = null
     }
 
-    /** Asks for a folder. The backend opens files by path, so it needs the permission to every file first */
-    private fun chooseDir(call: NativeCall) {
-        if (!Environment.isExternalStorageManager()) {
-            pendingPermission?.let { bridge.reply(it, "") }
-            pendingPermission = call
-            startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
-            return
+    /** An address as typed (a host, host:port or a URL) as http://host:port/ (null if it is not one) */
+    private fun normalize(typed: String): String? {
+        val t = typed.trim()
+        if (t.isEmpty()) return null
+        val u = Uri.parse(if ("://" in t) t else "http://$t")
+        if ((u.scheme != "http" && u.scheme != "https") || u.host.isNullOrEmpty()) return null
+        val withPort = if (u.port == -1 && u.scheme == "http") u.buildUpon().encodedAuthority("${u.host}:$DEFAULT_PORT").build() else u
+        return withPort.buildUpon().path("/").clearQuery().fragment(null).build().toString()
+    }
+
+    // ---------------------------------------------------------------- What the page asks of the app
+
+    /**
+     * What the page can ask of the app (window.PorunekoAndroid): what it cannot do itself in a WebView (full screen
+     * with the system bars, the clipboard), and changing the computer's address. Called on a thread of the WebView
+     */
+    private inner class AndroidPage {
+        @JavascriptInterface
+        fun serverUrl(): String = this@MainActivity.serverUrl
+
+        @JavascriptInterface
+        fun changeServer() {
+            runOnUiThread { showPanel(null) }
         }
-        pendingDir?.let { bridge.reply(it, "") }
-        pendingDir = call
-        @Suppress("DEPRECATION")
-        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_DIR)
+
+        @JavascriptInterface
+        fun setFullscreen(on: Boolean) {
+            runOnUiThread { this@MainActivity.setFullscreen(on) }
+        }
+
+        @JavascriptInterface
+        fun clipboardText(): String {
+            val clip = getSystemService(ClipboardManager::class.java).primaryClip
+            return if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(this@MainActivity).toString() else ""
+        }
     }
 
     private fun openURL(url: String) {
@@ -277,21 +216,9 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        private const val REQUEST_DIR = 1
-        private const val REQUEST_LOGIN = 2
-        private const val REQUEST_FILE = 3
-        private const val REQUEST_NOTIFICATIONS = 4
         private val BACKGROUND = Color.rgb(15, 17, 21)
 
-        /** The path of a folder chosen in the system's folder chooser (null for one that is not a plain folder,
-         * such as one of a cloud storage app) */
-        fun treeToPath(uri: Uri): String? {
-            if (uri.authority != "com.android.externalstorage.documents") return null
-            val id = DocumentsContract.getTreeDocumentId(uri) // "primary:Download/Comics", "1234-ABCD:Comics"
-            val volume = id.substringBefore(':')
-            val rel = id.substringAfter(':', "")
-            val base = if (volume == "primary") Environment.getExternalStorageDirectory().path else "/storage/$volume"
-            return if (rel.isEmpty()) base else "$base/$rel"
-        }
+        // the port the computer's remote access listens on unless told otherwise (internal/remote.DefaultPort)
+        private const val DEFAULT_PORT = 47392
     }
 }

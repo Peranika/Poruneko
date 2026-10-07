@@ -16,7 +16,7 @@ import (
 	"poruneko/internal/webapi"
 )
 
-// Starting the app, shared by the desktop (main.go) and Android (main_android.go)
+// Starting the app (main.go)
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -32,18 +32,14 @@ func newApp() *App {
 	return NewApp(st, lib, dl, img)
 }
 
-// webHandler serves the screen, the API and the images over HTTP (the Android app's backend, and remote access on
-// the desktop). native also serves the calls to the Android app (internal/webapi)
-func (a *App) webHandler(api *webapi.Server, native bool) http.Handler {
+// webHandler serves the screen, the API and the images over HTTP (remote access)
+func (a *App) webHandler(api *webapi.Server) http.Handler {
 	dist, err := fs.Sub(assets, "frontend/dist")
 	if err != nil {
 		log.Fatal(err)
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
-	if native {
-		mux.Handle("/native/", api)
-	}
 	mux.Handle("/", a.img.Middleware(http.FileServerFS(dist)))
 	return mux
 }

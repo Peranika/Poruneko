@@ -29,6 +29,7 @@ export const ja = {
   app: {
     downloadingNow: 'ダウンロード中',
     back: '戻る (Alt+←)',
+    backShort: '戻る',
     forward: '進む (Alt+→)',
     minimize: '最小化',
     maximize: '最大化',
@@ -628,7 +629,6 @@ export const ja = {
     duckduckgoHint: 'アーティスト名で Web 検索し、結果のページ名（pixiv・X・FANBOX など）から作者名を読みます。短時間に何度も検索すると DuckDuckGo に拒否されることがあり、その時は次の補完先に進みます',
     plugins: 'プラグイン',
     noPlugins: '読み込まれたプラグインはありません',
-    pluginsHintAndroid: 'プラグイン（.wasm）は、端末の Android/data/io.github.peranika.poruneko/files/plugins に置くと、次の起動で読み込まれます。プラグインは指定した接続先にだけ、アプリを通して接続できます',
     addPlugin: 'プラグインを追加',
     addPluginHint: 'プラグインのファイル（.wasm）を plugins フォルダにコピーします。同じプラグインの新しい版は古い版と置き換わります',
     addPluginButton: 'ファイルを選ぶ',
@@ -765,6 +765,12 @@ export const ja = {
     resetButton: '表紙に戻す'
   },
 
+  androidConnect: {
+    title: '接続先の PC',
+    current: '接続中: {url}',
+    hint: 'PC の設定（リモートアクセス）に表示されるアドレスに変えられます',
+    change: '変更'
+  },
   remote: {
     title: 'リモートアクセス',
     hint: 'タブレットやスマホのブラウザから、この PC の Poruneko を使えるようにします。家の Wi-Fi のほか、NordVPN Meshnet や Tailscale でつながった外出先の端末からも使えます（それ以外のインターネットからは接続できません）。使う間は PC を起動したままにしてください',
@@ -782,37 +788,6 @@ export const ja = {
     deviceSettingsHint: '表示・ビューア・キーなどの設定は、ログイン時に付けた端末の名前ごとに保存されます（この PC の設定は変わりません）',
     signOutAll: 'すべてログアウト',
     signedOut: 'すべての端末をログアウトしました'
-  },
-  sync: {
-    title: 'デバイス間の同期',
-    hint: '同じ Wi-Fi にある PC やスマホと、ブックマーク・シリーズ・タグを同期します。ダウンロード済みのファイルは送りません（自動ダウンロードがオンなら、届いた作品はこの端末でもダウンロードされます）',
-    deviceName: 'この端末の名前',
-    deviceNameHint: '同期する相手の画面に表示されます',
-    lastSync: '最後の同期: {date}',
-    never: 'まだ同期していません',
-    failed: '同期できませんでした: {error}',
-    unpair: '解除',
-    unpairConfirm: '「{name}」との同期を解除しますか？（どちらのブックマークも消えません）',
-    now: '今すぐ同期',
-    nowHint: '起動時と 10 分ごとにも、見つかった端末と自動で同期します',
-    nowButton: '同期',
-    syncing: '同期中…',
-    done: '同期しました',
-    notReached: '同期できなかった端末: {names}',
-    addDevice: '端末を追加',
-    addDeviceHint: '片方の端末で「コードを表示」し、もう片方で「コードを入力」してください',
-    showCode: 'コードを表示',
-    enterCode: 'コードを入力',
-    showingCode: 'もう一方の端末で、このコードを入力してください',
-    codeHint: 'あと {seconds} 秒有効です',
-    addrs: '見つからない時はアドレスを入力: {addrs}',
-    enterTitle: 'もう一方の端末に表示されたコードを入力',
-    enterHint: '端末が見つからない時は、もう一方の端末に表示されたアドレスを入力してください',
-    find: '端末を探す',
-    noneFound: 'コードを表示している端末が見つかりません',
-    addrPlaceholder: 'アドレス（例: 192.168.1.10:47391）',
-    pair: 'ペアリング',
-    paired: 'ペアリングしました。同期を始めます'
   },
   update: {
     title: 'アップデート',
@@ -854,12 +829,6 @@ export const ja = {
       shortPassword: 'パスワードは {min} 文字以上にしてください',
       noPassword: '先にパスワードを設定してください',
       listenFailed: 'リモートアクセスを開始できませんでした: {detail}'
-    },
-    sync: {
-      wrongCode: 'コードが違います',
-      notPairing: '相手の端末がコードを表示していません',
-      pairFailed: 'ペアリングできませんでした: {detail}',
-      listenFailed: '他の端末を待ち受けられませんでした: {detail}'
     },
     site: {
       noAction: 'このサイトではその操作はできません'

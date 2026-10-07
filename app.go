@@ -10,7 +10,6 @@ import (
 	"unicode"
 
 	"poruneko/internal/apperr"
-	"poruneko/internal/devsync"
 	"poruneko/internal/imgserver"
 	"poruneko/internal/library"
 	"poruneko/internal/meta"
@@ -42,8 +41,6 @@ type App struct {
 	updateMu      sync.Mutex
 	pendingUpdate *update.Release // the newer version found (installed by InstallUpdate)
 
-	sync *devsync.Service // syncing with the user's other devices (app_sync.go)
-
 	// remote access from browsers on other devices (app_remote.go; the desktop only)
 	remote    *remote.Server
 	remoteAPI *webapi.Server
@@ -62,11 +59,9 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 	a.dl.OnProgress = a.emitProgress
-	a.dl.OnBusy = a.sh.busy
 	a.img.OnPageSaved = a.pageCached
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()
-	a.startSync()
 	if a.remote != nil {
 		_ = a.remote.Start()
 	}
@@ -200,9 +195,6 @@ func (a *App) beforeClose(context.Context) bool {
 }
 
 func (a *App) shutdown(context.Context) {
-	if a.sync != nil {
-		a.sync.Close()
-	}
 	if a.remote != nil {
 		a.remote.Stop()
 		a.remoteAPI.Close()

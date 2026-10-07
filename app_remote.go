@@ -25,10 +25,10 @@ var remoteDenied = []string{
 func (a *App) setupRemote() {
 	a.remoteAPI = webapi.New(a, apperr.Format)
 	a.remoteAPI.Deny(remoteDenied...)
-	a.remote = remote.New(store.DataDir(), a.webHandler(a.remoteAPI, false))
+	a.remote = remote.New(store.DataDir(), a.webHandler(a.remoteAPI))
 }
 
-// errNoRemote is remote access asked for where there is none (the Android app)
+// errNoRemote is remote access asked for before it is set up
 var errNoRemote = apperr.New("platform.unsupported", "not supported on this platform")
 
 func (a *App) RemoteStatus() remote.Status {

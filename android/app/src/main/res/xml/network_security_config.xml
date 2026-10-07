@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- the Go backend serves the screen over plain HTTP on 127.0.0.1 -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">127.0.0.1</domain>
-    </domain-config>
+    <!-- the computer's remote access is plain HTTP, on the home network or a mesh VPN (any private address, which
+         cannot be listed here) -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

@@ -120,6 +120,12 @@ export default function App() {
 
       <div className="body">
         <nav className="sidebar">
+          {/* back, where there is no title bar (a touch device using the computer's screen; not the Android app,
+              whose own back button goes back) */}
+          <button className="sidebar-back" disabled={!nav.canBack} onClick={nav.back} title={t('app.back')}>
+            <Icon name="back" size={20} />
+            <span>{t('app.backShort')}</span>
+          </button>
           {/* the local folders first, each a tab; then what the site plugins add */}
           {dirs.map((d) => (
             <button

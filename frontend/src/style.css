@@ -182,10 +182,6 @@ select { cursor: pointer; }
 .titlebar { height: var(--titlebar); display: flex; align-items: center; background: var(--bg); border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .titlebar-nav { display: flex; gap: 2px; padding: 0 8px 0 calc((var(--sidebar) - 66px) / 2); }
 .titlebar-drag { flex: 1; height: 100%; display: flex; align-items: center; padding-left: 8px; }
-/* on Android the app fills the screen: there is no window to minimise, maximise or close */
-:root[data-platform='android'] .window-controls { display: none; }
-/* nor a file manager the app can open, nor a window to remember */
-:root[data-platform='android'] .desktop-only { display: none !important; }
 /* in a browser of remote access (<html data-remote>) neither is there, nor what is done on the computer itself
    (choosing folders, adding plugins, signing in to sites, installing updates) */
 :root[data-remote] .window-controls, :root[data-remote] .desktop-only, :root[data-remote] .local-only,
@@ -1097,13 +1093,6 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 /* viewer toolbar: back to the first page (the arrow is mirrored when right-to-left, where it sits after the slider) */
 .icon-btn.to-first.rtl svg { transform: scaleX(-1); }
 
-/* settings: syncing with other devices */
-.sync-pairing > span:first-child { display: flex; flex-direction: column; gap: 6px; }
-.sync-code { font-family: var(--mono); font-size: 1.7143rem; letter-spacing: 0.12em; color: var(--accent); }
-.sync-found, .sync-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sync-inputs input { flex: 1 1 12em; min-width: 0; }
-.sync-inputs .sync-code-input { flex: 0 1 9em; font-family: var(--mono); letter-spacing: 0.08em; }
-
 /* settings: remote access */
 .remote-url { display: block; margin-top: 4px; font-size: 0.9286rem; color: var(--text); user-select: all; }
 
@@ -1283,3 +1272,9 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 :root[data-touch] .app.bars-hidden .titlebar, :root[data-touch] .app.bars-hidden .toolbar:has(+ .scroll) {
   max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom-width: 0; overflow: hidden; opacity: 0;
 }
+/* a touch device using the computer's screen has no window to move or title to show: the title bar goes, and back
+   is a button at the head of the tabs (the Android app's own back button goes back) */
+.sidebar-back { display: none !important; }
+:root[data-remote][data-touch] .titlebar { display: none; }
+:root[data-remote][data-touch]:not([data-android-app]) .sidebar-back { display: flex !important; }
+.sidebar .sidebar-back:disabled { opacity: 0.35; }

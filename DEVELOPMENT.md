@@ -63,49 +63,23 @@ On distributions that still ship WebKitGTK 4.0 (`libwebkit2gtk-4.0-dev`), drop `
 
 ### Android
 
-The Android app (`android/`) is a WebView around the same Go backend and frontend. The Go program is built for
-Android with `GOOS=android` (`main_android.go` instead of `main.go`): it serves the frontend, the API
-(`internal/webapi`) and the images on 127.0.0.1, and the Android app runs it as a child process
-(`libporuneko.so`). The frontend calls the backend through `frontend/src/backend.ts`, which uses the Wails
-bindings when they are there and HTTP otherwise. What only the Android app can do (choosing a folder, the browser,
-the clipboard, full screen, sign-in pages) the backend asks of it through `shell_android.go`.
+The Android app (`android/`) is a client of the desktop app's remote access (see Remote access): a WebView that
+opens the PC's address full screen, with the back button. It asks for the address once (and again when the PC
+cannot be reached); the page can ask the app for full screen with the system bars hidden, the clipboard, and
+changing the address (`window.PorunekoAndroid`, `MainActivity.AndroidPage`). The screen itself is the desktop
+app's, laid out for a phone (see Remote access). The app that ran on its own (its own Go backend, plugins and
+downloads) is at the tag `android-standalone`.
 
-Requirements: the Android SDK (platform 35) and NDK 29.0.14206865 (`sdkmanager "platforms;android-35"
-"ndk;29.0.14206865"`), and JDK 17+ (Android Studio's `jbr` works). Write the SDK's folder in
+Requirements: the Android SDK (platform 35) and JDK 17+ (Android Studio's `jbr` works). Write the SDK's folder in
 `android/local.properties` (`sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk`) or set `ANDROID_HOME`.
 
 ```sh
 cd android
-./gradlew assembleDebug                      # app/build/outputs/apk/debug/app-debug.apk (arm64 + x86_64)
-./gradlew assembleDebug -Pabis=arm64-v8a     # phones only (half the size)
-./gradlew assembleRelease                    # release build (signed with the debug key for now)
+./gradlew assembleDebug      # app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease    # release build (signed with the debug key for now)
 ```
 
-Gradle builds the frontend (`npm run build`) and the Go backend for each ABI itself. Plugins are the desktop's
-`.wasm` files, unchanged: add them in Settings → Plugins (the app restarts the backend to load them), or put them
-in `Android/data/io.github.peranika.poruneko/files/plugins` on the device (over USB, or
-`adb push x.wasm /sdcard/Android/data/io.github.peranika.poruneko/files/plugins/`) and restart the app. The backend's
-log goes to logcat (`adb logcat -s poruneko`) and to `poruneko.log` in the app's data. In a debug build the WebView
-can be inspected from `chrome://inspect`.
-
-Differences on Android:
-
-- **Storage**: works are saved in `Android/data/io.github.peranika.poruneko/files/library` until another folder is
-  chosen. Choosing a folder (a save location or a local folder) asks for access to all files first, as the backend
-  opens files by path.
-- **Downloads** go on in the background: while there are any, a foreground service with a notification keeps the
-  app running (`busy` in `shell_android.go`, `BackgroundService.kt`).
-- **SQLite** is the C library's (`mattn/go-sqlite3`, built with the NDK) instead of modernc's, which makes system
-  calls that Android forbids (the app is killed with SIGSYS).
-- **The back button** goes back in the app (closing a dialog first); with nothing to go back to, the app goes to the
-  background.
-- **Updates** come as a new APK: the app does not look for them.
-- **The screen** is laid out for a phone below 760px wide (`@media (max-width: 760px)` in `style.css`,
-  `useCompact`): the tabs are a bar along the bottom, the side panels (a work's info, the lists' groups) slide over the
-  content, and the viewer shows one page at a time while the phone is held upright. On a touch screen
-  (`<html data-touch>`, `useTouch`) the viewer turns pages by swiping, tapping the middle of the page shows its bar,
-  and the buttons that hovering brings out are always shown. To work on it in a browser, run `wails dev` and open
-  `http://127.0.0.1:34115` with the browser's device emulation (a phone's size and touch).
+In a debug build the WebView can be inspected from `chrome://inspect`. In the emulator the PC is `10.0.2.2`.
 
 ### Environment variables
 
@@ -114,9 +88,7 @@ Differences on Android:
 | `PORUNEKO_DATA_DIR` | Use this folder instead of `%AppData%\Poruneko` for app data |
 | `PORUNEKO_DEBUG=1` | Log every image request served by imgserver |
 | `PORUNEKO_START_HIDDEN=1` | Start without showing the window (to operate it from the browser in dev mode) |
-| `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first, and add the plugins chosen in the settings there (the Android app sets it) |
 | `PORUNEKO_REMOTE_BIND` | Remote access listens only on this address (`127.0.0.1` to try it without the firewall asking) |
-| `PORUNEKO_LIBRARY_DIR` | Save works here until the user chooses a folder (the Android app sets it) |
 
 ## App icon
 
@@ -147,27 +119,14 @@ icons). Each device signs in with a name and has its own value of the settings a
 that name (`/remote/device`), so it finds them from any of the computer's addresses; the other settings are the
 computer's.
 
-## Syncing between devices
-
-Settings → Sync between devices syncs the bookmarks (their shared parts: work info, creator info, the user's tags
-and title), the series and the deletions with the user's other devices on the same network (`internal/devsync`,
-`app_sync.go`). Downloads, files and chosen thumbnails stay each device's own, and works in local folders or made
-from page ranges are not shared.
-
-- **Pairing**: one device shows a code (`XXXX-XXXX`, 5 minutes), the other enters it. Both derive a key from the
-  code (PBKDF2) and the host sends a random secret sealed with it; later syncs are sealed with a key from that
-  secret (AES-GCM) and refused from devices that are not paired.
-- **Finding**: a UDP broadcast on port 47391; paired devices (and any while pairing) answer with their TCP port
-  (47391, or another if it is taken). Where broadcasts do not reach, the last address is tried, and the address
-  can be typed when pairing. A device listens only once it has a paired device or is pairing, so Windows asks
-  about the firewall only then.
-- **Merging** (`devsync.Merge`): each part of a bookmark is taken from the device that changed it last
-  (`Bookmark.Edited`, stamped by `store.Update` only when a shared part changes), each series from the one changed
-  last (`Series.UpdatedAt`), and a deletion (the `deleted` table, kept a year) wins over what changed before it.
-  Both devices end with the merge; the app then removes, downloads (with automatic downloads on) and renames as
-  the changes call for.
-- It syncs at startup, every 10 minutes and from the settings. `go test ./internal/devsync -run TestLivePair` pairs
-  with a real device (see the test).
+On a phone or a tablet the screen is laid out for touch. Below 760px wide (`@media (max-width: 760px)` in
+`style.css`, `useCompact`) the tabs are a bar along the bottom, the side panels (a work's info, the lists' groups)
+slide over the content, and a work opens straight in the viewer, which shows one page at a time while the phone is
+held upright. On a touch screen (`<html data-touch>`, `useTouch`) the viewer turns pages by swiping, tapping the
+middle of the page shows its bar, the buttons that hovering brings out are always shown, the bars above a list go
+away while it scrolls down, and there is no title bar (back is at the head of the tabs, or the Android app's back
+button). To work on it in a browser, run `wails dev` and open `http://127.0.0.1:34115` with the browser's device
+emulation (a phone's size and touch).
 
 ## Project layout
 

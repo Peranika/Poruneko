@@ -1,112 +1,3 @@
-export namespace devsync {
-	
-	export class Found {
-	    id: string;
-	    name: string;
-	    addr: string;
-	    pairing: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new Found(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.addr = source["addr"];
-	        this.pairing = source["pairing"];
-	    }
-	}
-	export class PairingStatus {
-	    code: string;
-	    until: number;
-	    addrs: string[];
-	
-	    static createFrom(source: any = {}) {
-	        return new PairingStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.code = source["code"];
-	        this.until = source["until"];
-	        this.addrs = source["addrs"];
-	    }
-	}
-	export class PeerStatus {
-	    id: string;
-	    name: string;
-	    lastSync: number;
-	    lastError: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new PeerStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.lastSync = source["lastSync"];
-	        this.lastError = source["lastError"];
-	    }
-	}
-	export class Status {
-	    deviceName: string;
-	    peers: PeerStatus[];
-	    pairing?: PairingStatus;
-	    syncing: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new Status(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.deviceName = source["deviceName"];
-	        this.peers = this.convertValues(source["peers"], PeerStatus);
-	        this.pairing = this.convertValues(source["pairing"], PairingStatus);
-	        this.syncing = source["syncing"];
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
-	export class SyncResult {
-	    id: string;
-	    name: string;
-	    error?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new SyncResult(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.error = source["error"];
-	    }
-	}
-
-}
-
 export namespace main {
 	
 	export class IconFile {
@@ -209,24 +100,6 @@ export namespace model {
 	        this.name = source["name"];
 	        this.kind = source["kind"];
 	        this.size = source["size"];
-	    }
-	}
-	export class EditedAt {
-	    summary?: number;
-	    creator?: number;
-	    tags?: number;
-	    title?: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new EditedAt(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.summary = source["summary"];
-	        this.creator = source["creator"];
-	        this.tags = source["tags"];
-	        this.title = source["title"];
 	    }
 	}
 	export class ThumbSpec {
@@ -473,7 +346,6 @@ export namespace model {
 	    tags?: string[];
 	    customThumb?: ThumbSpec;
 	    customTitle?: string;
-	    edited: EditedAt;
 	
 	    static createFrom(source: any = {}) {
 	        return new Bookmark(source);
@@ -490,7 +362,6 @@ export namespace model {
 	        this.tags = source["tags"];
 	        this.customThumb = this.convertValues(source["customThumb"], ThumbSpec);
 	        this.customTitle = source["customTitle"];
-	        this.edited = this.convertValues(source["edited"], EditedAt);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -683,7 +554,6 @@ export namespace model {
 		    return a;
 		}
 	}
-	
 	
 	
 	
@@ -1071,7 +941,6 @@ export namespace model {
 	    createdAt: number;
 	    keys: string[];
 	    folder?: string;
-	    updatedAt?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Series(source);
@@ -1084,7 +953,6 @@ export namespace model {
 	        this.createdAt = source["createdAt"];
 	        this.keys = source["keys"];
 	        this.folder = source["folder"];
-	        this.updatedAt = source["updatedAt"];
 	    }
 	}
 	export class ViewerSettings {

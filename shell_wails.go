@@ -1,5 +1,3 @@
-//go:build !android
-
 package main
 
 import (
@@ -79,11 +77,6 @@ func (s wailsShell) restart() error {
 	runtime.Quit(s.a.ctx)
 	return nil
 }
-
-// a desktop app keeps running in the background anyway
-func (s wailsShell) busy(bool) {}
-
-func (s wailsShell) canLogin() bool { return loginwin.Supported() }
 
 func (s wailsShell) login(o loginwin.Options) (map[string]string, error) {
 	return loginwin.Run(s.a.ctx, o)

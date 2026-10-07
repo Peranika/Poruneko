@@ -98,10 +98,6 @@ export function FileNamePlaceholders() {
   return window['go']['main']['App']['FileNamePlaceholders']();
 }
 
-export function FindSyncDevices() {
-  return window['go']['main']['App']['FindSyncDevices']();
-}
-
 export function Gallery(arg1) {
   return window['go']['main']['App']['Gallery'](arg1);
 }
@@ -154,10 +150,6 @@ export function OwnerSettings(arg1, arg2) {
   return window['go']['main']['App']['OwnerSettings'](arg1, arg2);
 }
 
-export function PairSyncDevice(arg1, arg2) {
-  return window['go']['main']['App']['PairSyncDevice'](arg1, arg2);
-}
-
 export function PauseDownload(arg1) {
   return window['go']['main']['App']['PauseDownload'](arg1);
 }
@@ -200,10 +192,6 @@ export function RemoveHistory(arg1) {
 
 export function RemoveLocalDir(arg1) {
   return window['go']['main']['App']['RemoveLocalDir'](arg1);
-}
-
-export function RemoveSyncDevice(arg1) {
-  return window['go']['main']['App']['RemoveSyncDevice'](arg1);
 }
 
 export function RenameSeries(arg1, arg2) {
@@ -286,10 +274,6 @@ export function SetSettings(arg1) {
   return window['go']['main']['App']['SetSettings'](arg1);
 }
 
-export function SetSyncDeviceName(arg1) {
-  return window['go']['main']['App']['SetSyncDeviceName'](arg1);
-}
-
 export function SiteLogin(arg1, arg2, arg3) {
   return window['go']['main']['App']['SiteLogin'](arg1, arg2, arg3);
 }
@@ -306,24 +290,8 @@ export function StartDownload(arg1) {
   return window['go']['main']['App']['StartDownload'](arg1);
 }
 
-export function StartSyncPairing() {
-  return window['go']['main']['App']['StartSyncPairing']();
-}
-
-export function StopSyncPairing() {
-  return window['go']['main']['App']['StopSyncPairing']();
-}
-
 export function Suggest(arg1, arg2) {
   return window['go']['main']['App']['Suggest'](arg1, arg2);
-}
-
-export function SyncNow() {
-  return window['go']['main']['App']['SyncNow']();
-}
-
-export function SyncStatus() {
-  return window['go']['main']['App']['SyncStatus']();
 }
 
 export function TagNamesJa() {

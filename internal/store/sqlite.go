@@ -1,5 +1,3 @@
-//go:build !android
-
 package store
 
 import (
@@ -8,8 +6,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// SQLite is modernc's (pure Go) here; on Android it is the C library's (sqlite_android.go), as modernc calls the
-// kernel directly with system calls that Android forbids
+// SQLite is modernc's (pure Go)
 
 const sqliteDriver = "sqlite"
 

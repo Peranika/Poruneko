@@ -2,14 +2,12 @@ package webapi
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 )
 
 type item struct {
@@ -53,49 +51,6 @@ func TestCall(t *testing.T) {
 	}
 	if code, _ := post(t, s, "/api/call/Add", `["x"]`); code != http.StatusBadRequest {
 		t.Errorf("bad argument: %d", code)
-	}
-}
-
-func TestNative(t *testing.T) {
-	s := New(&target{}, func(err error) any { return err.Error() })
-	srv := httptest.NewServer(s)
-	defer srv.Close()
-	defer s.Close()
-
-	// the native app: reads a call and answers it
-	go func() {
-		resp, err := http.Get(srv.URL + "/native/calls")
-		if err != nil {
-			return
-		}
-		defer resp.Body.Close()
-		sc := bufio.NewScanner(resp.Body)
-		for sc.Scan() {
-			var c struct {
-				ID     int64
-				Method string
-				Params map[string]string
-			}
-			_ = json.Unmarshal(sc.Bytes(), &c)
-			rep, _ := json.Marshal(map[string]any{"id": c.ID, "result": c.Method + ":" + c.Params["title"]})
-			if c.Method == "nope" {
-				rep, _ = json.Marshal(map[string]any{"id": c.ID, "error": "unsupported"})
-			}
-			r, err := http.Post(srv.URL+"/native/reply", "application/json", strings.NewReader(string(rep)))
-			if err == nil {
-				r.Body.Close()
-			}
-		}
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var got string
-	if err := s.Native(ctx, "chooseDir", map[string]string{"title": "t"}, &got); err != nil || got != "chooseDir:t" {
-		t.Fatalf("Native: %q, %v", got, err)
-	}
-	if err := s.Native(ctx, "nope", nil, nil); !errors.Is(err, ErrUnsupported) {
-		t.Fatalf("unsupported: %v", err)
 	}
 }
 

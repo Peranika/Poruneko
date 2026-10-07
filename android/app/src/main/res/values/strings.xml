@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="backend_failed">Poruneko could not start. Its log is poruneko.log in the app\'s data.</string>
-    <string name="storage_denied">Allow Poruneko to access all files to add a folder</string>
-    <string name="folder_unsupported">Choose a folder on the device\'s storage or an SD card</string>
-    <string name="downloads_channel">Downloads</string>
-    <string name="downloads_title">Downloading works</string>
+    <string name="server_title">Connect to Poruneko on your PC</string>
+    <string name="server_hint">Turn on remote access in the PC\'s settings and enter one of the addresses it shows (through NordVPN Meshnet or Tailscale, the one starting with 100.).</string>
+    <string name="connect">Connect</string>
+    <string name="bad_address">Enter an address such as http://100.x.x.x:47392/</string>
+    <string name="unreachable">Could not reach the PC (%1$s): %2$s. Check that Poruneko is running on it and that this device is on the same network or VPN.</string>
 </resources>

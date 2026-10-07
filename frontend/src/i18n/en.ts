@@ -29,6 +29,7 @@ export const en: Dict = {
   app: {
     downloadingNow: 'Downloading',
     back: 'Back (Alt+←)',
+    backShort: 'Back',
     forward: 'Forward (Alt+→)',
     minimize: 'Minimize',
     maximize: 'Maximize',
@@ -625,7 +626,6 @@ export const en: Dict = {
     duckduckgoHint: 'Searches the web for the artist name and reads the creator name from result page titles (pixiv, X, FANBOX, etc.). DuckDuckGo may refuse frequent searches; then the next source is tried',
     plugins: 'Plugins',
     noPlugins: 'No plugins loaded',
-    pluginsHintAndroid: 'Plugins (.wasm) in Android/data/io.github.peranika.poruneko/files/plugins on the device are loaded at the next start. A plugin can connect only to the hosts it lists, through the app',
     addPlugin: 'Add a plugin',
     addPluginHint: 'Copies a plugin file (.wasm) into the plugins folder. A newer version of a plugin replaces the old one',
     addPluginButton: 'Choose a file',
@@ -762,6 +762,12 @@ export const en: Dict = {
     resetButton: 'Reset to cover'
   },
 
+  androidConnect: {
+    title: 'The PC connected to',
+    current: 'Connected to {url}',
+    hint: 'Change it to another address the PC shows in its settings (Remote access)',
+    change: 'Change'
+  },
   remote: {
     title: 'Remote access',
     hint: 'Lets browsers on your tablets and phones use Poruneko on this PC: on the home Wi-Fi, and when away through NordVPN Meshnet or Tailscale (nothing else on the internet can connect). Keep the PC on while using it',
@@ -779,37 +785,6 @@ export const en: Dict = {
     deviceSettingsHint: 'The display, viewer and key settings are kept for each device, by the name it signed in with (this PC keeps its own)',
     signOutAll: 'Sign out all',
     signedOut: 'All devices are signed out'
-  },
-  sync: {
-    title: 'Sync between devices',
-    hint: 'Syncs the bookmarks, series and tags with your PCs and phones on the same Wi-Fi. Downloaded files are not sent (with automatic downloads on, the works that arrive are downloaded on this device too)',
-    deviceName: 'Name of this device',
-    deviceNameHint: 'Shown on the devices it syncs with',
-    lastSync: 'Last synced: {date}',
-    never: 'Not synced yet',
-    failed: 'Could not sync: {error}',
-    unpair: 'Unpair',
-    unpairConfirm: 'Stop syncing with "{name}"? (No bookmarks are deleted on either device)',
-    now: 'Sync now',
-    nowHint: 'It also syncs with the devices it finds at startup and every 10 minutes',
-    nowButton: 'Sync',
-    syncing: 'Syncing…',
-    done: 'Synced',
-    notReached: 'Could not sync with: {names}',
-    addDevice: 'Add a device',
-    addDeviceHint: 'Show a code on one device and enter it on the other',
-    showCode: 'Show a code',
-    enterCode: 'Enter a code',
-    showingCode: 'Enter this code on the other device',
-    codeHint: 'Valid for {seconds} more seconds',
-    addrs: 'If it is not found, enter the address: {addrs}',
-    enterTitle: 'Enter the code the other device shows',
-    enterHint: 'If the device is not found, enter the address the other device shows',
-    find: 'Find devices',
-    noneFound: 'No device showing a code was found',
-    addrPlaceholder: 'Address (e.g. 192.168.1.10:47391)',
-    pair: 'Pair',
-    paired: 'Paired. Syncing now'
   },
   update: {
     title: 'Updates',
@@ -850,12 +825,6 @@ export const en: Dict = {
       shortPassword: 'The password needs {min} characters or more',
       noPassword: 'Set a password first',
       listenFailed: 'Could not start remote access: {detail}'
-    },
-    sync: {
-      wrongCode: 'The code is wrong',
-      notPairing: 'The other device is not showing a code',
-      pairFailed: 'Could not pair: {detail}',
-      listenFailed: 'Could not wait for other devices: {detail}'
     },
     site: {
       noAction: 'The site cannot do that'

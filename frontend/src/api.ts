@@ -1,5 +1,5 @@
-// Thin wrapper around the Go backend (Wails bindings on the desktop, HTTP on Android: see backend.ts)
-import { EventsOn, go, isRemote } from './backend'
+// Thin wrapper around the Go backend (Wails bindings on the desktop, HTTP in a browser of remote access: see backend.ts)
+import { androidPage, EventsOn, go, isRemote } from './backend'
 import { keepDeviceSettings, withDeviceSettings } from './deviceSettings'
 
 // the computer's own settings, as a browser of remote access last read them (its own are put on top)
@@ -11,6 +11,12 @@ function openInBrowser(url: string): Promise<void> {
   return Promise.resolve()
 }
 function browserFullscreen(on: boolean): Promise<void> {
+  // in the Android app the app hides the system bars too
+  const android = androidPage()
+  if (android) {
+    android.setFullscreen(on)
+    return Promise.resolve()
+  }
   const d = document as Document & { webkitExitFullscreen?(): void; webkitFullscreenElement?: Element }
   const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?(): void }
   try {
@@ -39,7 +45,7 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, PluginInfo, RemoteStatus, SiteInfo, StatusLine, SyncFound, SyncPairing, SyncStatus, Text, ViewHeader } from './types'
+  UpdateRelease, PluginInfo, RemoteStatus, SiteInfo, StatusLine, Text, ViewHeader } from './types'
 
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
@@ -182,8 +188,12 @@ export const api = {
 
   openExternal: (url: string): Promise<void> => (isRemote() ? openInBrowser(url) : go.OpenExternal(url)),
   clipboardText: (): Promise<string> =>
-    isRemote() ? (navigator.clipboard?.readText?.() ?? Promise.resolve('')).catch(() => '') : go.ClipboardText(),
-  /** The OS the app runs on ("windows", "android"...) */
+    isRemote()
+      ? androidPage()
+        ? Promise.resolve(androidPage()!.clipboardText())
+        : (navigator.clipboard?.readText?.() ?? Promise.resolve('')).catch(() => '')
+      : go.ClipboardText(),
+  /** The OS the app runs on ("windows"...) */
   platform: (): Promise<string> => go.Platform(),
   setFullscreen: (on: boolean): Promise<void> => (isRemote() ? browserFullscreen(on) : go.SetFullscreen(on)),
   minimise: (): Promise<void> => go.WindowMinimise(),
@@ -195,20 +205,6 @@ export const api = {
   setRemotePassword: (password: string): Promise<void> => go.SetRemotePassword(password),
   setRemoteEnabled: (on: boolean): Promise<void> => go.SetRemoteEnabled(on),
   remoteSignOutAll: (): Promise<void> => go.RemoteSignOutAll(),
-  /** Syncing with the user's other devices on the same network */
-  syncStatus: (): Promise<SyncStatus> => go.SyncStatus(),
-  setSyncDeviceName: (name: string): Promise<void> => go.SetSyncDeviceName(name),
-  /** Show a code for another device to pair with this one */
-  startSyncPairing: (): Promise<SyncPairing> => go.StartSyncPairing(),
-  stopSyncPairing: (): Promise<void> => go.StopSyncPairing(),
-  /** The devices on the network showing a code */
-  findSyncDevices: (): Promise<SyncFound[]> => go.FindSyncDevices(),
-  pairSyncDevice: (addr: string, code: string): Promise<void> => go.PairSyncDevice(addr, code),
-  removeSyncDevice: (id: string): Promise<void> => go.RemoveSyncDevice(id),
-  /** Sync now; returns the devices that could not be synced with */
-  syncNow: (): Promise<{ id: string; name: string; error?: string }[]> => go.SyncNow(),
-  onSyncChanged: (cb: () => void): (() => void) => EventsOn('sync:changed', cb),
-
   onDownloadProgress: (cb: (p: DownloadProgress) => void): (() => void) => EventsOn('download:progress', cb),
   onBookmarksChanged: (cb: () => void): (() => void) => EventsOn('bookmarks:changed', cb),
   onSeriesChanged: (cb: () => void): (() => void) => EventsOn('series:changed', cb)

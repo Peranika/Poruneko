@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="backend_failed">Poruneko を起動できませんでした。ログはアプリのデータ内の poruneko.log にあります。</string>
-    <string name="storage_denied">フォルダを追加するには、すべてのファイルへのアクセスを許可してください</string>
-    <string name="folder_unsupported">端末のストレージか SD カードのフォルダを選んでください</string>
-    <string name="downloads_channel">ダウンロード</string>
-    <string name="downloads_title">作品をダウンロードしています</string>
+    <string name="server_title">PC の Poruneko に接続</string>
+    <string name="server_hint">PC の設定でリモートアクセスを有効にし、表示されるアドレスを入力してください（NordVPN Meshnet や Tailscale では 100. で始まるアドレス）。</string>
+    <string name="connect">接続</string>
+    <string name="bad_address">http://100.x.x.x:47392/ のようなアドレスを入力してください</string>
+    <string name="unreachable">PC（%1$s）に接続できませんでした: %2$s。PC で Poruneko が起動しているか、この端末が同じネットワークや VPN につながっているかを確かめてください。</string>
 </resources>
