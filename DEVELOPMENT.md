@@ -117,6 +117,20 @@ Differences on Android:
 | `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first, and add the plugins chosen in the settings there (the Android app sets it) |
 | `PORUNEKO_LIBRARY_DIR` | Save works here until the user chooses a folder (the Android app sets it) |
 
+## App icon
+
+`build/appicon.svg` is the icon (the P alone is centered across); `frontend/src/assets/icon.svg` is the same. The
+Android app's adaptive icon has the P and the heart without their ground in
+`android/icon/ic_launcher_foreground.svg`, on `@color/ic_launcher_background`. Render them with Edge (it draws the
+heart's outline under its fill, `paint-order`, which ImageMagick's SVG renderer does not):
+
+```sh
+msedge --headless=new --default-background-color=00000000 --window-size=1024,1024 --screenshot=build/appicon.png file:///<repo>/build/appicon.svg
+magick build/appicon.png -define icon:auto-resize=256,128,64,48,32,24,16 build/windows/icon.ico
+magick build/appicon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+msedge --headless=new --default-background-color=00000000 --window-size=432,432 --screenshot=android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png file:///<repo>/android/icon/ic_launcher_foreground.svg
+```
+
 ## Syncing between devices
 
 Settings → Sync between devices syncs the bookmarks (their shared parts: work info, creator info, the user's tags

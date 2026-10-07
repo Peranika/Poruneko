@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <!-- Poruneko の頭文字 P と、アクセントカラーの猫耳付きハート -->
   <rect width="1024" height="1024" rx="200" fill="#242d3c"/>
-  <!-- P（外形と内側の穴を evenodd で抜く） -->
+  <!-- P（外形と内側の穴を evenodd で抜く）。P だけで横方向の中心（x = 249〜775）に置く -->
   <path fill="#ffffff" fill-rule="evenodd"
-        d="M236 196 H548 A214 214 0 0 1 548 624 H422 V846 H236 Z
-           M422 350 H536 A60 60 0 0 1 536 470 H422 Z"/>
+        d="M249 196 H561 A214 214 0 0 1 561 624 H435 V846 H249 Z
+           M435 350 H549 A60 60 0 0 1 549 470 H435 Z"/>
   <!-- 猫耳付きのハート（P の右上に重ねる） -->
-  <g transform="translate(612 236) rotate(16) scale(2.75)">
+  <g transform="translate(625 236) rotate(16) scale(2.75)">
     <path fill="#ff6b8b" stroke="#242d3c" stroke-width="7" stroke-linejoin="round" paint-order="stroke"
           d="M50 88 C20 65 0 48 0 27 C0 17 5 9 12 5 L15 -13 L31 1 C40 2 46 7 50 13
              C54 7 60 2 69 1 L85 -13 L88 5 C95 9 100 17 100 27 C100 48 80 65 50 88 Z"/>
