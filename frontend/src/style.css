@@ -1211,6 +1211,19 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   .row .meta dd { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to left, transparent, #000 24px); }
   .row .tags { flex-wrap: nowrap; overflow: hidden; mask-image: linear-gradient(to left, transparent, #000 24px); }
   .row .tags .tag { flex-shrink: 0; }
+  /* the title has the row's width: the bookmark button and the type sit on the cover, the other title is left out */
+  .row { position: relative; }
+  .row .alt-title { display: none; }
+  .row .row-head .bookmark-btn {
+    position: absolute; top: 12px; left: calc(8px + min(var(--row-thumb, 150px), 30vw) - var(--overlay) - 4px);
+    width: var(--overlay); height: var(--overlay); border-radius: 8px; background: rgba(0, 0, 0, 0.62); color: #fff;
+  }
+  .row .row-head .bookmark-btn.on { color: var(--accent); }
+  /* on the cover the type's own see-through color gets a dark ground (an inset shadow paints over the background, under the text) */
+  .row .row-head .type {
+    position: absolute; left: 12px; top: calc(8px + min(var(--row-thumb, 150px), 30vw) / 0.7 - 28px); margin: 0;
+    box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.62);
+  }
   .page-divider, .load-prev { padding-left: 10px; padding-right: 10px; }
 
   /* side panels (the gallery page's info, the lists' groups) lie over the content */
