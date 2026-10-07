@@ -326,6 +326,8 @@ type Series struct {
 	Keys []string `json:"keys"`
 	// Folder is the subfolder the series was made from (as in ArchiveFile); new archives in it join
 	Folder string `json:"folder,omitempty"`
+	// UpdatedAt is when it last changed (Unix ms; 0: when it was created), for syncing
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
 // values of DownloadState.Status
@@ -377,6 +379,29 @@ type Bookmark struct {
 	CustomThumb *ThumbSpec `json:"customThumb,omitempty"`
 	// CustomTitle is the title the user gave the work ("" for the work's own title)
 	CustomTitle string `json:"customTitle,omitempty"`
+	// Edited is when each part the devices share was last changed (for syncing)
+	Edited EditedAt `json:"edited"`
+}
+
+// EditedAt is when the parts of a bookmark that devices share were last changed (Unix ms; 0: when it was added).
+// Syncing takes each part from the device that changed it last
+type EditedAt struct {
+	Summary int64 `json:"summary,omitempty"`
+	Creator int64 `json:"creator,omitempty"`
+	Tags    int64 `json:"tags,omitempty"`
+	Title   int64 `json:"title,omitempty"`
+}
+
+// Shared reports whether devices share the bookmark: not a work only this device has the file of (an archive in a
+// local folder, or a work made from a page range)
+func (b *Bookmark) Shared() bool { return !IsFileKey(b.Key) && !IsLocalKey(b.Key) }
+
+// SyncState is what a device shares with the others: its bookmarks (their shared parts), its series (not the ones
+// made from folders) and what was deleted ("b:<key>" for a bookmark, "s:<id>" for a series -> Unix ms)
+type SyncState struct {
+	Bookmarks []Bookmark       `json:"bookmarks"`
+	Series    []Series         `json:"series"`
+	Deleted   map[string]int64 `json:"deleted"`
 }
 
 // LocalDir is a folder of the user's own archives, shown as a tab of its own. The id stays the same for as long as

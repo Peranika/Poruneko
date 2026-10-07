@@ -1,6 +1,7 @@
 package io.github.peranika.poruneko
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import java.io.File
 import java.io.OutputStream
@@ -54,6 +55,8 @@ class Backend(private val context: Context) {
         env["TMPDIR"] = context.cacheDir.path
         env["HOME"] = context.filesDir.path
         env["TZ"] = TimeZone.getDefault().id
+        // the name other devices show for this one when syncing, until the user gives one
+        env["PORUNEKO_DEVICE_NAME"] = Build.MODEL
         // the backend takes the UI language from LANG when the setting is unset
         env["LANG"] = Locale.getDefault().toLanguageTag().replace('-', '_') + ".UTF-8"
         val p = pb.start()

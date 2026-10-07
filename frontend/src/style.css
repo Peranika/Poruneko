@@ -1091,6 +1091,13 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 /* viewer toolbar: back to the first page (the arrow is mirrored when right-to-left, where it sits after the slider) */
 .icon-btn.to-first.rtl svg { transform: scaleX(-1); }
 
+/* settings: syncing with other devices */
+.sync-pairing > span:first-child { display: flex; flex-direction: column; gap: 6px; }
+.sync-code { font-family: var(--mono); font-size: 1.7143rem; letter-spacing: 0.12em; color: var(--accent); }
+.sync-found, .sync-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sync-inputs input { flex: 1 1 12em; min-width: 0; }
+.sync-inputs .sync-code-input { flex: 0 1 9em; font-family: var(--mono); letter-spacing: 0.08em; }
+
 /* settings: loaded plugins */
 .plugin-row { display: block; }
 
@@ -1198,7 +1205,12 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   .results.grid { grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min, 180px), 42vw), 1fr)); gap: 14px 10px; }
   .row { gap: 10px; padding: 8px; }
   .row .thumb { width: min(var(--row-thumb, 150px), 30vw); }
-  .row-head .title { font-size: 1rem; }
+  .row-head .title { font-size: 1rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  /* a row stays about as tall as its cover: one line of each kind of names and one line of tags (the work's page
+     has them all) */
+  .row .meta dd { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to left, transparent, #000 24px); }
+  .row .tags { flex-wrap: nowrap; overflow: hidden; mask-image: linear-gradient(to left, transparent, #000 24px); }
+  .row .tags .tag { flex-shrink: 0; }
   .page-divider, .load-prev { padding-left: 10px; padding-right: 10px; }
 
   /* side panels (the gallery page's info, the lists' groups) lie over the content */

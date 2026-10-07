@@ -117,6 +117,28 @@ Differences on Android:
 | `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first, and add the plugins chosen in the settings there (the Android app sets it) |
 | `PORUNEKO_LIBRARY_DIR` | Save works here until the user chooses a folder (the Android app sets it) |
 
+## Syncing between devices
+
+Settings → Sync between devices syncs the bookmarks (their shared parts: work info, creator info, the user's tags
+and title), the series and the deletions with the user's other devices on the same network (`internal/devsync`,
+`app_sync.go`). Downloads, files and chosen thumbnails stay each device's own, and works in local folders or made
+from page ranges are not shared.
+
+- **Pairing**: one device shows a code (`XXXX-XXXX`, 5 minutes), the other enters it. Both derive a key from the
+  code (PBKDF2) and the host sends a random secret sealed with it; later syncs are sealed with a key from that
+  secret (AES-GCM) and refused from devices that are not paired.
+- **Finding**: a UDP broadcast on port 47391; paired devices (and any while pairing) answer with their TCP port
+  (47391, or another if it is taken). Where broadcasts do not reach, the last address is tried, and the address
+  can be typed when pairing. A device listens only once it has a paired device or is pairing, so Windows asks
+  about the firewall only then.
+- **Merging** (`devsync.Merge`): each part of a bookmark is taken from the device that changed it last
+  (`Bookmark.Edited`, stamped by `store.Update` only when a shared part changes), each series from the one changed
+  last (`Series.UpdatedAt`), and a deletion (the `deleted` table, kept a year) wins over what changed before it.
+  Both devices end with the merge; the app then removes, downloads (with automatic downloads on) and renames as
+  the changes call for.
+- It syncs at startup, every 10 minutes and from the settings. `go test ./internal/devsync -run TestLivePair` pairs
+  with a real device (see the test).
+
 ## Project layout
 
 ```

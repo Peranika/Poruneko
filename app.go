@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"poruneko/internal/apperr"
+	"poruneko/internal/devsync"
 	"poruneko/internal/imgserver"
 	"poruneko/internal/library"
 	"poruneko/internal/meta"
@@ -38,6 +39,8 @@ type App struct {
 
 	updateMu      sync.Mutex
 	pendingUpdate *update.Release // the newer version found (installed by InstallUpdate)
+
+	sync *devsync.Service // syncing with the user's other devices (app_sync.go)
 }
 
 func NewApp(st *store.Store, lib *library.Library, dl *library.Downloader, img *imgserver.Handler) *App {
@@ -57,6 +60,7 @@ func (a *App) startup(ctx context.Context) {
 	a.img.OnPageSaved = a.pageCached
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()
+	a.startSync()
 	go func() {
 		if n := a.lib.RenameLegacyExt(); n > 0 {
 			log.Printf("[library] renamed %d .zip files to .cbz", n)
@@ -187,6 +191,9 @@ func (a *App) beforeClose(context.Context) bool {
 }
 
 func (a *App) shutdown(context.Context) {
+	if a.sync != nil {
+		a.sync.Close()
+	}
 	a.lib.Close()
 	a.st.Flush()
 }

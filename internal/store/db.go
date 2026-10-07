@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS owner_settings (
 	updated_at INTEGER NOT NULL,
 	data       TEXT NOT NULL -- JSON of model.OwnerSettings
 );
+CREATE TABLE IF NOT EXISTS deleted (
+	key        TEXT PRIMARY KEY, -- "b:<bookmark key>" or "s:<series id>"
+	deleted_at INTEGER NOT NULL,
+	data       TEXT NOT NULL -- JSON of deletion
+);
 `
 
 // table is a table name and its column names
@@ -40,6 +45,7 @@ var (
 	bookmarksTable = table{"bookmarks", "key", "added_at"}
 	seriesTable    = table{"series", "id", "created_at"}
 	ownersTable    = table{"owner_settings", "key", "updated_at"}
+	deletedTable   = table{"deleted", "key", "deleted_at"}
 )
 
 // row is one row to write (v is the value made into JSON)

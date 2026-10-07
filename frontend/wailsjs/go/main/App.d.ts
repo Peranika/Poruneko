@@ -3,6 +3,7 @@
 import {model} from '../models';
 import {main} from '../models';
 import {update} from '../models';
+import {devsync} from '../models';
 
 export function AddBookmark(arg1:model.GallerySummary):Promise<model.Bookmark>;
 
@@ -50,6 +51,8 @@ export function Favorites(arg1:model.FavoritesQuery):Promise<model.FavoritesResu
 
 export function FileNamePlaceholders():Promise<Array<string>>;
 
+export function FindSyncDevices():Promise<Array<devsync.Found>>;
+
 export function Gallery(arg1:string):Promise<model.GalleryDetail>;
 
 export function GetSettings():Promise<model.Settings>;
@@ -76,6 +79,8 @@ export function OpenIconsFolder():Promise<void>;
 
 export function OwnerSettings(arg1:string,arg2:string):Promise<Record<string, string>>;
 
+export function PairSyncDevice(arg1:string,arg2:string):Promise<void>;
+
 export function PauseDownload(arg1:string):Promise<void>;
 
 export function Platform():Promise<string>;
@@ -93,6 +98,8 @@ export function RemoveFromSeries(arg1:string):Promise<void>;
 export function RemoveHistory(arg1:string):Promise<void>;
 
 export function RemoveLocalDir(arg1:number):Promise<void>;
+
+export function RemoveSyncDevice(arg1:string):Promise<void>;
 
 export function RenameSeries(arg1:string,arg2:string):Promise<model.Series>;
 
@@ -130,6 +137,8 @@ export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):
 
 export function SetSettings(arg1:model.Settings):Promise<model.Settings>;
 
+export function SetSyncDeviceName(arg1:string):Promise<void>;
+
 export function SiteLogin(arg1:string,arg2:string,arg3:boolean):Promise<Record<string, string>>;
 
 export function SiteStatus(arg1:string):Promise<Array<model.StatusLine>>;
@@ -138,7 +147,15 @@ export function Sites():Promise<Array<model.SiteInfo>>;
 
 export function StartDownload(arg1:string):Promise<void>;
 
+export function StartSyncPairing():Promise<devsync.PairingStatus>;
+
+export function StopSyncPairing():Promise<void>;
+
 export function Suggest(arg1:string,arg2:string):Promise<Array<model.Suggestion>>;
+
+export function SyncNow():Promise<Array<devsync.SyncResult>>;
+
+export function SyncStatus():Promise<devsync.Status>;
 
 export function TagNamesJa():Promise<Record<string, string>>;
 

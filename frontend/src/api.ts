@@ -18,7 +18,7 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, PluginInfo, SiteInfo, StatusLine, Text, ViewHeader } from './types'
+  UpdateRelease, PluginInfo, SiteInfo, StatusLine, SyncFound, SyncPairing, SyncStatus, Text, ViewHeader } from './types'
 
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
@@ -151,6 +151,20 @@ export const api = {
   minimise: (): Promise<void> => go.WindowMinimise(),
   toggleMaximise: (): Promise<void> => go.WindowToggleMaximise(),
   close: (): Promise<void> => go.WindowClose(),
+
+  /** Syncing with the user's other devices on the same network */
+  syncStatus: (): Promise<SyncStatus> => go.SyncStatus(),
+  setSyncDeviceName: (name: string): Promise<void> => go.SetSyncDeviceName(name),
+  /** Show a code for another device to pair with this one */
+  startSyncPairing: (): Promise<SyncPairing> => go.StartSyncPairing(),
+  stopSyncPairing: (): Promise<void> => go.StopSyncPairing(),
+  /** The devices on the network showing a code */
+  findSyncDevices: (): Promise<SyncFound[]> => go.FindSyncDevices(),
+  pairSyncDevice: (addr: string, code: string): Promise<void> => go.PairSyncDevice(addr, code),
+  removeSyncDevice: (id: string): Promise<void> => go.RemoveSyncDevice(id),
+  /** Sync now; returns the devices that could not be synced with */
+  syncNow: (): Promise<{ id: string; name: string; error?: string }[]> => go.SyncNow(),
+  onSyncChanged: (cb: () => void): (() => void) => EventsOn('sync:changed', cb),
 
   onDownloadProgress: (cb: (p: DownloadProgress) => void): (() => void) => EventsOn('download:progress', cb),
   onBookmarksChanged: (cb: () => void): (() => void) => EventsOn('bookmarks:changed', cb),

@@ -11,6 +11,7 @@ import { ImageIcon, TAB_ICONS, TabIcon } from './TabIcon'
 import { KeybindingSettings } from './KeybindingSettings'
 import { PredecodeSetting } from './PredecodeSetting'
 import { SlideCurveSetting } from './SlideCurveSetting'
+import { SyncSettings } from './SyncSettings'
 
 /** Accent color: a few presets, and any color through the color picker at the end */
 function AccentPicker({ value, onChange }: { value: string; onChange(v: string): void }) {
@@ -255,6 +256,7 @@ const SECTIONS: [id: string, label: () => string][] = [
   ['viewer', () => t('settings.viewer')],
   ['downloads', () => t('settings.downloads')],
   ['localDirs', () => t('settings.localDirs')],
+  ['sync', () => t('sync.title')],
   ['meta', () => t('settings.metaSources')],
   ['update', () => t('update.title')],
   ['plugins', () => t('settings.plugins')],
@@ -487,6 +489,8 @@ export function SettingsView() {
             </section>
 
             <LocalDirs />
+
+            <SyncSettings />
 
             <section id="set-meta">
               <h3>{t('settings.metaSources')}</h3>

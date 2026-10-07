@@ -765,6 +765,37 @@ export const ja = {
     resetButton: '表紙に戻す'
   },
 
+  sync: {
+    title: 'デバイス間の同期',
+    hint: '同じ Wi-Fi にある PC やスマホと、ブックマーク・シリーズ・タグを同期します。ダウンロード済みのファイルは送りません（自動ダウンロードがオンなら、届いた作品はこの端末でもダウンロードされます）',
+    deviceName: 'この端末の名前',
+    deviceNameHint: '同期する相手の画面に表示されます',
+    lastSync: '最後の同期: {date}',
+    never: 'まだ同期していません',
+    failed: '同期できませんでした: {error}',
+    unpair: '解除',
+    unpairConfirm: '「{name}」との同期を解除しますか？（どちらのブックマークも消えません）',
+    now: '今すぐ同期',
+    nowHint: '起動時と 10 分ごとにも、見つかった端末と自動で同期します',
+    nowButton: '同期',
+    syncing: '同期中…',
+    done: '同期しました',
+    notReached: '同期できなかった端末: {names}',
+    addDevice: '端末を追加',
+    addDeviceHint: '片方の端末で「コードを表示」し、もう片方で「コードを入力」してください',
+    showCode: 'コードを表示',
+    enterCode: 'コードを入力',
+    showingCode: 'もう一方の端末で、このコードを入力してください',
+    codeHint: 'あと {seconds} 秒有効です',
+    addrs: '見つからない時はアドレスを入力: {addrs}',
+    enterTitle: 'もう一方の端末に表示されたコードを入力',
+    enterHint: '端末が見つからない時は、もう一方の端末に表示されたアドレスを入力してください',
+    find: '端末を探す',
+    noneFound: 'コードを表示している端末が見つかりません',
+    addrPlaceholder: 'アドレス（例: 192.168.1.10:47391）',
+    pair: 'ペアリング',
+    paired: 'ペアリングしました。同期を始めます'
+  },
   update: {
     title: 'アップデート',
     available: 'Poruneko {version} が利用できます',
@@ -800,6 +831,12 @@ export const ja = {
     },
     platform: {
       unsupported: 'この端末では使えません'
+    },
+    sync: {
+      wrongCode: 'コードが違います',
+      notPairing: '相手の端末がコードを表示していません',
+      pairFailed: 'ペアリングできませんでした: {detail}',
+      listenFailed: '他の端末を待ち受けられませんでした: {detail}'
     },
     site: {
       noAction: 'このサイトではその操作はできません'

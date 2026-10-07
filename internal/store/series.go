@@ -125,6 +125,9 @@ func (s *Store) DeleteSeries(id string) (model.Series, bool) {
 		return model.Series{}, false
 	}
 	delete(s.series, id)
+	if x.Folder == "" {
+		s.markDeleted("s:"+id, time.Now().UnixMilli())
+	}
 	s.touchSeries(id)
 	return cloneSeries(x), true
 }
@@ -143,8 +146,11 @@ func (s *Store) removeFromSeries(key, except string) []model.Series {
 	return out
 }
 
-// touchSeries writes after 300ms in a batch (series)
+// touchSeries writes after 300ms in a batch (series), and stamps it with the time it changed
 func (s *Store) touchSeries(id string) {
+	if x, ok := s.series[id]; ok {
+		x.UpdatedAt = time.Now().UnixMilli()
+	}
 	s.changedS[id] = true
 	s.scheduleFlush()
 }

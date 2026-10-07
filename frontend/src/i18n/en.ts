@@ -762,6 +762,37 @@ export const en: Dict = {
     resetButton: 'Reset to cover'
   },
 
+  sync: {
+    title: 'Sync between devices',
+    hint: 'Syncs the bookmarks, series and tags with your PCs and phones on the same Wi-Fi. Downloaded files are not sent (with automatic downloads on, the works that arrive are downloaded on this device too)',
+    deviceName: 'Name of this device',
+    deviceNameHint: 'Shown on the devices it syncs with',
+    lastSync: 'Last synced: {date}',
+    never: 'Not synced yet',
+    failed: 'Could not sync: {error}',
+    unpair: 'Unpair',
+    unpairConfirm: 'Stop syncing with "{name}"? (No bookmarks are deleted on either device)',
+    now: 'Sync now',
+    nowHint: 'It also syncs with the devices it finds at startup and every 10 minutes',
+    nowButton: 'Sync',
+    syncing: 'Syncing…',
+    done: 'Synced',
+    notReached: 'Could not sync with: {names}',
+    addDevice: 'Add a device',
+    addDeviceHint: 'Show a code on one device and enter it on the other',
+    showCode: 'Show a code',
+    enterCode: 'Enter a code',
+    showingCode: 'Enter this code on the other device',
+    codeHint: 'Valid for {seconds} more seconds',
+    addrs: 'If it is not found, enter the address: {addrs}',
+    enterTitle: 'Enter the code the other device shows',
+    enterHint: 'If the device is not found, enter the address the other device shows',
+    find: 'Find devices',
+    noneFound: 'No device showing a code was found',
+    addrPlaceholder: 'Address (e.g. 192.168.1.10:47391)',
+    pair: 'Pair',
+    paired: 'Paired. Syncing now'
+  },
   update: {
     title: 'Updates',
     available: 'Poruneko {version} is available',
@@ -796,6 +827,12 @@ export const en: Dict = {
     },
     platform: {
       unsupported: 'Not available on this device'
+    },
+    sync: {
+      wrongCode: 'The code is wrong',
+      notPairing: 'The other device is not showing a code',
+      pairFailed: 'Could not pair: {detail}',
+      listenFailed: 'Could not wait for other devices: {detail}'
     },
     site: {
       noAction: 'The site cannot do that'
