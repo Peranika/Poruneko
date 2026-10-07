@@ -12,6 +12,7 @@ import { KeybindingSettings } from './KeybindingSettings'
 import { PredecodeSetting } from './PredecodeSetting'
 import { SlideCurveSetting } from './SlideCurveSetting'
 import { SyncSettings } from './SyncSettings'
+import { RemoteSettings } from './RemoteSettings'
 
 /** Accent color: a few presets, and any color through the color picker at the end */
 function AccentPicker({ value, onChange }: { value: string; onChange(v: string): void }) {
@@ -50,7 +51,7 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
   return (
     <section id="set-plugins">
       <h3>{t('settings.plugins')}</h3>
-      <div className="row-setting">
+      <div className="row-setting local-only">
         <span>
           {t('settings.addPlugin')}
           <small className="muted">{t('settings.addPluginHint')}</small>
@@ -60,7 +61,7 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
         </button>
       </div>
       {added.length > 0 && (
-        <div className="row-setting">
+        <div className="row-setting local-only">
           <span>
             {t('settings.pluginsAdded', { names: added.map((p) => `${p.name} ${p.version}`).join(', ') })}
           </span>
@@ -143,7 +144,7 @@ function SiteSection({ site, plugin, onDirChanged }: { site: SiteInfo; plugin?: 
         {plugin && <small className="muted">{pluginDetail(plugin)}</small>}
       </h3>
       {site.login && (
-        <div className="row-setting">
+        <div className="row-setting local-only">
           <span>
             {t('settings.login')}
             <small className="muted">{t('settings.loginHint')}</small>
@@ -174,7 +175,7 @@ function SiteSection({ site, plugin, onDirChanged }: { site: SiteInfo; plugin?: 
         </span>
         <div className="path-pick">
           <code title={site.dir}>{site.dir}</code>
-          <button className="btn" onClick={() => void chooseDir()}>
+          <button className="btn local-only" onClick={() => void chooseDir()}>
             {t('settings.change')}
           </button>
         </div>
@@ -257,6 +258,7 @@ const SECTIONS: [id: string, label: () => string][] = [
   ['downloads', () => t('settings.downloads')],
   ['localDirs', () => t('settings.localDirs')],
   ['sync', () => t('sync.title')],
+  ['remote', () => t('remote.title')],
   ['meta', () => t('settings.metaSources')],
   ['update', () => t('update.title')],
   ['plugins', () => t('settings.plugins')],
@@ -322,7 +324,7 @@ export function SettingsView() {
         <div className="settings-layout">
           <nav className="settings-nav">
             {SECTIONS.map(([id, label]) => (
-              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' ? 'desktop-only' : ''}`} onClick={() => goTo(id)}>
+              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'desktop-only' : ''}`} onClick={() => goTo(id)}>
                 {label()}
               </button>
             ))}
@@ -491,6 +493,8 @@ export function SettingsView() {
             <LocalDirs />
 
             <SyncSettings />
+
+            <RemoteSettings />
 
             <section id="set-meta">
               <h3>{t('settings.metaSources')}</h3>
@@ -681,7 +685,7 @@ function LocalDirs() {
         ))}
       </ul>
       <div className="local-dirs-actions">
-        <button className="btn small" onClick={() => void add()}>
+        <button className="btn small local-only" onClick={() => void add()}>
           <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
         </button>
         {/* the works taken out of the library come back at the next scan */}

@@ -15,7 +15,13 @@ import (
 // wailsShell is the desktop window (Wails)
 type wailsShell struct{ a *App }
 
-func (s wailsShell) emit(event string, data any) { runtime.EventsEmit(s.a.ctx, event, data) }
+// emit sends the event to the window and to the browsers of remote access
+func (s wailsShell) emit(event string, data any) {
+	runtime.EventsEmit(s.a.ctx, event, data)
+	if s.a.remoteAPI != nil {
+		s.a.remoteAPI.Emit(event, data)
+	}
+}
 
 func (s wailsShell) chooseDir(title, defaultDir string) (string, error) {
 	return runtime.OpenDirectoryDialog(s.a.ctx, runtime.OpenDialogOptions{

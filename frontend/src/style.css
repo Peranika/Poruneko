@@ -184,6 +184,10 @@ select { cursor: pointer; }
 :root[data-platform='android'] .window-controls { display: none; }
 /* nor a file manager the app can open, nor a window to remember */
 :root[data-platform='android'] .desktop-only { display: none !important; }
+/* in a browser of remote access (<html data-remote>) neither is there, nor what is done on the computer itself
+   (choosing folders, adding plugins, signing in to sites, installing updates) */
+:root[data-remote] .window-controls, :root[data-remote] .desktop-only, :root[data-remote] .local-only,
+:root[data-remote] .update-notice { display: none !important; }
 .brand { font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); font-size: 0.9286rem; }
 .window-controls { display: flex; height: 100%; }
 .window-controls button { width: 46px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-2); }
@@ -1097,6 +1101,9 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .sync-found, .sync-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sync-inputs input { flex: 1 1 12em; min-width: 0; }
 .sync-inputs .sync-code-input { flex: 0 1 9em; font-family: var(--mono); letter-spacing: 0.08em; }
+
+/* settings: remote access */
+.remote-url { display: block; margin-top: 4px; font-size: 0.9286rem; color: var(--text); user-select: all; }
 
 /* settings: loaded plugins */
 .plugin-row { display: block; }

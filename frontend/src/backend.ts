@@ -10,12 +10,18 @@ const wailsApp = (): Record<string, Method> | undefined =>
 /** Whether the app runs in Wails (the desktop) */
 export const isWails = (): boolean => wailsApp() !== undefined
 
+/** Whether this is a browser of remote access: the screen of the desktop app on another device (main.tsx marks it
+ * on <html data-remote>). It opens links and goes full screen itself */
+export const isRemote = (): boolean => document.documentElement.dataset.remote !== undefined
+
 async function httpCall(name: string, args: unknown[]): Promise<unknown> {
   const res = await fetch(`/api/call/${name}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(args)
   })
+  // a browser of remote access signed out (a new password): the page shows the sign-in again
+  if (res.status === 401 && isRemote()) location.reload()
   if (!res.ok) throw new Error(`${name}: ${res.status} ${await res.text()}`)
   const body = await res.json()
   // an error is formatted the way Wails' ErrorFormatter gives it ({code, params, message})

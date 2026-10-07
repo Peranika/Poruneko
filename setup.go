@@ -3,7 +3,9 @@ package main
 import (
 	"embed"
 	"io"
+	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -11,6 +13,7 @@ import (
 	"poruneko/internal/library"
 	"poruneko/internal/model"
 	"poruneko/internal/store"
+	"poruneko/internal/webapi"
 )
 
 // Starting the app, shared by the desktop (main.go) and Android (main_android.go)
@@ -27,6 +30,22 @@ func newApp() *App {
 	dl := library.NewDownloader(lib, st)
 	img := imgserver.New(lib, st)
 	return NewApp(st, lib, dl, img)
+}
+
+// webHandler serves the screen, the API and the images over HTTP (the Android app's backend, and remote access on
+// the desktop). native also serves the calls to the Android app (internal/webapi)
+func (a *App) webHandler(api *webapi.Server, native bool) http.Handler {
+	dist, err := fs.Sub(assets, "frontend/dist")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/", api)
+	if native {
+		mux.Handle("/native/", api)
+	}
+	mux.Handle("/", a.img.Middleware(http.FileServerFS(dist)))
+	return mux
 }
 
 // setupLog also writes the log to poruneko.log in the data folder (recreated when it exceeds 5MB)

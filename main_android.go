@@ -14,7 +14,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -46,15 +45,7 @@ func main() {
 		log.Fatal(err)
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
-	dist, err := fs.Sub(assets, "frontend/dist")
-	if err != nil {
-		log.Fatal(err)
-	}
-	mux := http.NewServeMux()
-	mux.Handle("/api/", api)
-	mux.Handle("/native/", api)
-	mux.Handle("/", app.img.Middleware(http.FileServerFS(dist)))
-	srv := &http.Server{Handler: guard(token, port, mux), ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Handler: guard(token, port, app.webHandler(api, true)), ReadHeaderTimeout: 10 * time.Second}
 
 	app.startup(ctx)
 	go func() {

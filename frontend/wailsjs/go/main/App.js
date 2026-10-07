@@ -34,6 +34,10 @@ export function ApplyFileNameFormat() {
   return window['go']['main']['App']['ApplyFileNameFormat']();
 }
 
+export function AttachmentURL(arg1, arg2) {
+  return window['go']['main']['App']['AttachmentURL'](arg1, arg2);
+}
+
 export function BookmarkRange(arg1) {
   return window['go']['main']['App']['BookmarkRange'](arg1);
 }
@@ -170,6 +174,14 @@ export function PreviewFileName(arg1, arg2, arg3) {
   return window['go']['main']['App']['PreviewFileName'](arg1, arg2, arg3);
 }
 
+export function RemoteSignOutAll() {
+  return window['go']['main']['App']['RemoteSignOutAll']();
+}
+
+export function RemoteStatus() {
+  return window['go']['main']['App']['RemoteStatus']();
+}
+
 export function RemoveBookmark(arg1) {
   return window['go']['main']['App']['RemoveBookmark'](arg1);
 }
@@ -260,6 +272,14 @@ export function SetOwnerSetting(arg1, arg2, arg3, arg4) {
 
 export function SetRangeTags(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetRangeTags'](arg1, arg2, arg3);
+}
+
+export function SetRemoteEnabled(arg1) {
+  return window['go']['main']['App']['SetRemoteEnabled'](arg1);
+}
+
+export function SetRemotePassword(arg1) {
+  return window['go']['main']['App']['SetRemotePassword'](arg1);
 }
 
 export function SetSettings(arg1) {

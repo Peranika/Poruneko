@@ -765,6 +765,23 @@ export const ja = {
     resetButton: '表紙に戻す'
   },
 
+  remote: {
+    title: 'リモートアクセス',
+    hint: 'タブレットやスマホのブラウザから、この PC の Poruneko を使えるようにします。家の Wi-Fi のほか、NordVPN Meshnet や Tailscale でつながった外出先の端末からも使えます（それ以外のインターネットからは接続できません）。使う間は PC を起動したままにしてください',
+    password: 'パスワード',
+    passwordHint: 'ブラウザでログインする時のパスワードです（8 文字以上）',
+    passwordSet: '設定済み。新しく設定すると、ログイン中の端末はログアウトします',
+    setPassword: '設定',
+    passwordSaved: 'パスワードを設定しました',
+    enable: 'リモートアクセスを有効にする',
+    enableHint: '初めて有効にした時、Windows のファイアウォールの確認が出たら許可してください',
+    failed: '開始できませんでした: {error}',
+    urls: '接続先',
+    urlsHint: '使う端末のブラウザで開いてください。Meshnet や Tailscale では 100. で始まるアドレスを使います。ホーム画面に追加するとアプリのように開けます',
+    sessions: 'ログイン中の端末: {n}',
+    signOutAll: 'すべてログアウト',
+    signedOut: 'すべての端末をログアウトしました'
+  },
   sync: {
     title: 'デバイス間の同期',
     hint: '同じ Wi-Fi にある PC やスマホと、ブックマーク・シリーズ・タグを同期します。ダウンロード済みのファイルは送りません（自動ダウンロードがオンなら、届いた作品はこの端末でもダウンロードされます）',
@@ -831,6 +848,11 @@ export const ja = {
     },
     platform: {
       unsupported: 'この端末では使えません'
+    },
+    remote: {
+      shortPassword: 'パスワードは {min} 文字以上にしてください',
+      noPassword: '先にパスワードを設定してください',
+      listenFailed: 'リモートアクセスを開始できませんでした: {detail}'
     },
     sync: {
       wrongCode: 'コードが違います',

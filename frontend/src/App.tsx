@@ -129,7 +129,7 @@ export default function App() {
               <span>{d.name}</span>
             </button>
           ))}
-          <button className="add-tab" onClick={() => void addDir()} title={t('settings.localDirAdd')}>
+          <button className="add-tab local-only" onClick={() => void addDir()} title={t('settings.localDirAdd')}>
             <Icon name="plus" size={16} />
           </button>
           {/* each site is one tab: its list, bookmarks and Favorites pop up from it */}
@@ -162,7 +162,7 @@ export default function App() {
             ) : (
               <div className="center muted">
                 <p>{t('library.noDirs')}</p>
-                <button className="btn" onClick={() => void addDir()}>
+                <button className="btn local-only" onClick={() => void addDir()}>
                   <Icon name="plus" size={14} /> {t('settings.localDirAdd')}
                 </button>
               </div>

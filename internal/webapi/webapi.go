@@ -65,6 +65,13 @@ func New(target any, formatError func(error) any) *Server {
 	return s
 }
 
+// Deny takes methods out of the API (what must not be done from where it is served)
+func (s *Server) Deny(names ...string) {
+	for _, n := range names {
+		delete(s.methods, n)
+	}
+}
+
 // Close ends the open streams (events, native calls), so that the HTTP server can shut down
 func (s *Server) Close() {
 	select {

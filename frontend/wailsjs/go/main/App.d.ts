@@ -4,6 +4,7 @@ import {model} from '../models';
 import {main} from '../models';
 import {update} from '../models';
 import {devsync} from '../models';
+import {remote} from '../models';
 
 export function AddBookmark(arg1:model.GallerySummary):Promise<model.Bookmark>;
 
@@ -20,6 +21,8 @@ export function AddToSeries(arg1:string,arg2:Array<string>):Promise<model.Series
 export function AppVersion():Promise<string>;
 
 export function ApplyFileNameFormat():Promise<number>;
+
+export function AttachmentURL(arg1:string,arg2:number):Promise<string>;
 
 export function BookmarkRange(arg1:model.RangeRequest):Promise<model.Bookmark>;
 
@@ -89,6 +92,10 @@ export function Plugins():Promise<Array<main.PluginInfo>>;
 
 export function PreviewFileName(arg1:string,arg2:string,arg3:string):Promise<string>;
 
+export function RemoteSignOutAll():Promise<void>;
+
+export function RemoteStatus():Promise<remote.Status>;
+
 export function RemoveBookmark(arg1:string):Promise<void>;
 
 export function RemoveFromLibrary(arg1:string):Promise<void>;
@@ -134,6 +141,10 @@ export function SetLocalDir(arg1:number,arg2:string,arg3:string):Promise<void>;
 export function SetOwnerSetting(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Record<string, string>>;
 
 export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):Promise<model.Bookmark>;
+
+export function SetRemoteEnabled(arg1:boolean):Promise<void>;
+
+export function SetRemotePassword(arg1:string):Promise<void>;
 
 export function SetSettings(arg1:model.Settings):Promise<model.Settings>;
 

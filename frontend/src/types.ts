@@ -203,6 +203,16 @@ export type SlideCorner = 'tl' | 'tr' | 'bl' | 'br'
 export type SlideEdge = 'top' | 'bottom' | 'left' | 'right'
 
 /** A plugin loaded at startup */
+/** Remote access: browsers on other devices using this app's screen */
+export interface RemoteStatus {
+  enabled: boolean
+  hasPassword: boolean
+  listening: boolean
+  urls: string[]
+  error: string
+  sessions: number
+}
+
 /** A device paired for syncing, and how its last sync went */
 export interface SyncPeer {
   id: string

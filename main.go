@@ -23,6 +23,7 @@ func main() {
 	update.Cleanup() // remove the old exe left by the previous update
 	app := newApp()
 	app.sh = wailsShell{app}
+	app.setupRemote()
 	st, img := app.st, app.img
 
 	// previous window state (the position is applied right after startup, before showing)

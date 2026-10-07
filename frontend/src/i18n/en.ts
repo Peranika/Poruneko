@@ -762,6 +762,23 @@ export const en: Dict = {
     resetButton: 'Reset to cover'
   },
 
+  remote: {
+    title: 'Remote access',
+    hint: 'Lets browsers on your tablets and phones use Poruneko on this PC: on the home Wi-Fi, and when away through NordVPN Meshnet or Tailscale (nothing else on the internet can connect). Keep the PC on while using it',
+    password: 'Password',
+    passwordHint: 'The password browsers sign in with (8 characters or more)',
+    passwordSet: 'Set. Setting a new one signs out the devices signed in',
+    setPassword: 'Set',
+    passwordSaved: 'The password is set',
+    enable: 'Turn on remote access',
+    enableHint: 'The first time, allow it if Windows asks about the firewall',
+    failed: 'Could not start: {error}',
+    urls: 'Addresses',
+    urlsHint: 'Open one in the browser of the device. Through Meshnet or Tailscale, use the one starting with 100. Adding it to the home screen opens it like an app',
+    sessions: 'Devices signed in: {n}',
+    signOutAll: 'Sign out all',
+    signedOut: 'All devices are signed out'
+  },
   sync: {
     title: 'Sync between devices',
     hint: 'Syncs the bookmarks, series and tags with your PCs and phones on the same Wi-Fi. Downloaded files are not sent (with automatic downloads on, the works that arrive are downloaded on this device too)',
@@ -827,6 +844,11 @@ export const en: Dict = {
     },
     platform: {
       unsupported: 'Not available on this device'
+    },
+    remote: {
+      shortPassword: 'The password needs {min} characters or more',
+      noPassword: 'Set a password first',
+      listenFailed: 'Could not start remote access: {detail}'
     },
     sync: {
       wrongCode: 'The code is wrong',

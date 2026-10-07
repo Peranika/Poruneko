@@ -158,25 +158,34 @@ func (a *App) ViewAction(siteID model.SiteID, view, query, action string) (model
 // OpenAttachment opens an attachment of a work (a file that is not a page) in the browser, from where its site
 // says it is now. Downloading attachments into the library comes later; until then this is how they are reached
 func (a *App) OpenAttachment(key string, index int) error {
-	siteID, id, err := model.ParseKey(key)
+	u, err := a.AttachmentURL(key, index)
 	if err != nil {
 		return err
+	}
+	return a.OpenExternal(u)
+}
+
+// AttachmentURL is where an attachment of a work is (for a browser of remote access to open itself)
+func (a *App) AttachmentURL(key string, index int) (string, error) {
+	siteID, id, err := model.ParseKey(key)
+	if err != nil {
+		return "", err
 	}
 	p, err := site.Get(siteID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	src, ok := p.(site.AttachmentSource)
 	if !ok {
-		return apperr.New("site.noAction", "the site has no attachments")
+		return "", apperr.New("site.noAction", "the site has no attachments")
 	}
 	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
 	defer cancel()
 	at, err := src.Attachment(ctx, id, index)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return a.OpenExternal(at.URL)
+	return at.URL, nil
 }
 
 // WebURL returns the web page of a work on its site ("" when there is none, e.g. local archives)

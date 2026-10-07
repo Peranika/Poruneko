@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client'
-import { go as Go } from './backend'
+import { go as Go, isWails } from './backend'
 import { applyFontScale, applyTheme } from './display'
 import { resolveLanguage, setLanguage } from './i18n'
 import '@fontsource-variable/noto-sans-jp'
@@ -13,8 +13,9 @@ async function start() {
     Go.UILanguage().catch(() => ''),
     Go.Platform().catch(() => '')
   ])
-  // the styles differ by OS (no window buttons on Android)
+  // the styles differ by OS (no window buttons on Android), and in a browser of remote access
   document.documentElement.dataset.platform = platform
+  if (!isWails() && platform !== 'android') document.documentElement.dataset.remote = ''
   // the backend decides the language (the setting, or the OS display language) so both sides agree
   setLanguage(resolveLanguage(settings?.uiLanguage || lang))
   applyFontScale(settings?.fontScale)

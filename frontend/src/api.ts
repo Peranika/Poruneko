@@ -1,5 +1,22 @@
 // Thin wrapper around the Go backend (Wails bindings on the desktop, HTTP on Android: see backend.ts)
-import { EventsOn, go } from './backend'
+import { EventsOn, go, isRemote } from './backend'
+
+// in a browser of remote access, links open and full screen happens in the browser itself (not on the computer)
+function openInBrowser(url: string): Promise<void> {
+  window.open(url, '_blank', 'noopener')
+  return Promise.resolve()
+}
+function browserFullscreen(on: boolean): Promise<void> {
+  const d = document as Document & { webkitExitFullscreen?(): void; webkitFullscreenElement?: Element }
+  const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?(): void }
+  try {
+    if (on && !(d.fullscreenElement ?? d.webkitFullscreenElement)) void (el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.())
+    if (!on && (d.fullscreenElement ?? d.webkitFullscreenElement)) void (d.exitFullscreen?.() ?? d.webkitExitFullscreen?.())
+  } catch {
+    // not available (an iPhone): the app's own full screen still hides its bars
+  }
+  return Promise.resolve()
+}
 import type {
   Bookmark,
   IconFile,
@@ -18,7 +35,7 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, PluginInfo, SiteInfo, StatusLine, SyncFound, SyncPairing, SyncStatus, Text, ViewHeader } from './types'
+  UpdateRelease, PluginInfo, RemoteStatus, SiteInfo, StatusLine, SyncFound, SyncPairing, SyncStatus, Text, ViewHeader } from './types'
 
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
@@ -36,7 +53,14 @@ export const api = {
   /** The web page of a work on its site ("" if none) */
   webURL: (key: string): Promise<string> => go.WebURL(key),
   /** Open an attachment of a work (a file that is not a page) in the browser */
-  openAttachment: (key: string, index: number): Promise<void> => go.OpenAttachment(key, index),
+  openAttachment: (key: string, index: number): Promise<void> => {
+    if (!isRemote()) return go.OpenAttachment(key, index)
+    // the window opens at once, while the click still allows it, and goes to the file once its URL is known
+    const w = window.open('', '_blank')
+    return go.AttachmentURL(key, index).then((u: string) => {
+      if (w) w.location.href = u
+    })
+  },
   /** A site's state as its plugin tells it (such as the API calls left) */
   siteStatus: (site: string): Promise<StatusLine[]> => go.SiteStatus(site),
   /** The header of a plugin's own screen for what was entered (null when it shows none) */
@@ -143,15 +167,21 @@ export const api = {
   installUpdate: (): Promise<void> => go.InstallUpdate(),
   onUpdateProgress: (cb: (p: { done: number; total: number }) => void): (() => void) => EventsOn('update:progress', cb),
 
-  openExternal: (url: string): Promise<void> => go.OpenExternal(url),
-  clipboardText: (): Promise<string> => go.ClipboardText(),
+  openExternal: (url: string): Promise<void> => (isRemote() ? openInBrowser(url) : go.OpenExternal(url)),
+  clipboardText: (): Promise<string> =>
+    isRemote() ? (navigator.clipboard?.readText?.() ?? Promise.resolve('')).catch(() => '') : go.ClipboardText(),
   /** The OS the app runs on ("windows", "android"...) */
   platform: (): Promise<string> => go.Platform(),
-  setFullscreen: (on: boolean): Promise<void> => go.SetFullscreen(on),
+  setFullscreen: (on: boolean): Promise<void> => (isRemote() ? browserFullscreen(on) : go.SetFullscreen(on)),
   minimise: (): Promise<void> => go.WindowMinimise(),
   toggleMaximise: (): Promise<void> => go.WindowToggleMaximise(),
   close: (): Promise<void> => go.WindowClose(),
 
+  /** Remote access from browsers on other devices */
+  remoteStatus: (): Promise<RemoteStatus> => go.RemoteStatus(),
+  setRemotePassword: (password: string): Promise<void> => go.SetRemotePassword(password),
+  setRemoteEnabled: (on: boolean): Promise<void> => go.SetRemoteEnabled(on),
+  remoteSignOutAll: (): Promise<void> => go.RemoteSignOutAll(),
   /** Syncing with the user's other devices on the same network */
   syncStatus: (): Promise<SyncStatus> => go.SyncStatus(),
   setSyncDeviceName: (name: string): Promise<void> => go.SetSyncDeviceName(name),

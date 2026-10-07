@@ -15,8 +15,10 @@ import (
 	"poruneko/internal/library"
 	"poruneko/internal/meta"
 	"poruneko/internal/model"
+	"poruneko/internal/remote"
 	"poruneko/internal/store"
 	"poruneko/internal/update"
+	"poruneko/internal/webapi"
 )
 
 // App is the API exposed to the frontend
@@ -41,6 +43,10 @@ type App struct {
 	pendingUpdate *update.Release // the newer version found (installed by InstallUpdate)
 
 	sync *devsync.Service // syncing with the user's other devices (app_sync.go)
+
+	// remote access from browsers on other devices (app_remote.go; the desktop only)
+	remote    *remote.Server
+	remoteAPI *webapi.Server
 }
 
 func NewApp(st *store.Store, lib *library.Library, dl *library.Downloader, img *imgserver.Handler) *App {
@@ -61,6 +67,9 @@ func (a *App) startup(ctx context.Context) {
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()
 	a.startSync()
+	if a.remote != nil {
+		_ = a.remote.Start()
+	}
 	go func() {
 		if n := a.lib.RenameLegacyExt(); n > 0 {
 			log.Printf("[library] renamed %d .zip files to .cbz", n)
@@ -193,6 +202,10 @@ func (a *App) beforeClose(context.Context) bool {
 func (a *App) shutdown(context.Context) {
 	if a.sync != nil {
 		a.sync.Close()
+	}
+	if a.remote != nil {
+		a.remote.Stop()
+		a.remoteAPI.Close()
 	}
 	a.lib.Close()
 	a.st.Flush()

@@ -115,6 +115,7 @@ Differences on Android:
 | `PORUNEKO_DEBUG=1` | Log every image request served by imgserver |
 | `PORUNEKO_START_HIDDEN=1` | Start without showing the window (to operate it from the browser in dev mode) |
 | `PORUNEKO_PLUGIN_DIR` | Look for plugins in this folder first, and add the plugins chosen in the settings there (the Android app sets it) |
+| `PORUNEKO_REMOTE_BIND` | Remote access listens only on this address (`127.0.0.1` to try it without the firewall asking) |
 | `PORUNEKO_LIBRARY_DIR` | Save works here until the user chooses a folder (the Android app sets it) |
 
 ## App icon
@@ -130,6 +131,18 @@ magick build/appicon.png -define icon:auto-resize=256,128,64,48,32,24,16 build/w
 magick build/appicon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 msedge --headless=new --default-background-color=00000000 --window-size=432,432 --screenshot=android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png file:///<repo>/android/icon/ic_launcher_foreground.svg
 ```
+
+## Remote access
+
+Settings → Remote access lets browsers on the user's other devices use the desktop app (`internal/remote`,
+`app_remote.go`): the same screen, API and images as the Android app's backend, on port 47392, behind a password
+(PBKDF2; sessions are 30-day cookies). Only clients on private networks connect (loopback, 10/8, 172.16/12,
+192.168/16, link-local, IPv6 ULA), and 100.64.0.0/10 (mesh VPNs such as NordVPN Meshnet and Tailscale) only when this
+machine also has an address in it, since internet providers use that range for carrier-grade NAT too. The API leaves
+out what would act on the computer itself (`remoteDenied`: dialogs, the window, opening links, plugins, sign-in,
+updates, remote access itself), and the browser opens links and goes full screen on its own (`<html data-remote>`,
+`isRemote` in `backend.ts`). The browser can add the app to its home screen (`frontend/public`: the manifest and
+icons).
 
 ## Syncing between devices
 

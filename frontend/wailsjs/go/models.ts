@@ -1406,6 +1406,33 @@ export namespace model {
 
 }
 
+export namespace remote {
+	
+	export class Status {
+	    enabled: boolean;
+	    hasPassword: boolean;
+	    listening: boolean;
+	    urls: string[];
+	    error: string;
+	    sessions: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Status(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.hasPassword = source["hasPassword"];
+	        this.listening = source["listening"];
+	        this.urls = source["urls"];
+	        this.error = source["error"];
+	        this.sessions = source["sessions"];
+	    }
+	}
+
+}
+
 export namespace update {
 	
 	export class Release {
