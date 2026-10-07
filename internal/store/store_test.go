@@ -149,21 +149,44 @@ func TestHistory(t *testing.T) {
 func TestOwnerSettingsPersist(t *testing.T) {
 	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
 	st := Open()
-	st.SetOwnerValue("twitter", "123", "minLikes", "1000")
-	st.SetOwnerValue("twitter", "456", "minLikes", "10")
-	st.SetOwnerValue("other", "123", "minLikes", "5")
+	common := map[string]string{"minLikes": "100"}
+	st.SetOwnerValue("twitter", "123", "minLikes", "1000", "100")
+	st.SetOwnerValue("twitter", "456", "minLikes", "10", "100")
+	st.SetOwnerValue("other", "123", "minLikes", "5", "100")
 	st.Flush()
 
 	st = Open()
-	if v := st.OwnerValues("twitter", "123")["minLikes"]; v != "1000" {
+	o := st.Owner("twitter", "123")
+	if v := o.Resolve(common)["minLikes"]; v != "1000" {
 		t.Fatalf("after reopen: %q", v)
 	}
-	if all := st.OwnersOf("twitter"); len(all) != 2 || all["456"]["minLikes"] != "10" {
+	all := st.OwnersOf("twitter")
+	if o := all["456"]; len(all) != 2 || o.Resolve(common)["minLikes"] != "10" {
 		t.Fatalf("owners of twitter: %v", all)
 	}
-	st.SetOwnerValue("twitter", "123", "minLikes", "")
+	st.SetOwnerValue("twitter", "123", "minLikes", "", "100")
 	st.Flush()
 	if all := Open().OwnersOf("twitter"); len(all) != 1 {
 		t.Fatalf("after removing: %v", all)
+	}
+}
+
+// values older versions kept as they were become shares of the common values, keeping what they show
+func TestScaleOwnerValues(t *testing.T) {
+	t.Setenv("PORUNEKO_DATA_DIR", t.TempDir())
+	st := Open()
+	st.SetOwnerValue("x", "big", "minLikes", "1000", "0") // kept as it is, like an older version did
+	st.SetOwnerValue("x", "small", "minLikes", "5", "0")
+	st.ScaleOwnerValues(func(site string) map[string]string { return map[string]string{"minLikes": "100"} })
+	big := st.Owner("x", "big")
+	if big.Scales["minLikes"] != 10 || len(big.Values) != 0 {
+		t.Fatalf("big %+v", big)
+	}
+	if got := big.Resolve(map[string]string{"minLikes": "1000"})["minLikes"]; got != "10000" {
+		t.Fatalf("big with common 1000: %s", got)
+	}
+	st.Flush()
+	if o := Open().Owner("x", "small"); o.Scales["minLikes"] != 0.05 {
+		t.Fatalf("small after reopening %+v", o)
 	}
 }

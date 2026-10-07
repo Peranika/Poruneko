@@ -77,7 +77,7 @@ export function OpenFolder(arg1:string):Promise<void>;
 
 export function OpenIconsFolder():Promise<void>;
 
-export function OwnerSettings(arg1:string,arg2:string):Promise<Record<string, string>>;
+export function OwnerSettings(arg1:string,arg2:string,arg3:Record<string, string>):Promise<Record<string, string>>;
 
 export function PauseDownload(arg1:string):Promise<void>;
 
@@ -131,7 +131,7 @@ export function SetFullscreen(arg1:boolean):Promise<void>;
 
 export function SetLocalDir(arg1:number,arg2:string,arg3:string):Promise<void>;
 
-export function SetOwnerSetting(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Record<string, string>>;
+export function SetOwnerSetting(arg1:string,arg2:string,arg3:string,arg4:string,arg5:Record<string, string>):Promise<Record<string, string>>;
 
 export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):Promise<model.Bookmark>;
 

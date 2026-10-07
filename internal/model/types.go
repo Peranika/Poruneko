@@ -4,6 +4,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -659,12 +660,58 @@ type ViewAction struct {
 	Items   []ViewAction `json:"items,omitempty"`
 }
 
-// OwnerSettings are the values of a site's filters kept for one owner of its works (overriding the common ones)
+// OwnerSettings are the values of a site's filters kept for one owner of its works (overriding the common ones).
+// A value is kept as a share of the common value when it was set (Scales), so it follows the common value: 100
+// set while the common value was 1000 is 0.1, and becomes 1000 once the common value is 10000. A value set while
+// the common value was 0 has nothing to be a share of, and is kept as it is (Values)
 type OwnerSettings struct {
-	Site      SiteID            `json:"site"`
-	Owner     string            `json:"owner"`
-	Values    map[string]string `json:"values"` // filter id -> value
-	UpdatedAt int64             `json:"updatedAt"`
+	Site  SiteID `json:"site"`
+	Owner string `json:"owner"`
+	// Values are the values kept as they are (filter id -> value)
+	Values map[string]string `json:"values"`
+	// Scales are the values kept as a share of the common value (filter id -> share)
+	Scales    map[string]float64 `json:"scales,omitempty"`
+	UpdatedAt int64              `json:"updatedAt"`
+}
+
+// Empty reports whether nothing is kept
+func (o *OwnerSettings) Empty() bool { return len(o.Values) == 0 && len(o.Scales) == 0 }
+
+// Set keeps a value of a filter, given its common value at the time: as a share of it when it is a number above 0
+// and the value a number, else as it is ("" removes the value)
+func (o *OwnerSettings) Set(id, value, common string) {
+	delete(o.Values, id)
+	delete(o.Scales, id)
+	if value == "" {
+		return
+	}
+	v, err1 := strconv.Atoi(value)
+	c, err2 := strconv.Atoi(common)
+	if err1 == nil && err2 == nil && c > 0 {
+		if o.Scales == nil {
+			o.Scales = map[string]float64{}
+		}
+		o.Scales[id] = float64(v) / float64(c)
+		return
+	}
+	if o.Values == nil {
+		o.Values = map[string]string{}
+	}
+	o.Values[id] = value
+}
+
+// Resolve is what the owner's values are with the common values (filter id -> value): the ones kept as they are,
+// and the shares of the common ones worked out (rounded)
+func (o *OwnerSettings) Resolve(common map[string]string) map[string]string {
+	out := map[string]string{}
+	for id, v := range o.Values {
+		out[id] = v
+	}
+	for id, share := range o.Scales {
+		c, _ := strconv.Atoi(common[id])
+		out[id] = strconv.Itoa(int(math.Round(share * float64(c))))
+	}
+	return out
 }
 
 // StatusLine is a line of a site's state shown on its tab (such as the API calls left). The lines are shown as a

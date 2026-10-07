@@ -79,3 +79,27 @@ func TestAttachmentKind(t *testing.T) {
 		}
 	}
 }
+
+// an owner's value is kept as a share of the common value it was set with, and follows the common value
+func TestOwnerValueFollowsTheCommonOne(t *testing.T) {
+	var o OwnerSettings
+	o.Set("minLikes", "100", "1000")
+	if got := o.Resolve(map[string]string{"minLikes": "1000"})["minLikes"]; got != "100" {
+		t.Errorf("same common value: %s", got)
+	}
+	if got := o.Resolve(map[string]string{"minLikes": "10000"})["minLikes"]; got != "1000" {
+		t.Errorf("common value 10000: %s", got)
+	}
+	if got := o.Resolve(map[string]string{"minLikes": "0"})["minLikes"]; got != "0" {
+		t.Errorf("common value 0: %s", got)
+	}
+	// set while the common value was 0 (nothing to be a share of): kept as it is
+	o.Set("minLikes", "50", "0")
+	if got := o.Resolve(map[string]string{"minLikes": "1000"})["minLikes"]; got != "50" {
+		t.Errorf("kept as it is: %s", got)
+	}
+	o.Set("minLikes", "", "1000")
+	if !o.Empty() {
+		t.Errorf("not removed: %+v", o)
+	}
+}

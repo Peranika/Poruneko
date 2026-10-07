@@ -138,6 +138,6 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 		return nil, err
 	}
 	res.FilterPages(q.MinPages, q.MaxPages)
-	res.FilterStats(browseSpec(p.ID()), q.Filters, a.st.OwnersOf(p.ID()))
+	res.FilterStats(browseSpec(p.ID()), q.Filters, a.ownerValues(p.ID(), q.Filters))
 	return &model.FavoritesResult{ListResult: *res, Names: names}, nil
 }

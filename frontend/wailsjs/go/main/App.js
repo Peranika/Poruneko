@@ -146,8 +146,8 @@ export function OpenIconsFolder() {
   return window['go']['main']['App']['OpenIconsFolder']();
 }
 
-export function OwnerSettings(arg1, arg2) {
-  return window['go']['main']['App']['OwnerSettings'](arg1, arg2);
+export function OwnerSettings(arg1, arg2, arg3) {
+  return window['go']['main']['App']['OwnerSettings'](arg1, arg2, arg3);
 }
 
 export function PauseDownload(arg1) {
@@ -254,8 +254,8 @@ export function SetLocalDir(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetLocalDir'](arg1, arg2, arg3);
 }
 
-export function SetOwnerSetting(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['SetOwnerSetting'](arg1, arg2, arg3, arg4);
+export function SetOwnerSetting(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['SetOwnerSetting'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function SetRangeTags(arg1, arg2, arg3) {

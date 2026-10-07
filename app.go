@@ -62,6 +62,7 @@ func (a *App) startup(ctx context.Context) {
 	a.img.OnPageSaved = a.pageCached
 	a.dl.ResumeAll()
 	a.markInterruptedRanges()
+	a.scaleOwnerValues()
 	if a.remote != nil {
 		_ = a.remote.Start()
 	}

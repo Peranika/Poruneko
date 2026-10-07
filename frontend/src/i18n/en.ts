@@ -291,8 +291,9 @@ export const en: Dict = {
 
   viewHeader: {
     own: '{filter} for this user',
-    ownTitle: "This user's posts use this value instead of the common one in every list",
-    common: 'Common ({value})'
+    ownTitle: "This user's posts use this value instead of the common one in every list. It is kept as a share of the common value and follows it when it changes (100 set while the common value is 1000 becomes 1,000 once it is 10,000)",
+    common: 'Common ({value})',
+    ownBetween: '{n}+'
   },
 
   browse: {

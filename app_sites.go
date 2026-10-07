@@ -203,19 +203,57 @@ func (a *App) List(q model.ListQuery) (*model.ListResult, error) {
 	}
 	// the app filters by page count and stats itself, for every plugin (one may have done it already)
 	r.FilterPages(q.MinPages, q.MaxPages)
-	r.FilterStats(browseSpec(p.ID()), q.Filters, a.st.OwnersOf(p.ID()))
+	r.FilterStats(browseSpec(p.ID()), q.Filters, a.ownerValues(p.ID(), q.Filters))
 	return r, nil
 }
 
-// OwnerSettings are the values of a site's filters kept for one owner of its works (such as an X user), which
-// override the common ones for that owner's works wherever they are listed
-func (a *App) OwnerSettings(siteID model.SiteID, owner string) map[string]string {
-	return a.st.OwnerValues(siteID, owner)
+// ownerValues are the values of a site's filters kept for each owner of its works, worked out with the common
+// values of the list (owner -> filter id -> value)
+func (a *App) ownerValues(siteID model.SiteID, common map[string]string) map[string]map[string]string {
+	out := map[string]map[string]string{}
+	for owner, o := range a.st.OwnersOf(siteID) {
+		out[owner] = o.Resolve(common)
+	}
+	return out
 }
 
-// SetOwnerSetting keeps the value of a filter for one owner of a site's works ("" goes back to the common value)
-func (a *App) SetOwnerSetting(siteID model.SiteID, owner, filterID, value string) map[string]string {
-	return a.st.SetOwnerValue(siteID, owner, filterID, value)
+// OwnerSettings are the values of a site's filters kept for one owner of its works (such as an X user), which
+// override the common ones for that owner's works wherever they are listed. They are kept as shares of the common
+// values, so they are worked out with the common values the screen has (filter id -> value)
+func (a *App) OwnerSettings(siteID model.SiteID, owner string, common map[string]string) map[string]string {
+	o := a.st.Owner(siteID, owner)
+	return o.Resolve(common)
+}
+
+// SetOwnerSetting keeps the value of a filter for one owner of a site's works ("" goes back to the common value),
+// as a share of the common values the screen has
+func (a *App) SetOwnerSetting(siteID model.SiteID, owner, filterID, value string, common map[string]string) map[string]string {
+	o := a.st.SetOwnerValue(siteID, owner, filterID, value, common[filterID])
+	return o.Resolve(common)
+}
+
+// scaleOwnerValues turns the owners' values kept by older versions as they were into shares of the common values
+// they are used with now (the sites' saved filter values, or the plugins' defaults), so they show the same
+func (a *App) scaleOwnerValues() {
+	settings := a.st.Settings()
+	a.st.ScaleOwnerValues(func(siteID model.SiteID) map[string]string {
+		out := map[string]string{}
+		spec := browseSpec(siteID)
+		if spec == nil {
+			return out
+		}
+		for _, f := range spec.Filters {
+			if f.Stat == "" {
+				continue
+			}
+			v, ok := settings.PluginSettings[siteID][f.ID]
+			if !ok {
+				v = f.Default
+			}
+			out[f.ID] = v
+		}
+		return out
+	})
 }
 
 // browseSpec is what a site's plugin says about its screens (nil for none)

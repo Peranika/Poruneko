@@ -27,16 +27,20 @@ export function ViewHeader({
 }) {
   const { toast } = useApp()
   const [header, setHeader] = useState<Header | null>(null)
-  // the values of the filters with a stat kept for the owner the screen is about (a user)
+  // the values of the filters with a stat kept for the owner the screen is about (a user). They are kept as shares
+  // of the common values, so the backend works them out with the screen's common values (and keeps a new one as a
+  // share of them)
   const [ownValues, setOwnValues] = useState<Record<string, string>>({})
   const owner = header?.owner ?? ''
+  const statFilters = filtersOn(view, site).filter((f) => f.stat)
+  const common = Object.fromEntries(statFilters.map((f) => [f.id, filters[f.id] ?? savedValue(f, site)]))
+  const commonKey = JSON.stringify(common)
   useEffect(() => {
     if (!owner) return setOwnValues({})
-    void api.ownerSettings(site, owner).then(setOwnValues)
-  }, [site, owner])
-  const statFilters = filtersOn(view, site).filter((f) => f.stat)
+    void api.ownerSettings(site, owner, JSON.parse(commonKey)).then(setOwnValues)
+  }, [site, owner, commonKey])
   const setOwn = async (id: string, value: string) => {
-    setOwnValues(await api.setOwnerSetting(site, owner, id, value))
+    setOwnValues(await api.setOwnerSetting(site, owner, id, value, common))
     onOwnerChange()
   }
   const [busy, setBusy] = useState(false)
@@ -88,13 +92,16 @@ export function ViewHeader({
         {owner && statFilters.length > 0 && (
           <div className="view-header-own">
             {statFilters.map((f) => {
-              const common = f.options.find((o) => o.value === (filters[f.id] ?? savedValue(f, site)))
+              const commonOption = f.options.find((o) => o.value === common[f.id])
               const own = ownValues[f.id] ?? ''
+              // the share of a changed common value may fall between the choices: shown as the number it is
+              const between = own !== '' && !f.options.some((o) => o.value === own)
               return (
                 <label key={f.id} className={own ? 'on' : ''} title={t('viewHeader.ownTitle')}>
                   <span>{t('viewHeader.own', { filter: textOf(f.label) })}</span>
                   <select value={own} onChange={(e) => void setOwn(f.id, e.target.value)}>
-                    <option value="">{t('viewHeader.common', { value: common ? textOf(common.label) : '—' })}</option>
+                    <option value="">{t('viewHeader.common', { value: commonOption ? textOf(commonOption.label) : '—' })}</option>
+                    {between && <option value={own}>{t('viewHeader.ownBetween', { n: Number(own).toLocaleString() })}</option>}
                     {f.options.map((o) => (
                       <option key={o.value} value={o.value}>
                         {textOf(o.label)}

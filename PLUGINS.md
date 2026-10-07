@@ -151,8 +151,10 @@ them in `hidden` itself, so a plugin can leave them alone (doing it too is harml
 - `tags[].ns` is one of the browse spec's namespaces; tags are shown as search links `ns:name`.
 - Optional: `owner` is the account the work belongs to (such as a user's id, stable even when the name changes).
   The user can keep their own values of the filters with a `stat` for an owner (from a view's header with an
-  `owner`); those then apply to that owner's works everywhere instead of the common ones. The app keeps them in
-  `bookmarks.db` (table `owner_settings`).
+  `owner`); those then apply to that owner's works everywhere instead of the common ones. A value is kept as a share
+  of the common value when it was set, so it follows the common value (100 set while the common value is 1000 becomes
+  1000 once it is 10000); one set while the common value was 0 is kept as it is. The app keeps them in `bookmarks.db`
+  (table `owner_settings`).
 - Optional: `description` is the work's own text (a post's body...), shown on the work page and saved as the
   Summary of ComicInfo.xml; `stats` are its numbers (`{"likes": 120}`, the ids of the browse spec's `stats`).
 - A list whose length is not known (a timeline) returns `"total": -1` and `"more": true` while there is a next page.
@@ -417,7 +419,9 @@ func handle(method string, params json.RawMessage) (any, error) {
   - `tags[].ns` は browse の namespaces のどれかです。タグは `ns:name` の検索リンクになります。
   - 任意：`owner` は作品の持ち主のアカウント（ユーザーの数値 ID など、名前が変わっても変わらないもの）です。ユーザーは
     `stat` 付きの絞り込みの値を持ち主ごとに保存でき（`owner` 付きの画面の見出しから）、その持ち主の作品にはどこでも共通の
-    値の代わりにそれが使われます。保存先は `bookmarks.db` の `owner_settings` 表です。
+    値の代わりにそれが使われます。値は保存した時の共通の値に対する割合で持ち、共通の値に合わせて変わります（共通が 1000 の
+    時に保存した 100 は、共通を 10000 にすると 1000）。共通の値が 0 の時に保存した値はそのままの数で持ちます。保存先は
+    `bookmarks.db` の `owner_settings` 表です。
   - 任意：`description` は作品自身の文章（ポストの本文など）で、作品ページに出て、ComicInfo.xml の Summary にも入ります。
     `stats` は作品の数値（`{"likes": 120}`。id は browse の `stats` のもの）です。
   - 件数が分からない一覧（タイムラインなど）は `"total": -1` にし、次のページがある間は `"more": true` を返します。

@@ -76,10 +76,11 @@ export const api = {
   /** The header of a plugin's own screen for what was entered (null when it shows none) */
   viewHeader: (site: string, view: string, query: string): Promise<ViewHeader | null> => go.ViewHeader(site, view, query),
   /** The values of a site's filters kept for one owner of its works (a user), overriding the common ones */
-  ownerSettings: (site: string, owner: string): Promise<Record<string, string>> => go.OwnerSettings(site, owner),
+  ownerSettings: (site: string, owner: string, common: Record<string, string>): Promise<Record<string, string>> =>
+    go.OwnerSettings(site, owner, common),
   /** Keep a filter's value for one owner of a site's works ('' goes back to the common value) */
-  setOwnerSetting: (site: string, owner: string, filterId: string, value: string): Promise<Record<string, string>> =>
-    go.SetOwnerSetting(site, owner, filterId, value),
+  setOwnerSetting: (site: string, owner: string, filterId: string, value: string, common: Record<string, string>): Promise<Record<string, string>> =>
+    go.SetOwnerSetting(site, owner, filterId, value, common),
   /** Do a button of a plugin's own screen (such as following a user); returns the message to show */
   viewAction: (site: string, view: string, query: string, action: string): Promise<Text | null> => go.ViewAction(site, view, query, action),
   /** Opens the site's login window; the plugin's login settings (null when the window was closed first) */
