@@ -1239,6 +1239,8 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   .view.bookmarks, .view.favorites { position: relative; }
   .read-btn { min-height: var(--ctl-lg); }
   .panel-toggle { z-index: 41; opacity: 0.8; width: 22px; height: 56px; }
+  /* a closed info panel opens from the viewer's bar: a handle on the page would be in the way of turning back */
+  .view.gallery.panel-closed .panel-toggle { display: none; }
   /* while the panel is open its toggle sits inside its right edge */
   .view.gallery:not(.panel-closed) .panel-toggle { left: calc(min(100%, 420px) - 18px) !important; }
 

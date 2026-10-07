@@ -26,7 +26,7 @@ export default function App() {
   useGlobalNavigation(settings, nav.back, nav.forward)
 
   // the Android back button (MainActivity calls window.poruneko.back): first what Esc closes (a dialog, the
-  // viewer's full screen), then back. false when there is nothing to go back to (the app goes to the background)
+  // viewer's full screen) and a work's info, then back. false when there is nothing to go back to (the app goes to the background)
   const backState = useRef({ nav, immersive })
   backState.current = { nav, immersive }
   useEffect(() => {
@@ -36,6 +36,12 @@ export default function App() {
         const { nav, immersive } = backState.current
         if (immersive || document.querySelector('.modal-backdrop')) {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+          return true
+        }
+        // a work's info over its pages closes back to the pages
+        const infoToggle = document.querySelector<HTMLElement>('.view.gallery:not(.panel-closed) .panel-toggle')
+        if (infoToggle) {
+          infoToggle.click()
           return true
         }
         if (!nav.canBack) return false

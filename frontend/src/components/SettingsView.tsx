@@ -322,7 +322,7 @@ export function SettingsView() {
         <div className="settings-layout">
           <nav className="settings-nav">
             {SECTIONS.map(([id, label]) => (
-              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' ? 'desktop-only' : ''}`} onClick={() => goTo(id)}>
+              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' ? 'desktop-only' : ''}`} onClick={() => goTo(id)}>
                 {label()}
               </button>
             ))}
@@ -575,7 +575,7 @@ export function SettingsView() {
               </label>
             </section>
 
-            <section id="set-keys">
+            <section id="set-keys" className="desktop-only">
               <h3>{t('settings.keys')}</h3>
               <KeybindingSettings />
             </section>

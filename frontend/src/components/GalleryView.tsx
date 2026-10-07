@@ -40,9 +40,9 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
   const [err, setErr] = useState<string | null>(null)
   // keep full screen when arriving via "next/previous work"
   const [immersive, setImmersive] = useState(() => carryImmersive)
-  // on a phone the panel lies over the viewer: each work opens with it, and reading closes it
+  // on a phone the panel lies over the viewer: a work opens to its pages, and the info opens from the viewer's bar
   const compact = useCompact()
-  const [panel, setPanel] = useState(() => compact || loadString('gallery.panel', 'open') !== 'closed')
+  const [panel, setPanel] = useState(() => !compact && loadString('gallery.panel', 'open') !== 'closed')
   const [panelWidth, setPanelWidth] = useState(INFO_PANEL_WIDTH)
   // state of the page range bookmark being entered (null when closed)
   const [rangeSession, setRangeSession] = useState<RangeSession | null>(null)
@@ -204,7 +204,16 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             // shuffle play starts every work from its first page; otherwise from where it was left
             initialPage={from?.kind === 'playlist' ? 0 : loadPagePos(galleryKey)}
             onPageChange={onPageChange}
-            extra={<BookmarkButton s={detail} />}
+            extra={
+              <>
+                {compact && (
+                  <button className="icon-btn" onClick={() => setPanel(true)} title={t('gallery.openPanel')}>
+                    <Icon name="info" />
+                  </button>
+                )}
+                <BookmarkButton s={detail} />
+              </>
+            }
             keymap={keymap}
             onToggleBookmark={() => void toggleBookmark(detail)}
             onNextWork={() => void goWork(1)}
