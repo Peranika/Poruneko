@@ -17,6 +17,7 @@ import { useApp } from './state'
 import { useAutoReveal } from './useAutoReveal'
 import { useGlobalNavigation } from './useGlobalNavigation'
 import { useTouch } from './useCompact'
+import { useCollapseOnScroll } from './useCollapseOnScroll'
 import appIcon from './assets/icon.svg'
 
 export default function App() {
@@ -85,9 +86,11 @@ export default function App() {
   const autoChrome = r.name === 'gallery' && !immersive && !touch
   const titlebarRef = useRef<HTMLElement>(null)
   const titlebarVisible = useAutoReveal(autoChrome, titlebarRef, (e) => e.clientY < 56)
+  // on a touch screen the bars above a list go away while it scrolls down
+  const barsHidden = useCollapseOnScroll(touch, nav.entryId)
 
   return (
-    <div className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''}`}>
+    <div className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''} ${barsHidden ? 'bars-hidden' : ''}`}>
       <header ref={titlebarRef} className="titlebar">
         <div className="titlebar-nav">
           <button className="icon-btn" disabled={!nav.canBack} onClick={nav.back} title={t('app.back')}>

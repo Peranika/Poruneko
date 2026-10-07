@@ -1272,3 +1272,10 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 :root[data-touch] .bm-card .select-btn, :root[data-touch] .group-list li .name-open, :root[data-touch] .info-cover.editable .thumb-change,
 :root[data-touch] .editable-title .icon-btn, :root[data-touch] .history-item .history-remove, :root[data-touch] .sidebar .add-tab { opacity: 1; }
 :root[data-touch] .group-list li.tag-item .tag-rename { display: inline-flex; }
+/* the bars above a list go away while it scrolls down (useCollapseOnScroll) */
+:root[data-touch] .titlebar, :root[data-touch] .toolbar:has(+ .scroll) {
+  max-height: 60vh; transition: max-height 0.2s, padding 0.2s, border-width 0.2s, opacity 0.2s;
+}
+:root[data-touch] .app.bars-hidden .titlebar, :root[data-touch] .app.bars-hidden .toolbar:has(+ .scroll) {
+  max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom-width: 0; overflow: hidden; opacity: 0;
+}
