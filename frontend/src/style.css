@@ -104,10 +104,12 @@ input, select {
 input:not([type='checkbox']):not([type='radio']):not([type='range']), select { min-height: var(--ctl-md); }
 input:focus, select:focus { border-color: var(--accent); }
 select { cursor: pointer; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background-color: var(--line-strong); }
-::-webkit-scrollbar-track { background: transparent; }
+/* the app's own scroll bars are for the mouse: a touch screen keeps its own, which lie over the content and take no
+   width (drawn ones would narrow the lists, whose widths in vw then overflow sideways) */
+:root:not([data-touch]) ::-webkit-scrollbar { width: 10px; height: 10px; }
+:root:not([data-touch]) ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+:root:not([data-touch]) ::-webkit-scrollbar-thumb:hover { background-color: var(--line-strong); }
+:root:not([data-touch]) ::-webkit-scrollbar-track { background: transparent; }
 
 .muted { color: var(--text-3); }
 .small { font-size: 0.8571rem; }
@@ -1186,6 +1188,8 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
   .body { flex-direction: column-reverse; }
   /* in a column the content has to be allowed to shrink, or it grows with its list and the list never scrolls */
   .content { min-height: 0; }
+  /* the lists never scroll sideways on a phone */
+  .scroll { overflow-x: hidden; }
   .sidebar { flex: none; }
   .sidebar {
     width: auto; flex-direction: row; align-items: stretch; gap: 2px; padding: 4px 6px;
