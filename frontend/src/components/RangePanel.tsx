@@ -138,9 +138,7 @@ export function RangePanel({ source, session, onChange, onClose }: Props) {
           <Icon name="close" size={14} />
         </button>
       </div>
-      <div className="origin-line">
-        {t('range.origin', { title: srcTitle, total })}
-      </div>
+      <div className="origin-line">{t('range.origin', { title: srcTitle, total })}</div>
 
       <div className="form-grid">
         <label>{t('range.artistRequired')}</label>
@@ -153,7 +151,13 @@ export function RangePanel({ source, session, onChange, onClose }: Props) {
           autoFocus
         />
         <label>{t('common.circle')}</label>
-        <input value={circle} onChange={(e) => setCircle(e.target.value)} onKeyDown={blurOnEsc} placeholder={t('range.optional')} list="range-circles" />
+        <input
+          value={circle}
+          onChange={(e) => setCircle(e.target.value)}
+          onKeyDown={blurOnEsc}
+          placeholder={t('range.optional')}
+          list="range-circles"
+        />
         <label>{t('common.title')}</label>
         <input
           value={title}
@@ -166,7 +170,12 @@ export function RangePanel({ source, session, onChange, onClose }: Props) {
       </div>
       <div className="range-tags">
         <span className="muted small">{t('range.siteNames')}</span>
-        <SiteNamePicker value={tags} onChange={setTags} candidates={{ artists: source.artists, groups: source.groups }} site={source.site} />
+        <SiteNamePicker
+          value={tags}
+          onChange={setTags}
+          candidates={{ artists: source.artists, groups: source.groups }}
+          site={source.site}
+        />
       </div>
       <datalist id="range-artists">
         {known.artists.map((a) => (

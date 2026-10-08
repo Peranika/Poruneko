@@ -49,7 +49,13 @@ export function SlideCurveSetting() {
             <input key={i} type="number" step={0.05} value={v} onChange={(e) => edit('factor', i, e.target.value)} />
           ))}
         </span>
-        <button className="btn small ghost" onClick={() => { setSlideCurve(null); setC(DEFAULT_SLIDE_CURVE) }}>
+        <button
+          className="btn small ghost"
+          onClick={() => {
+            setSlideCurve(null)
+            setC(DEFAULT_SLIDE_CURVE)
+          }}
+        >
           {t('slideCurve.reset')}
         </button>
       </span>

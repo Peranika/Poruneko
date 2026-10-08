@@ -67,7 +67,13 @@ export function BrowseView({ q }: { q: ListQuery }) {
   const resetKey = JSON.stringify(cond) + (ownerRev ? `#${ownerRev}` : '')
   const load = useCallback((page: number) => api.list({ ...q, page }), [resetKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const renderItem = (s: GallerySummary, page: number, r: ListResult) => (
-    <GalleryItem key={s.key} s={s} layout={layout} onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'browse') })} onSearch={search} />
+    <GalleryItem
+      key={s.key}
+      s={s}
+      layout={layout}
+      onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'browse') })}
+      onSearch={search}
+    />
   )
 
   return (
@@ -100,13 +106,15 @@ export function BrowseView({ q }: { q: ListQuery }) {
                 ))}
               </select>
             ))}
-          {!view && <PageRangeFilter
-            value={{ minPages: q.minPages, maxPages: q.maxPages }}
-            onChange={(r: PageRange) => {
-              saveJSON(pageRangeKey('browse', site), r) // carry it over to the site's next search
-              setQ(r)
-            }}
-          />}
+          {!view && (
+            <PageRangeFilter
+              value={{ minPages: q.minPages, maxPages: q.maxPages }}
+              onChange={(r: PageRange) => {
+                saveJSON(pageRangeKey('browse', site), r) // carry it over to the site's next search
+                setQ(r)
+              }}
+            />
+          )}
           <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
           <LayoutToggle value={layout} onChange={setLayout} />
         </div>
@@ -130,26 +138,32 @@ export function BrowseView({ q }: { q: ListQuery }) {
 
       <div className="scroll" ref={scroller}>
         {view && q.query && (
-          <ViewHeader site={site} view={view.id} query={q.query} filters={q.filters ?? {}} onOwnerChange={() => setOwnerRev((n) => n + 1)} />
+          <ViewHeader
+            site={site}
+            view={view.id}
+            query={q.query}
+            filters={q.filters ?? {}}
+            onOwnerChange={() => setOwnerRev((n) => n + 1)}
+          />
         )}
         {view && !q.query ? (
           <div className="center muted">{textOf(view.hint) || t('browse.viewHint')}</div>
         ) : (
-        <PagedResults
-          // a value kept for the user changed: list again from the start at once
-          key={ownerRev}
-          resetKey={resetKey}
-          startPage={q.page}
-          load={load}
-          infinite={settings?.infiniteScroll ?? true}
-          loadMore={loadMoreOf(site, settings?.siteLoadMore)}
-          layout={layout}
-          renderItem={renderItem}
-          onJump={(page) => nav.go({ name: 'browse', q: { ...q, page } })}
-          scroller={scroller}
-          entryState={nav.entryState}
-          emptyText={t('browse.empty')}
-        />
+          <PagedResults
+            // a value kept for the user changed: list again from the start at once
+            key={ownerRev}
+            resetKey={resetKey}
+            startPage={q.page}
+            load={load}
+            infinite={settings?.infiniteScroll ?? true}
+            loadMore={loadMoreOf(site, settings?.siteLoadMore)}
+            layout={layout}
+            renderItem={renderItem}
+            onJump={(page) => nav.go({ name: 'browse', q: { ...q, page } })}
+            scroller={scroller}
+            entryState={nav.entryState}
+            emptyText={t('browse.empty')}
+          />
         )}
       </div>
     </div>

@@ -45,7 +45,14 @@ import type {
   Settings,
   Suggestion,
   ThumbSpec,
-  UpdateRelease, PluginInfo, RemoteStatus, SiteInfo, StatusLine, Text, ViewHeader } from './types'
+  UpdateRelease,
+  PluginInfo,
+  RemoteStatus,
+  SiteInfo,
+  StatusLine,
+  Text,
+  ViewHeader
+} from './types'
 
 export const api = {
   /** The sites from site plugins (the browse screens appear only when there is one) */
@@ -79,8 +86,13 @@ export const api = {
   ownerSettings: (site: string, owner: string, common: Record<string, string>): Promise<Record<string, string>> =>
     go.OwnerSettings(site, owner, common),
   /** Keep a filter's value for one owner of a site's works ('' goes back to the common value) */
-  setOwnerSetting: (site: string, owner: string, filterId: string, value: string, common: Record<string, string>): Promise<Record<string, string>> =>
-    go.SetOwnerSetting(site, owner, filterId, value, common),
+  setOwnerSetting: (
+    site: string,
+    owner: string,
+    filterId: string,
+    value: string,
+    common: Record<string, string>
+  ): Promise<Record<string, string>> => go.SetOwnerSetting(site, owner, filterId, value, common),
   /** Do a button of a plugin's own screen (such as following a user); returns the message to show */
   viewAction: (site: string, view: string, query: string, action: string): Promise<Text | null> => go.ViewAction(site, view, query, action),
   /** Opens the site's login window; the plugin's login settings (null when the window was closed first) */

@@ -148,7 +148,8 @@ export function suggestSeriesFor(b: Bookmark, list: Series[], bookmarks: Map<str
     for (const m of seriesMembers(s, bookmarks)) {
       if (m.key === b.key) continue
       score = Math.max(score, prefixRatio(key, titleKey(bookmarkTitle(m))))
-      if ((circle && normalizeText(m.creator.circle) === circle) || m.creator.artists.some((a) => artists.has(normalizeText(a)))) sameCreator = true
+      if ((circle && normalizeText(m.creator.circle) === circle) || m.creator.artists.some((a) => artists.has(normalizeText(a))))
+        sameCreator = true
     }
     return { s, score: score + (sameCreator ? 0.3 : 0) }
   })

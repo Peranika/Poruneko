@@ -36,8 +36,7 @@ export function gestureAction(settings: Settings | null, context: GestureContext
 /** The actions a gesture can be bound to where it is made, with their names */
 export function gestureChoices(context: GestureContext): [GestureAction, string][] {
   const none: [GestureAction, string] = ['', t('gestures.none')]
-  if (context === 'list')
-    return [none, ['back', t('keys.actions.back')], ['forward', t('keys.actions.forward')]]
+  if (context === 'list') return [none, ['back', t('keys.actions.back')], ['forward', t('keys.actions.forward')]]
   return [
     none,
     ['closeViewer', t('gestures.closeViewer')],

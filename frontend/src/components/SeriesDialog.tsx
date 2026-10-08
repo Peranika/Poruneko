@@ -20,7 +20,14 @@ export function SeriesDialog({ bookmarkKey }: { bookmarkKey: string }) {
   const list = useMemo(() => sortSeriesByName(series), [series])
   // series the work likely belongs to, guessed from the title and creator (excluding its current series)
   const suggested = useMemo(
-    () => (b ? suggestSeriesFor(b, series.filter((s) => s.id !== current?.series.id), bookmarks) : []),
+    () =>
+      b
+        ? suggestSeriesFor(
+            b,
+            series.filter((s) => s.id !== current?.series.id),
+            bookmarks
+          )
+        : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bookmarkKey, series]
   )
@@ -89,7 +96,11 @@ export function SeriesDialog({ bookmarkKey }: { bookmarkKey: string }) {
       {targets.length > 1 && <div className="warn small">{t('selection.appliesTo', { n: targets.length })}</div>}
       {current && (
         <div className="small">
-          {tx('seriesDialog.current', { name: <strong>{current.series.name}</strong>, no: current.index + 1, total: current.series.keys.length })}
+          {tx('seriesDialog.current', {
+            name: <strong>{current.series.name}</strong>,
+            no: current.index + 1,
+            total: current.series.keys.length
+          })}
         </div>
       )}
       {suggested.length > 0 && !query && (

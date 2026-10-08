@@ -98,7 +98,9 @@ export default function App() {
   })
 
   return (
-    <div className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''} ${barsHidden ? 'bars-hidden' : ''}`}>
+    <div
+      className={`app ${immersive ? 'immersive' : ''} ${autoChrome ? 'chrome-auto' : ''} ${autoChrome && !titlebarVisible ? 'chrome-hidden' : ''} ${barsHidden ? 'bars-hidden' : ''}`}
+    >
       <header ref={titlebarRef} className="titlebar">
         <div className="titlebar-nav">
           <button className="icon-btn" disabled={!nav.canBack} onClick={nav.back} title={t('app.back')}>
@@ -153,12 +155,20 @@ export default function App() {
           {!!sites?.length && <div className="sidebar-sep" />}
           <SiteTabs sites={sites ?? []} />
           {!!sites?.length && <div className="sidebar-sep" />}
-          <button className={tab.name === 'history' ? 'active' : ''} onClick={() => nav.go({ name: 'history' })} title={t('app.historyTitle')}>
+          <button
+            className={tab.name === 'history' ? 'active' : ''}
+            onClick={() => nav.go({ name: 'history' })}
+            title={t('app.historyTitle')}
+          >
             <Icon name="history" size={20} />
             <span>{t('app.history')}</span>
           </button>
           <div className="spacer" />
-          <button className={tab.name === 'settings' ? 'active' : ''} onClick={() => nav.go({ name: 'settings' })} title={t('app.settings')}>
+          <button
+            className={tab.name === 'settings' ? 'active' : ''}
+            onClick={() => nav.go({ name: 'settings' })}
+            title={t('app.settings')}
+          >
             <Icon name="settings" size={20} />
             <span>{t('app.settings')}</span>
           </button>

@@ -15,8 +15,7 @@ export const TYPICAL_PAGE = { width: 1280, height: 1800 }
 
 const BYTES_PER_PIXEL = 4
 
-export const pageBytes = (p: { width: number; height: number }): number =>
-  Math.max(1, p.width) * Math.max(1, p.height) * BYTES_PER_PIXEL
+export const pageBytes = (p: { width: number; height: number }): number => Math.max(1, p.width) * Math.max(1, p.height) * BYTES_PER_PIXEL
 
 /** Number of pages decoded for a setting of n (n ahead + up to PREDECODE_BEHIND behind) */
 export const predecodeCount = (n: number): number => (n > 0 ? n + Math.min(PREDECODE_BEHIND, n) : 0)

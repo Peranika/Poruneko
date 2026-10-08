@@ -30,14 +30,20 @@ export function FileNameFormat({ site }: { site?: SiteInfo }) {
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    api.fileNamePlaceholders().then(setHolders).catch(() => {})
+    api
+      .fileNamePlaceholders()
+      .then(setHolders)
+      .catch(() => {})
   }, [])
 
   // preview and save once typing settles
   useEffect(() => {
     const timer = setTimeout(() => {
       const format = draft.trim() || (site ? site.fileNameFormat || settings?.fileNameFormat : '') || ''
-      api.previewFileName(site?.id ?? '', format, t('fileName.sampleSeries')).then(setPreview).catch(() => {})
+      api
+        .previewFileName(site?.id ?? '', format, t('fileName.sampleSeries'))
+        .then(setPreview)
+        .catch(() => {})
       if (!site) {
         if (draft.trim() && draft !== settings?.fileNameFormat) updateSettings({ fileNameFormat: draft })
       } else if (draft.trim() !== saved) {
@@ -87,7 +93,9 @@ export function FileNameFormat({ site }: { site?: SiteInfo }) {
           {site?.fileNameFormat && <option value={site.fileNameFormat}>{t('fileName.sitePreset', { name: site.name })}</option>}
           {site && settings?.fileNameFormat && <option value={settings.fileNameFormat}>{t('fileName.commonPreset')}</option>}
           {PRESETS.map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
+            <option key={v} value={v}>
+              {l}
+            </option>
           ))}
         </select>
       </div>

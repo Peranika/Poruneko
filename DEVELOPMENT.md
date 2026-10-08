@@ -16,8 +16,11 @@ wails build -platform windows/amd64 -trimpath    # builds build/bin/Poruneko.exe
 wails generate module                            # regenerate frontend/wailsjs after changing bound Go APIs
 go test ./internal/...                           # unit tests
 cd frontend && npx tsc --noEmit                  # type check the frontend
+cd frontend && npm run format                    # format the frontend with Prettier (npm run format:check to check)
 ```
 
+- The frontend's TypeScript is formatted with Prettier (`frontend/.prettierrc.json`); `style.css` is left out, as it
+  keeps a rule to a line.
 - Do not pass `-clean` to `wails build`. It deletes everything in `build/bin`, where the release zips and release notes are kept (the folder is not tracked by git).
 - The exe cannot be replaced while the app is running ("Access is denied"). Close the app before building.
 

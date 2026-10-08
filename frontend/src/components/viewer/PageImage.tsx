@@ -21,7 +21,23 @@ const PLACEHOLDER_DELAY = 150
  * placeholder is the page's thumbnail: shown in its place while the page takes a while (a slow site, a large
  * picture), and replaced by the page once it has loaded
  */
-export function PageImage({ src, w, h, index, marker, moire, placeholder }: { src: string; w: number; h: number; index: number; marker?: string; moire?: MoireLevel; placeholder?: string }) {
+export function PageImage({
+  src,
+  w,
+  h,
+  index,
+  marker,
+  moire,
+  placeholder
+}: {
+  src: string
+  w: number
+  h: number
+  index: number
+  marker?: string
+  moire?: MoireLevel
+  placeholder?: string
+}) {
   const [state, setState] = useState<'loading' | 'ok' | 'err'>('loading')
   // the thumbnail is asked for only when the page is not there at once (a page from the cbz or the cache never needs it)
   const [waited, setWaited] = useState(false)
@@ -109,7 +125,14 @@ export function PageImage({ src, w, h, index, marker, moire, placeholder }: { sr
       {moire && <canvas ref={canvas} className="page-smooth" style={smoothed ? undefined : { display: 'none' }} />}
       {state === 'loading' && <div className="spinner" />}
       {state === 'err' && (
-        <button className="btn" onClick={(e) => { e.stopPropagation(); setState('loading'); setRetry((r) => r + 1) }}>
+        <button
+          className="btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            setState('loading')
+            setRetry((r) => r + 1)
+          }}
+        >
           <Icon name="refresh" size={14} /> {t('viewer.reload')}
         </button>
       )}
@@ -285,7 +308,11 @@ export function PageAnimation({
   }, [ready])
 
   return (
-    <div className={`page video animation ${ready ? 'ok' : failed ? 'err' : 'loading'} ${marker ? 'marked' : ''}`} style={{ width: w, height: h }} data-index={index}>
+    <div
+      className={`page video animation ${ready ? 'ok' : failed ? 'err' : 'loading'} ${marker ? 'marked' : ''}`}
+      style={{ width: w, height: h }}
+      data-index={index}
+    >
       {marker && <span className="page-marker">{marker}</span>}
       <canvas
         ref={canvas}

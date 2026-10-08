@@ -93,7 +93,12 @@ export function SiteNamePicker({ value, onChange, candidates, site }: Props) {
         <div className="tag-picker-origin">
           <span className="muted small">{t('tagPicker.fromOrigin')}</span>
           {suggestFromOrigin.map(({ ns, name }) => (
-            <button key={ns + name} className="chip-btn" onClick={() => add(ns, name)} title={t('tagPicker.addAs', { kind: SITE_NAME_LABEL[ns] })}>
+            <button
+              key={ns + name}
+              className="chip-btn"
+              onClick={() => add(ns, name)}
+              title={t('tagPicker.addAs', { kind: SITE_NAME_LABEL[ns] })}
+            >
               + {name}
               {ns === 'group' && <small>{t('tagPicker.groupSuffix')}</small>}
             </button>
@@ -125,7 +130,14 @@ export function SiteNamePicker({ value, onChange, candidates, site }: Props) {
         {sugs.length > 0 && (
           <ul className="suggestions">
             {sugs.map((s, i) => (
-              <li key={s.ns + s.name} className={i === sel ? 'sel' : ''} onMouseDown={(e) => { e.preventDefault(); pick(s) }}>
+              <li
+                key={s.ns + s.name}
+                className={i === sel ? 'sel' : ''}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  pick(s)
+                }}
+              >
                 <span className={`ns ns-${s.ns}`}>{SITE_NAME_LABEL[s.ns as NS]}</span>
                 <span className="name">{s.name}</span>
                 <span className="count">{s.count.toLocaleString()}</span>

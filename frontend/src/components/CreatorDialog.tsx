@@ -48,7 +48,15 @@ function pastConfirmations(b: Bookmark, bookmarks: Map<string, Bookmark>): Creat
     seen.add(id)
     found.push({
       shared,
-      c: { source: 'manual', productId: x.key, productTitle: bookmarkTitle(x), url: '', circle: x.creator.circle, artists: x.creator.artists, score: 1 }
+      c: {
+        source: 'manual',
+        productId: x.key,
+        productTitle: bookmarkTitle(x),
+        url: '',
+        circle: x.creator.circle,
+        artists: x.creator.artists,
+        score: 1
+      }
     })
   }
   return found.sort((a, b) => b.shared - a.shared).map((f) => f.c)
@@ -190,8 +198,12 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
             </button>
           )}
           <div className="spacer" />
-          <button className="btn ghost" onClick={() => setEditCreatorKey(null)}>{t('common.cancel')}</button>
-          <button className="btn primary" onClick={saveIt}>{t('common.save')}</button>
+          <button className="btn ghost" onClick={() => setEditCreatorKey(null)}>
+            {t('common.cancel')}
+          </button>
+          <button className="btn primary" onClick={saveIt}>
+            {t('common.save')}
+          </button>
         </>
       }
     >
@@ -220,9 +232,19 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
 
       <div className="form-grid">
         <label>{creatorLabel('group', b?.summary.site, t('common.circle'))}</label>
-        <input value={circle} list="creator-circles" onChange={(e) => setCircle(e.target.value)} placeholder={t('creator.circlePlaceholder')} />
+        <input
+          value={circle}
+          list="creator-circles"
+          onChange={(e) => setCircle(e.target.value)}
+          placeholder={t('creator.circlePlaceholder')}
+        />
         <label>{creatorLabel('artist', b?.summary.site, t('common.artist'))}</label>
-        <input value={artists} list="creator-artists" onChange={(e) => setArtists(e.target.value)} placeholder={t('creator.artistsPlaceholder')} />
+        <input
+          value={artists}
+          list="creator-artists"
+          onChange={(e) => setArtists(e.target.value)}
+          placeholder={t('creator.artistsPlaceholder')}
+        />
       </div>
       {complement.length > 0 && (
         <div className="fill-suggest">
@@ -234,7 +256,10 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
               title={t('creator.fillTitle', { n: s.count })}
               onClick={() => (s.kind === 'artists' ? setArtists(s.value) : setCircle(s.value))}
             >
-              {s.kind === 'artists' ? creatorLabel('artist', b?.summary.site, t('common.artist')) : creatorLabel('group', b?.summary.site, t('common.circle'))}: {s.value} <small className="muted">({s.count})</small>
+              {s.kind === 'artists'
+                ? creatorLabel('artist', b?.summary.site, t('common.artist'))
+                : creatorLabel('group', b?.summary.site, t('common.circle'))}
+              : {s.value} <small className="muted">({s.count})</small>
             </button>
           ))}
         </div>
@@ -319,7 +344,9 @@ export function CreatorDialog({ bookmarkKey }: { bookmarkKey: string }) {
                 {c.artists.length > 0 && t('creator.candidateSeparator') + c.artists.join(t('common.listSeparator'))}
               </div>
             </div>
-            <span className="score" title={t('creator.score')}>{Math.round(c.score * 100)}%</span>
+            <span className="score" title={t('creator.score')}>
+              {Math.round(c.score * 100)}%
+            </span>
             <button
               className="icon-btn small"
               title={t('creator.openProduct')}

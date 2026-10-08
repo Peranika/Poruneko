@@ -18,7 +18,11 @@ const VIEW_ICON: Record<string, string> = { browse: 'grid', bookmarks: 'bookmark
 export function SiteTabs({ sites }: { sites: SiteInfo[] }) {
   const { settings, updateSettings } = useApp()
   const list = inOrder(sites, (s) => s.id, settings?.siteOrder)
-  const drag = useDragReorder('site', list.map((s) => s.id), (ids) => updateSettings({ siteOrder: ids }))
+  const drag = useDragReorder(
+    'site',
+    list.map((s) => s.id),
+    (ids) => updateSettings({ siteOrder: ids })
+  )
   return (
     <>
       {list.map((s) => (
@@ -33,7 +37,13 @@ export function SiteTabs({ sites }: { sites: SiteInfo[] }) {
  * their names, or as icons two a row: a setting); otherwise a click opens the one used last, marked on its icon.
  * Hovering the site shows what is going on with it (its plugin, the API calls left, downloads)
  */
-export function SiteTab({ site, drag }: { site: SiteInfo; drag: { props: ReturnType<ReturnType<typeof useDragReorder>['itemProps']>; className: string } }) {
+export function SiteTab({
+  site,
+  drag
+}: {
+  site: SiteInfo
+  drag: { props: ReturnType<ReturnType<typeof useDragReorder>['itemProps']>; className: string }
+}) {
   const { nav, bookmarks, settings, updateSettings } = useApp()
   // while a work is open, the tab of the screen it was opened from
   const r = nav.tab

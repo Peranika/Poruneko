@@ -84,8 +84,7 @@ export function KeybindingSettings() {
   }, [capturing, settings?.keybindings])
 
   if (!settings) return null
-  const isDefault = (id: ActionId) =>
-    JSON.stringify(bindings[id]) === JSON.stringify(ACTIONS.find((a) => a.id === id)!.defaults)
+  const isDefault = (id: ActionId) => JSON.stringify(bindings[id]) === JSON.stringify(ACTIONS.find((a) => a.id === id)!.defaults)
 
   return (
     <>
@@ -138,11 +137,7 @@ export function KeybindingSettings() {
           {t('keys.mouseGestures')}
           <small className="muted">{t('keys.mouseGesturesHint')}</small>
         </span>
-        <input
-          type="checkbox"
-          checked={settings.mouseGestures}
-          onChange={(e) => updateSettings({ mouseGestures: e.target.checked })}
-        />
+        <input type="checkbox" checked={settings.mouseGestures} onChange={(e) => updateSettings({ mouseGestures: e.target.checked })} />
       </label>
     </>
   )

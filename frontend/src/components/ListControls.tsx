@@ -22,7 +22,12 @@ export function LayoutToggle({ value, onChange }: { value: ListLayout; onChange(
   return (
     <div className="seg">
       {(['list', 'grid'] as const).map((l) => (
-        <button key={l} className={value === l ? 'active' : ''} onClick={() => onChange(l)} title={l === 'list' ? t('list.listView') : t('list.gridView')}>
+        <button
+          key={l}
+          className={value === l ? 'active' : ''}
+          onClick={() => onChange(l)}
+          title={l === 'list' ? t('list.listView') : t('list.gridView')}
+        >
           <Icon name={l} />
         </button>
       ))}
@@ -78,4 +83,3 @@ export function ThumbSizeSlider({ value, onChange }: { value: number; onChange(n
     </label>
   )
 }
-

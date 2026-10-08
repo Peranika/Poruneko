@@ -65,8 +65,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
         // the reading mode: the one chosen for this work, else spreads for manga / doujinshi if so set,
         // else the one last used (shown before the viewer appears, so it does not switch after opening)
         const viewer = settingsRef.current?.viewer
-        const mode =
-          loadWorkMode(galleryKey) ?? (viewer?.spreadForManga && isSpreadType(d.type) ? 'spread' : undefined)
+        const mode = loadWorkMode(galleryKey) ?? (viewer?.spreadForManga && isSpreadType(d.type) ? 'spread' : undefined)
         if (mode && mode !== viewer?.mode) updateSettings({ viewer: { mode } as ViewerSettings })
         setDetail(d)
         // the history lists every work opened in the viewer, with where it was opened from
@@ -233,10 +232,11 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             }}
           />
         ) : (
-          <div className="center"><div className="spinner" /></div>
+          <div className="center">
+            <div className="spinner" />
+          </div>
         )}
       </section>
-
     </div>
   )
 }

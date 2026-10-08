@@ -16,17 +16,7 @@ export const FONT_SCALES = [80, 90, 100, 110, 120, 135, 150]
 export const DEFAULT_ACCENT = '#ff6b8b'
 
 /** Accent colors offered in the settings (any other color can be picked too) */
-export const ACCENT_PRESETS = [
-  DEFAULT_ACCENT,
-  '#f0524f',
-  '#f5873a',
-  '#e0b13a',
-  '#3fbf74',
-  '#26b3a6',
-  '#4a90f0',
-  '#7b74f0',
-  '#b46cf0'
-]
+export const ACCENT_PRESETS = [DEFAULT_ACCENT, '#f0524f', '#f5873a', '#e0b13a', '#3fbf74', '#26b3a6', '#4a90f0', '#7b74f0', '#b46cf0']
 
 const darkScheme = window.matchMedia('(prefers-color-scheme: dark)')
 let current: { theme: string; accent: string } = { theme: '', accent: '' }

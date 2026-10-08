@@ -44,7 +44,17 @@ function trailingTerms(text: string): { term: string; words: number }[] {
   return out
 }
 
-export function SearchBar({ value, onSubmit, placeholder, site = '' }: { value: string; onSubmit(q: string): void; placeholder?: string; site?: string }) {
+export function SearchBar({
+  value,
+  onSubmit,
+  placeholder,
+  site = ''
+}: {
+  value: string
+  onSubmit(q: string): void
+  placeholder?: string
+  site?: string
+}) {
   const [text, setText] = useState(value)
   const [sugs, setSugs] = useState<Sug[]>([])
   const [sel, setSel] = useState(-1)
@@ -116,7 +126,14 @@ export function SearchBar({ value, onSubmit, placeholder, site = '' }: { value: 
         }}
       />
       {text && (
-        <button className="icon-btn small" onClick={() => { setText(''); onSubmit('') }} title={t('search.clear')}>
+        <button
+          className="icon-btn small"
+          onClick={() => {
+            setText('')
+            onSubmit('')
+          }}
+          title={t('search.clear')}
+        >
           <Icon name="close" size={14} />
         </button>
       )}
@@ -127,8 +144,17 @@ export function SearchBar({ value, onSubmit, placeholder, site = '' }: { value: 
       {open && sugs.length > 0 && (
         <ul className="suggestions">
           {sugs.map((s, i) => (
-            <li key={s.ns + s.name} className={i === sel ? 'sel' : ''} onMouseDown={(e) => { e.preventDefault(); apply(s) }}>
-              <span className="ns" style={tagStyle(s.ns, site)}>{namespaceLabel(s.ns, site)}</span>
+            <li
+              key={s.ns + s.name}
+              className={i === sel ? 'sel' : ''}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                apply(s)
+              }}
+            >
+              <span className="ns" style={tagStyle(s.ns, site)}>
+                {namespaceLabel(s.ns, site)}
+              </span>
               <span className="name">
                 {tagLabel(s.ns, s.name)}
                 {tagLabel(s.ns, s.name) !== s.name && <small className="muted"> {s.name}</small>}

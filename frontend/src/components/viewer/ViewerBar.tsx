@@ -46,14 +46,25 @@ export function ViewerBar(props: Props) {
   const rtl = settings.direction === 'rtl'
   // back to the first page, at the end of the slider where the first page is (the right end when right-to-left)
   const toFirst = (
-    <button className={`icon-btn to-first ${rtl ? 'rtl' : ''}`} onClick={() => props.onJump(0)} disabled={props.page === 0} title={t('viewer.toFirst')}>
+    <button
+      className={`icon-btn to-first ${rtl ? 'rtl' : ''}`}
+      onClick={() => props.onJump(0)}
+      disabled={props.page === 0}
+      title={t('viewer.toFirst')}
+    >
       <Icon name="toFirst" />
     </button>
   )
   return (
     <div ref={props.barRef} className="viewer-bar" onMouseEnter={props.onMouseEnter}>
       {/* left: things to do while reading | center: where you are | right: how pages are shown, bookmarks, the bar and the window */}
-      <SlideshowControl settings={settings} onSettings={onSettings} running={props.slideshow} onRunning={props.onSlideshow} timer={props.slideTimer} />
+      <SlideshowControl
+        settings={settings}
+        onSettings={onSettings}
+        running={props.slideshow}
+        onRunning={props.onSlideshow}
+        timer={props.slideTimer}
+      />
       <button className={`icon-btn ${props.showThumbs ? 'active' : ''}`} onClick={props.onToggleThumbs} title={t('viewer.thumbs')}>
         <Icon name="grid" />
       </button>
@@ -87,12 +98,7 @@ export function ViewerBar(props: Props) {
       <span className="bar-sep" />
       <div className="seg">
         {(['single', 'spread', 'scroll'] as const).map((m) => (
-          <button
-            key={m}
-            className={mode === m ? 'active' : ''}
-            onClick={() => onSettings({ mode: m })}
-            title={t(`viewer.modes.${m}`)}
-          >
+          <button key={m} className={mode === m ? 'active' : ''} onClick={() => onSettings({ mode: m })} title={t(`viewer.modes.${m}`)}>
             <Icon name={m} />
           </button>
         ))}
@@ -107,11 +113,7 @@ export function ViewerBar(props: Props) {
       <span className="bar-sep" />
       {props.extra}
       {range && (
-        <button
-          className={`icon-btn ${range.active ? 'active' : ''}`}
-          onClick={range.onToggle}
-          title={t('viewer.rangeBookmark')}
-        >
+        <button className={`icon-btn ${range.active ? 'active' : ''}`} onClick={range.onToggle} title={t('viewer.rangeBookmark')}>
           <Icon name="bookmarkRange" />
         </button>
       )}
@@ -124,7 +126,11 @@ export function ViewerBar(props: Props) {
       >
         <Icon name="pin" className={settings.barLocked ? '' : 'pin-off'} />
       </button>
-      <button className="icon-btn" onClick={props.onToggleImmersive} title={immersive ? t('viewer.exitFullscreen') : t('viewer.fullscreen')}>
+      <button
+        className="icon-btn"
+        onClick={props.onToggleImmersive}
+        title={immersive ? t('viewer.exitFullscreen') : t('viewer.fullscreen')}
+      >
         <Icon name={immersive ? 'exitFullscreen' : 'fullscreen'} />
       </button>
     </div>
@@ -167,7 +173,12 @@ function DisplayControl({
           <span className="pop-label">{t('viewer.direction')}</span>
           <div className="seg full">
             {(['rtl', 'ltr'] as const).map((d) => (
-              <button key={d} className={settings.direction === d ? 'active' : ''} onClick={() => onSettings({ direction: d })} title={t('viewer.directionTitle')}>
+              <button
+                key={d}
+                className={settings.direction === d ? 'active' : ''}
+                onClick={() => onSettings({ direction: d })}
+                title={t('viewer.directionTitle')}
+              >
                 <Icon name={d === 'rtl' ? 'dirRtl' : 'dirLtr'} size={16} />
                 {t(`viewer.${d}Short`)}
               </button>
@@ -189,7 +200,11 @@ function DisplayControl({
           <div className="pop-group">
             <span className="pop-label">{t('viewer.spread')}</span>
             <div className="bar-pop-row">
-              <button className={`toggle ${coverSingle ? 'on' : ''}`} onClick={() => onSettings({ coverSingle: !coverSingle })} title={t('viewer.coverSingleTitle')}>
+              <button
+                className={`toggle ${coverSingle ? 'on' : ''}`}
+                onClick={() => onSettings({ coverSingle: !coverSingle })}
+                title={t('viewer.coverSingleTitle')}
+              >
                 <Icon name="coverSingle" size={16} />
                 {t('viewer.coverSingle')}
               </button>

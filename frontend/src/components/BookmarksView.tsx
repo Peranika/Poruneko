@@ -28,7 +28,16 @@ import {
   UNTAGGED
 } from '../bookmarkList'
 import { errorText, t, tx } from '../i18n'
-import { collapseSeries, collapsesSeriesIn, loadSeriesId, recentWeights, saveSeriesId, shuffledPlaylist, sortSeriesByName, type GridItem } from '../series'
+import {
+  collapseSeries,
+  collapsesSeriesIn,
+  loadSeriesId,
+  recentWeights,
+  saveSeriesId,
+  shuffledPlaylist,
+  sortSeriesByName,
+  type GridItem
+} from '../series'
 import { useApp, type BookmarkView, type Route } from '../state'
 import { loadString, saveString } from '../storage'
 import { useCardKeyNav } from '../useCardKeyNav'
@@ -51,7 +60,17 @@ import { FiltersToggle, ViewTop } from './ViewTop'
  * Without a view (opened from the sidebar) it opens what was shown last time.
  */
 /** dir: the local folder of a local tab; site: the site of a bookmarks tab */
-export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?: BookmarkView; scope?: ListScope; dir?: number; site?: string }) {
+export function BookmarksView({
+  view,
+  scope = 'bookmarks',
+  dir,
+  site
+}: {
+  view?: BookmarkView
+  scope?: ListScope
+  dir?: number
+  site?: string
+}) {
   const { nav, bookmarks, series, seriesOf, toast } = useApp()
   // each local folder's tab remembers its own view
   const id = scope === 'local' ? dir : site
@@ -125,7 +144,8 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
 
   // open the group of a circle or artist name on a card (going back returns to the unfiltered view)
   // (a circle name on a card in a local folder's tab searches for it instead)
-  const showGroup = (v: GroupBy, g: string) => (localTab && v === 'circle' ? setFilter(g) : nav.go(routeTo({ mode: 'groups', by: v, group: g })))
+  const showGroup = (v: GroupBy, g: string) =>
+    localTab && v === 'circle' ? setFilter(g) : nav.go(routeTo({ mode: 'groups', by: v, group: g }))
   // open the bookmarks with a tag clicked on a card (going back returns to the previous view)
   const showTag = (tag: string) => nav.go(routeTo({ mode: 'tags', tags: [tag] }))
   // open the series from a series card (going back returns to the view before opening it)
@@ -270,7 +290,9 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
             }}
           >
             <Icon name={by === 'circle' ? 'users' : 'user'} size={16} />
-            <span className="seg-label">{by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist'))}</span>
+            <span className="seg-label">
+              {by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist'))}
+            </span>
             {!localTab && <TwoStates second={by === 'artist'} />}
           </button>
           <button className={pane === 'series' ? 'active' : ''} onClick={() => setPane('series')} title={t('bookmarks.seriesTitle')}>
@@ -370,7 +392,11 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
                   {searching ? (
                     t('bookmarks.searchResults', { query: filter.trim() })
                   ) : pane === 'tags' ? (
-                    tags.length ? tags.map((x) => (x === UNTAGGED ? t('tags.untagged') : x)).join(' + ') : t('bookmarkList.special.all')
+                    tags.length ? (
+                      tags.map((x) => (x === UNTAGGED ? t('tags.untagged') : x)).join(' + ')
+                    ) : (
+                      t('bookmarkList.special.all')
+                    )
                   ) : (
                     <GroupName k={group} localTab={localTab} />
                   )}
@@ -382,9 +408,7 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
                 {scope === 'local' && (
                   <button
                     className="btn small"
-                    onClick={() =>
-                      void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
-                    }
+                    onClick={() => void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))}
                     title={t('library.rescanTitle')}
                   >
                     <Icon name="refresh" size={14} /> {t('library.rescan')}
@@ -397,7 +421,12 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
                 )}
                 {/* shuffle play; hovering shows its option */}
                 <div className="shuffle-ctl">
-                  <button className="btn small" onClick={() => void playShuffled()} disabled={!selected.length} title={t('bookmarks.shuffleTitle')}>
+                  <button
+                    className="btn small"
+                    onClick={() => void playShuffled()}
+                    disabled={!selected.length}
+                    title={t('bookmarks.shuffleTitle')}
+                  >
                     <Icon name="shuffle" size={14} /> {t('bookmarks.shuffle')}
                     {avoidRecent && (
                       <span className="shuffle-mark" title={t('bookmarks.avoidRecent')}>
@@ -450,7 +479,9 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
                   </div>
                 )
               ) : searching && selected.length === 0 ? (
-                <div className="center muted">{t(scope === 'local' ? 'library.noResults' : 'bookmarks.noResults', { query: filter.trim() })}</div>
+                <div className="center muted">
+                  {t(scope === 'local' ? 'library.noResults' : 'bookmarks.noResults', { query: filter.trim() })}
+                </div>
               ) : (
                 <div className="results grid">
                   {items.map((it) =>

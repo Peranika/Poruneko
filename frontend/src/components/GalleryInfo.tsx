@@ -36,7 +36,12 @@ interface Props {
 const ATTACHMENT_ICON: Record<Attachment['kind'], string> = { archive: 'archive', document: 'book', audio: 'play', other: 'link' }
 
 /** A size in bytes, short (KB / MB / GB) */
-const shortSize = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+const shortSize = (n: number) =>
+  n >= 1 << 30
+    ? `${(n / (1 << 30)).toFixed(1)} GB`
+    : n >= 1 << 20
+      ? `${(n / (1 << 20)).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(n / 1024))} KB`
 
 /** Info panel on the left of the gallery page (work info, creator info, download, tags) */
 export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Props) {
@@ -99,12 +104,18 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
         </div>
         <div className="info-head-main">
           <div className="type-row">
-            <span className="type" style={typeStyle(s.type)}>{optionLabel('type', s.type)}</span>
+            <span className="type" style={typeStyle(s.type)}>
+              {optionLabel('type', s.type)}
+            </span>
             {isLocal && <RangeChip saved={!!d && d.status !== 'none'} />}
           </div>
           {b ? <TitleEditor b={b} /> : <h2 className="title">{displayTitle(s)}</h2>}
           {/* with the user's title, the work's own title is shown under it */}
-          {b?.customTitle ? <div className="alt-title">{displayTitle(s)}</div> : altTitle(s) && <div className="alt-title">{altTitle(s)}</div>}
+          {b?.customTitle ? (
+            <div className="alt-title">{displayTitle(s)}</div>
+          ) : (
+            altTitle(s) && <div className="alt-title">{altTitle(s)}</div>
+          )}
           {s.origin && (
             <div className="origin-line">
               {t('gallery.origin')}{' '}
@@ -143,12 +154,7 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
         <div className="error small">{isLocal ? t('download.withRetryHint', { error: downloadErrorText(d) }) : downloadErrorText(d)}</div>
       )}
       {thumbEditing && b && (
-        <ThumbEditor
-          b={b}
-          pageCount={s.pageCount}
-          initialPage={loadPagePos(galleryKey)}
-          onClose={() => setThumbEditing(false)}
-        />
+        <ThumbEditor b={b} pageCount={s.pageCount} initialPage={loadPagePos(galleryKey)} onClose={() => setThumbEditing(false)} />
       )}
 
       {b && (
@@ -163,8 +169,14 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
             <div className="muted">{t('gallery.creatorResolving')}</div>
           ) : (
             <>
-              <div className="kv"><span>{creatorLabel('group', s.site, t('common.circle'))}</span><strong>{c?.circle || '—'}</strong></div>
-              <div className="kv"><span>{creatorLabel('artist', s.site, t('common.artist'))}</span><strong>{c?.artists.join(t('common.listSeparator')) || '—'}</strong></div>
+              <div className="kv">
+                <span>{creatorLabel('group', s.site, t('common.circle'))}</span>
+                <strong>{c?.circle || '—'}</strong>
+              </div>
+              <div className="kv">
+                <span>{creatorLabel('artist', s.site, t('common.artist'))}</span>
+                <strong>{c?.artists.join(t('common.listSeparator')) || '—'}</strong>
+              </div>
               <div className="kv small">
                 <span>{t('gallery.source')}</span>
                 <span>
@@ -211,7 +223,11 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
                 title={t('gallery.openSeries')}
                 onClick={() => {
                   const view = { mode: 'series' as const, id: inSeries.series.id }
-                  nav.go(isFileKey(galleryKey) ? { name: 'local', dir: localDirOfKey(galleryKey) ?? 0, view } : { name: 'bookmarks', site: workSite, view })
+                  nav.go(
+                    isFileKey(galleryKey)
+                      ? { name: 'local', dir: localDirOfKey(galleryKey) ?? 0, view }
+                      : { name: 'bookmarks', site: workSite, view }
+                  )
                 }}
               >
                 {inSeries.series.name}
@@ -264,13 +280,36 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
         </section>
       )}
       <dl className="meta">
-        {s.artists.length > 0 && (<><dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt><dd>{links('artist', s.artists)}</dd></>)}
-        {s.groups.length > 0 && (<><dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt><dd>{links('group', s.groups)}</dd></>)}
-        {s.parodies.length > 0 && (<><dt>{t('meta.parodies')}</dt><dd>{links('series', s.parodies)}</dd></>)}
-        {s.characters.length > 0 && (<><dt>{t('meta.characters')}</dt><dd>{links('character', s.characters)}</dd></>)}
-        <dt>{t('meta.language')}</dt><dd>{s.languageLocal || s.language || '—'}</dd>
-        <dt>{t('meta.pages')}</dt><dd>{s.pageCount}</dd>
-        <dt>{t('meta.date')}</dt><dd>{s.date.slice(0, 16)}</dd>
+        {s.artists.length > 0 && (
+          <>
+            <dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt>
+            <dd>{links('artist', s.artists)}</dd>
+          </>
+        )}
+        {s.groups.length > 0 && (
+          <>
+            <dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt>
+            <dd>{links('group', s.groups)}</dd>
+          </>
+        )}
+        {s.parodies.length > 0 && (
+          <>
+            <dt>{t('meta.parodies')}</dt>
+            <dd>{links('series', s.parodies)}</dd>
+          </>
+        )}
+        {s.characters.length > 0 && (
+          <>
+            <dt>{t('meta.characters')}</dt>
+            <dd>{links('character', s.characters)}</dd>
+          </>
+        )}
+        <dt>{t('meta.language')}</dt>
+        <dd>{s.languageLocal || s.language || '—'}</dd>
+        <dt>{t('meta.pages')}</dt>
+        <dd>{s.pageCount}</dd>
+        <dt>{t('meta.date')}</dt>
+        <dd>{s.date.slice(0, 16)}</dd>
         {statsOf(s).map(({ spec, value }) => (
           <Fragment key={spec.id}>
             <dt>{textOf(spec.label)}</dt>
@@ -280,7 +319,13 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
       </dl>
       <div className="tags">
         {s.tags.map((t) => (
-          <button key={t.ns + t.name} className="link tag" style={tagStyle(t.ns)} title={`${t.ns}:${t.name}`} onClick={() => search(tagToken(t.ns, t.name))}>
+          <button
+            key={t.ns + t.name}
+            className="link tag"
+            style={tagStyle(t.ns)}
+            title={`${t.ns}:${t.name}`}
+            onClick={() => search(tagToken(t.ns, t.name))}
+          >
             {tagLabel(t.ns, t.name)}
           </button>
         ))}

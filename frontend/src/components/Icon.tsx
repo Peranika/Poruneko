@@ -6,7 +6,7 @@ const PATHS: Record<string, string> = {
   forward: 'M9 18l6-6-6-6',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
   bookmark: 'M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z',
-  heart:'M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 5.6 5 5 0 0 1 21.2 11c-2.2 4.6-9.2 9-9.2 9z',
+  heart: 'M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 5.6 5 5 0 0 1 21.2 11c-2.2 4.6-9.2 9-9.2 9z',
   settings:
     'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
   download: 'M12 3v12M7 10l5 5 5-5M5 21h14',
@@ -25,7 +25,8 @@ const PATHS: Record<string, string> = {
   // a frame with a play mark (a video)
   video: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM10 9v6l5-3z',
   // a globe (a site from a site plugin)
-  globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3C9.5 5.6 8.2 8.6 8.2 12s1.3 6.4 3.8 9',
+  globe:
+    'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3C9.5 5.6 8.2 8.6 8.2 12s1.3 6.4 3.8 9',
   // back to the first page: a bar with an arrow pointing to it (flipped for right-to-left)
   toFirst: 'M6 5v14M18 6l-7 6 7 6',
   // a push pin (tilted with the class pin-off)
@@ -94,7 +95,6 @@ const CUT_ICONS: Record<
   string,
   { masked: string; maskedWidth?: number; plain: string | PlainPart[]; cut: string; cutWidth: number; cutFill?: boolean }
 > = {
-
   // the bookmark icon with |◀ ▶| across it; the bookmark's sides are cut where the arrows cross them (bookmark a page range).
   // The arrows are bolder than the bookmark, with filled heads, so they stand out
   bookmarkRange: {
@@ -116,7 +116,17 @@ const CUT_ICONS: Record<
   }
 }
 
-export function Icon({ name, size = 18, fill = false, className }: { name: keyof typeof PATHS | string; size?: number; fill?: boolean; className?: string }) {
+export function Icon({
+  name,
+  size = 18,
+  fill = false,
+  className
+}: {
+  name: keyof typeof PATHS | string
+  size?: number
+  fill?: boolean
+  className?: string
+}) {
   // useId gives ids like ":r0:"; keep only characters that are safe inside url(#...)
   const maskId = 'cut' + useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const cut = CUT_ICONS[name]
@@ -143,9 +153,7 @@ export function Icon({ name, size = 18, fill = false, className }: { name: keyof
           {typeof cut.plain === 'string' ? (
             <path d={cut.plain} fill="none" />
           ) : (
-            cut.plain.map((p) => (
-              <path key={p.d} d={p.d} strokeWidth={p.width} fill={p.fill ? 'currentColor' : 'none'} />
-            ))
+            cut.plain.map((p) => <path key={p.d} d={p.d} strokeWidth={p.width} fill={p.fill ? 'currentColor' : 'none'} />)
           )}
         </>
       ) : (

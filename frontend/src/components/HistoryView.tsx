@@ -49,7 +49,14 @@ export function HistoryView() {
   }, [entries, filter, bookmarks])
 
   // next / previous work on the gallery page follows the history order shown
-  const asList = (): ListResult => ({ items: shown.map((e) => e.summary), failed: [], total: shown.length, page: 1, perPage: Math.max(1, shown.length), hidden: 0 })
+  const asList = (): ListResult => ({
+    items: shown.map((e) => e.summary),
+    failed: [],
+    total: shown.length,
+    page: 1,
+    perPage: Math.max(1, shown.length),
+    hidden: 0
+  })
   const open = (e: HistoryEntry) => {
     const r = asList()
     nav.go({ name: 'gallery', key: e.key, summary: e.summary, from: listSource(`history:${filter}`, async () => r, 1, r, 'history') })

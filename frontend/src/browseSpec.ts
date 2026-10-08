@@ -26,8 +26,7 @@ export const specFilters = (spec: BrowseSpec | null | undefined, where: string):
   (spec?.filters ?? []).filter((f) => (f.in?.length ? f.in : ['browse']).includes(where))
 
 /** The filters on a screen (or the plugin's settings) of a site */
-export const filtersOn = (where: string, site?: string): FilterSpec[] =>
-  specFilters(siteInfo(site)?.browse, where)
+export const filtersOn = (where: string, site?: string): FilterSpec[] => specFilters(siteInfo(site)?.browse, where)
 
 /** The value of a site's filter used by default: the user's choice, or the plugin's default */
 export const savedValue = (f: FilterSpec, site?: string): string => saved[siteInfo(site)?.id ?? '']?.[f.id] ?? f.default ?? ''
@@ -63,7 +62,12 @@ const namesOf = (s: GallerySummary, ns: string): string[] =>
  * or for a name standing for another (a display name) the work's name of that kind. undefined when the name is
  * searched instead
  */
-export function viewLink(site: string | undefined, ns: string, name: string, work?: GallerySummary): { view: ViewSpec; query: string } | undefined {
+export function viewLink(
+  site: string | undefined,
+  ns: string,
+  name: string,
+  work?: GallerySummary
+): { view: ViewSpec; query: string } | undefined {
   const views = (site && siteInfo(site)?.browse?.views) || []
   const direct = views.find((v) => v.namespaces?.includes(ns))
   if (direct) return { view: direct, query: name }

@@ -145,7 +145,10 @@ export function TagList({
   const picked = selected.filter((s) => s !== UNTAGGED)
   const toggle = (tag: string) => onChange(picked.includes(tag) ? picked.filter((s) => s !== tag) : [...picked, tag])
   // also show selected tags that are no longer used, so they can be unselected
-  const shown: [string, number][] = [...tags, ...picked.filter((s) => !tags.some(([tag]) => tag === s)).map((s): [string, number] => [s, 0])]
+  const shown: [string, number][] = [
+    ...tags,
+    ...picked.filter((s) => !tags.some(([tag]) => tag === s)).map((s): [string, number] => [s, 0])
+  ]
   const scroll = usePaneScroll<HTMLUListElement>(scrollKey ?? '', !!scrollKey && shown.length > 0)
   return (
     <ul ref={scroll} className="group-list">
@@ -160,7 +163,12 @@ export function TagList({
       <li className="sep" />
       {shown.length === 0 && <li className="muted small">{t('tags.noTags')}</li>}
       {shown.map(([tag, n]) => (
-        <li key={tag} className={`tag-item ${picked.includes(tag) ? 'active' : ''}`} onClick={() => toggle(tag)} title={t('tags.filterTitle')}>
+        <li
+          key={tag}
+          className={`tag-item ${picked.includes(tag) ? 'active' : ''}`}
+          onClick={() => toggle(tag)}
+          title={t('tags.filterTitle')}
+        >
           <Icon name={picked.includes(tag) ? 'check' : 'tag'} size={13} />
           <span>{tag}</span>
           {n > 0 && (
@@ -209,7 +217,9 @@ export function WorkTagList({
   }
   const query = q.trim().toLowerCase()
   // selected tags stay visible even when the box narrows the list
-  const shown = tags.filter(([k]) => selected.includes(k) || !query || k.toLowerCase().includes(query) || label(k).toLowerCase().includes(query))
+  const shown = tags.filter(
+    ([k]) => selected.includes(k) || !query || k.toLowerCase().includes(query) || label(k).toLowerCase().includes(query)
+  )
   // narrowed by the box, the list is another one: it keeps its own position only while not narrowed
   const scroll = usePaneScroll<HTMLUListElement>(query ? '' : (scrollKey ?? ''), !query && !!scrollKey && shown.length > 0)
   return (
@@ -266,11 +276,13 @@ export function SeriesTagPopover({ members, hint, onClose }: { members: Bookmark
   const change = (next: string[]) => {
     const add = next.filter((tag) => !common.includes(tag))
     const remove = common.filter((tag) => !next.includes(tag))
-    api.updateTags(
-      members.map((b) => b.key),
-      add,
-      remove
-    ).catch((e) => toast(errorText(e)))
+    api
+      .updateTags(
+        members.map((b) => b.key),
+        add,
+        remove
+      )
+      .catch((e) => toast(errorText(e)))
   }
   return (
     <PopoverShell onClose={onClose}>

@@ -46,7 +46,7 @@ export const en: Dict = {
     titleSource: 'Title',
     manualSource: 'Manual',
     siteArtist: 'Artist',
-    siteGroup: 'Group',
+    siteGroup: 'Group'
   },
 
   meta: {
@@ -242,7 +242,8 @@ export const en: Dict = {
     searching: 'Searching…',
     search: 'Search candidates',
     webSearch: 'Search the web',
-    webSearchHint: 'Opens a Google search for the title or artist names in your browser. Enter the artist and group names you find in the fields above and save',
+    webSearchHint:
+      'Opens a Google search for the title or artist names in your browser. Enter the artist and group names you find in the fields above and save',
     siteFilter: 'Sites to search',
     siteNone: 'Any site',
     siteAll: 'All supported sites',
@@ -267,7 +268,8 @@ export const en: Dict = {
     excludeCollective: 'Hide artists only in anthologies',
     artistScope: 'Artists searched',
     allArtists: 'All artists',
-    excludeCollectiveTitle: 'Removes artists who appear only in bookmarks with many artists (anthologies, magazines) from this list and the search',
+    excludeCollectiveTitle:
+      'Removes artists who appear only in bookmarks with many artists (anthologies, magazines) from this list and the search',
     hideBookmarked: 'Hide bookmarked',
     searchInBrowse: 'Search this artist on the site',
     openInBrowse: 'Open on the site',
@@ -291,7 +293,8 @@ export const en: Dict = {
 
   viewHeader: {
     own: '{filter} for this user',
-    ownTitle: "This user's posts use this value instead of the common one in every list. It is kept as a share of the common value and follows it when it changes (100 set while the common value is 1000 becomes 1,000 once it is 10,000)",
+    ownTitle:
+      "This user's posts use this value instead of the common one in every list. It is kept as a share of the common value and follows it when it changes (100 set while the common value is 1000 becomes 1,000 once it is 10,000)",
     common: 'Common ({value})',
     ownBetween: '{n}+'
   },
@@ -318,7 +321,8 @@ export const en: Dict = {
     applyConfirm: 'Rename and move the downloaded cbz files to match the current format?',
     renamed: 'Renamed {n} files',
     title: 'File name format',
-    description: 'Each work is saved as one cbz (an uncompressed zip). {artist} and {group} are the creator info from DLsite etc. Use / to make folders',
+    description:
+      'Each work is saved as one cbz (an uncompressed zip). {artist} and {group} are the creator info from DLsite etc. Use / to make folders',
     preset: 'Presets',
     presetPlaceholder: 'Presets…',
     example: 'Example:',
@@ -567,9 +571,11 @@ export const en: Dict = {
     infiniteScrollHint: 'When off, shows one page at a time with page navigation at the bottom',
     viewer: 'Viewer',
     spreadForManga: 'Open manga in spreads',
-    spreadForMangaHint: 'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads instead',
+    spreadForMangaHint:
+      'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads instead',
     moire: 'Moire reduction',
-    moireHint: 'Smooths pages shown smaller than their size so that screentone does not turn into moire. Strong suppresses more but softens fine lines a little',
+    moireHint:
+      'Smooths pages shown smaller than their size so that screentone does not turn into moire. Strong suppresses more but softens fine lines a little',
     moireOff: 'Off',
     moireWeak: 'Weak',
     moireStrong: 'Strong',
@@ -584,7 +590,8 @@ export const en: Dict = {
     rangeThumbPage: 'First page of the range',
     rangeThumbSource: 'Cover of the source gallery',
     tempFiles: 'Temporary files (.parts)',
-    tempFilesHint: 'What to do with pages saved while viewing bookmarks that are not downloaded. Files of downloads in progress or paused are never deleted. Temporary files of works no longer bookmarked are always deleted at startup',
+    tempFilesHint:
+      'What to do with pages saved while viewing bookmarks that are not downloaded. Files of downloads in progress or paused are never deleted. Temporary files of works no longer bookmarked are always deleted at startup',
     tempFilesStartup: 'Delete at startup',
     tempFilesViewerClose: 'Delete when closing the viewer',
     tempFilesPack: 'Make a cbz when all pages are saved',
@@ -599,7 +606,8 @@ export const en: Dict = {
     loggedIn: 'Filled in the login for {name}',
     libraryDirChanged: 'Changed the save location',
     localDirs: 'Local folders',
-    localDirsHint: 'Each folder becomes a tab listing its cbz / zip files and the like (subfolders included). The files are only read, never changed. Click an icon to change it',
+    localDirsHint:
+      'Each folder becomes a tab listing its cbz / zip files and the like (subfolders included). The files are only read, never changed. Click an icon to change it',
     localDirsDialog: 'Choose a folder for a tab',
     localDirName: 'Tab name',
     localDirIcon: 'Tab icon',
@@ -616,15 +624,18 @@ export const en: Dict = {
     restoreRemovedTitle: 'Brings back every work taken out with "Remove from the library"',
     change: 'Change',
     metaSources: 'Sources of creator info',
-    metaSourcesHint: 'Searches the titles of bookmarked works to get artist and group names. Sources higher in the list take priority. If nothing is found, the work info is used for now. Only Japanese works (and works without a language) are looked up; translated works use site artist and group names as they are.',
+    metaSourcesHint:
+      'Searches the titles of bookmarked works to get artist and group names. Sources higher in the list take priority. If nothing is found, the work info is used for now. Only Japanese works (and works without a language) are looked up; translated works use site artist and group names as they are.',
     dlsite: 'DLsite (artists and groups)',
     fanza: 'FANZA Doujin (groups and artists)',
     preferred: ' preferred',
     makePreferred: 'Prefer',
     fallback: 'When not found',
-    fallbackHint: 'If the title search finds no artist or group, the enabled sources are tried from the top (pawchive searches by title, DuckDuckGo by site artist or group names). These match by name or title only, so they are marked "Needs review"; confirm them on the creator info screen.',
+    fallbackHint:
+      'If the title search finds no artist or group, the enabled sources are tried from the top (pawchive searches by title, DuckDuckGo by site artist or group names). These match by name or title only, so they are marked "Needs review"; confirm them on the creator info screen.',
     pawchiveHint: 'Searches an archive of Patreon, FANBOX and other posts by title and suggests the creator of a post with a similar title',
-    duckduckgoHint: 'Searches the web for the artist name and reads the creator name from result page titles (pixiv, X, FANBOX, etc.). DuckDuckGo may refuse frequent searches; then the next source is tried',
+    duckduckgoHint:
+      'Searches the web for the artist name and reads the creator name from result page titles (pixiv, X, FANBOX, etc.). DuckDuckGo may refuse frequent searches; then the next source is tried',
     plugins: 'Plugins',
     noPlugins: 'No plugins loaded',
     addPlugin: 'Add a plugin',
@@ -637,12 +648,15 @@ export const en: Dict = {
     pluginFormats: 'Susie archive plug-in ({formats})',
     pluginDefault: 'Default {filter}',
     pluginDefaultHint: 'Changing it on the site screen saves it here too',
-    pluginsHint: 'Plugins (.wasm) and Susie 64-bit archive plug-ins (.sph) in a "plugins" folder next to Poruneko.exe or in the data folder are loaded at the next start. A .wasm plugin can connect only to the hosts it lists, through the app. Susie plug-ins run directly inside the app, so add only ones you trust',
+    pluginsHint:
+      'Plugins (.wasm) and Susie 64-bit archive plug-ins (.sph) in a "plugins" folder next to Poruneko.exe or in the data folder are loaded at the next start. A .wasm plugin can connect only to the hosts it lists, through the app. Susie plug-ins run directly inside the app, so add only ones you trust',
     window: 'Window',
     rememberWindow: 'Remember the window position and size',
     rememberScreen: 'Open the screen from the last exit at the next start',
-    rememberScreenHint: 'Restores the open tab and list, or the open work (with the page). A shuffle play goes on in the same order. For a work opened from a site or Favorites list, next / previous work follows the bookmarks',
-    rememberWindowHint: 'Restores the position, size and maximized state on the next launch (opens at the default position if the monitor is gone)',
+    rememberScreenHint:
+      'Restores the open tab and list, or the open work (with the page). A shuffle play goes on in the same order. For a work opened from a site or Favorites list, next / previous work follows the bookmarks',
+    rememberWindowHint:
+      'Restores the position, size and maximized state on the next launch (opens at the default position if the monitor is gone)',
     keys: 'Keys',
     uiLanguage: 'Display language',
     uiLanguageHint: 'The screen reloads when changed',
@@ -723,13 +737,15 @@ export const en: Dict = {
     slideNextWorkShort: 'Continue to the next work',
     slideNextWork: 'Go on to the next work after the last page',
     slideAutoShort: 'Auto',
-    slideAuto: 'Adjust the time to each page (beta): busy pages (many lines and text) longer and sparse ones shorter (the set seconds are for a typical view; a page shown alone in spread mode gets about half)',
+    slideAuto:
+      'Adjust the time to each page (beta): busy pages (many lines and text) longer and sparse ones shorter (the set seconds are for a typical view; a page shown alone in spread mode gets about half)',
     timeLeft: 'Time left (click the chosen place again to turn it off)',
     timeLeftClockLabel: 'Clock',
     timeLeftEdgeLabel: 'Progress bar',
     timeLeftOff: 'Off',
     timeLeftReverse: 'Reverse',
-    timeLeftReverseTitle: 'Fill the progress bar from the other end (right to left, bottom to top); with "Shrink", it shrinks toward the other end',
+    timeLeftReverseTitle:
+      'Fill the progress bar from the other end (right to left, bottom to top); with "Shrink", it shrinks toward the other end',
     timeLeftShrink: 'Shrink',
     timeLeftShrinkTitle: 'Start the progress bar full and shrink it (what is left is the time left)',
     timeLeftClock: {
@@ -803,9 +819,11 @@ export const en: Dict = {
     enableHint: 'The first time, allow it if Windows asks about the firewall',
     failed: 'Could not start: {error}',
     urls: 'Addresses',
-    urlsHint: 'Open one in the browser of the device. Through Meshnet or Tailscale, use the one starting with 100. Adding it to the home screen opens it like an app',
+    urlsHint:
+      'Open one in the browser of the device. Through Meshnet or Tailscale, use the one starting with 100. Adding it to the home screen opens it like an app',
     sessions: 'Devices signed in: {names}',
-    deviceSettingsHint: 'The display, viewer and key settings are kept for each device, by the name it signed in with (this PC keeps its own)',
+    deviceSettingsHint:
+      'The display, viewer and key settings are kept for each device, by the name it signed in with (this PC keeps its own)',
     signOutAll: 'Sign out all',
     signedOut: 'All devices are signed out'
   },

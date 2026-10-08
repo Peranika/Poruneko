@@ -63,7 +63,8 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
   const isFile = isFileKey(b.key)
   const action = downloadAction(b)
   // a work in a local folder is taken out of the library instead of unbookmarked
-  const source: WorkSource = from ?? (isFile ? { kind: 'local', dir: localDirOfKey(b.key) ?? 0 } : { kind: 'bookmarks', site: siteOfBookmark(b) })
+  const source: WorkSource =
+    from ?? (isFile ? { kind: 'local', dir: localDirOfKey(b.key) ?? 0 } : { kind: 'bookmarks', site: siteOfBookmark(b) })
   const [tagOpen, setTagOpen] = useState(false)
   const closeTags = useCallback(() => setTagOpen(false), [])
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -112,7 +113,10 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
               <Icon name="edit" size={15} />
             </button>
           )}
-          <button title={inSeries ? t('bookmarkCard.seriesOf', { name: inSeries.series.name }) : t('bookmarkCard.addToSeries')} onClick={stop(() => setSeriesDialogKey(b.key))}>
+          <button
+            title={inSeries ? t('bookmarkCard.seriesOf', { name: inSeries.series.name }) : t('bookmarkCard.addToSeries')}
+            onClick={stop(() => setSeriesDialogKey(b.key))}
+          >
             <Icon name="book" size={15} />
           </button>
           {action && (
@@ -127,7 +131,11 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
             </button>
           )}
           {hasSavedFiles(b) && (
-            <button className="local-only" title={t('common.showFolder')} onClick={stop(() => void api.openFolder(b.key).catch((e) => toast(errorText(e))))}>
+            <button
+              className="local-only"
+              title={t('common.showFolder')}
+              onClick={stop(() => void api.openFolder(b.key).catch((e) => toast(errorText(e))))}
+            >
               <Icon name="folder" size={15} />
             </button>
           )}
@@ -136,7 +144,9 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
               title={t('bookmarkCard.deleteFiles')}
               onClick={stop(() => {
                 const list = targetBookmarks.filter(canDeleteFiles)
-                const ok = multi ? confirm(t('selection.deleteFilesConfirm', { n: list.length })) : confirm(DELETE_FILES_CONFIRM[isLocal ? 'range' : 'normal'])
+                const ok = multi
+                  ? confirm(t('selection.deleteFilesConfirm', { n: list.length }))
+                  : confirm(DELETE_FILES_CONFIRM[isLocal ? 'range' : 'normal'])
                 if (ok) for (const x of list) void api.deleteDownload(x.key).catch((e) => toast(errorText(e)))
               })}
             >
@@ -179,7 +189,9 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
         </div>
       </div>
       <div className="card-body">
-        <div className="title" title={bookmarkTitle(b)}>{bookmarkTitle(b)}</div>
+        <div className="title" title={bookmarkTitle(b)}>
+          {bookmarkTitle(b)}
+        </div>
         <div className="sub">
           {c.status === 'pending' ? (
             <span className="muted">{t('bookmarkCard.resolving')}</span>
@@ -231,7 +243,9 @@ let selectionAnchor = ''
 
 /** Keys of the bookmark cards shown on the Bookmarks screen, in screen order (series cards are left out) */
 const shownCardKeys = (): string[] =>
-  [...document.querySelectorAll<HTMLElement>('.bm-main [data-card]')].map((el) => el.dataset.card ?? '').filter((k) => k && !k.startsWith('series:'))
+  [...document.querySelectorAll<HTMLElement>('.bm-main [data-card]')]
+    .map((el) => el.dataset.card ?? '')
+    .filter((k) => k && !k.startsWith('series:'))
 
 /** Add the cards from the anchor to key (in screen order) to the selection */
 function selectRange(selected: string[], key: string): string[] {
@@ -299,7 +313,12 @@ function StatusIcons({ b, seriesNo }: { b: Bookmark; seriesNo?: number }) {
   // a work in a local folder is always on disk
   const isFile = isFileKey(b.key)
   if (d.status === 'done') {
-    if (!isFile) icons.push(<span key="dl" className="status-icon ok" title={t('download.doneTitle')}><Icon name="check" size={15} /></span>)
+    if (!isFile)
+      icons.push(
+        <span key="dl" className="status-icon ok" title={t('download.doneTitle')}>
+          <Icon name="check" size={15} />
+        </span>
+      )
   } else if (d.status === 'downloading' || d.status === 'queued')
     icons.push(
       <span key="dl" className="status-icon progress" title={d.status === 'queued' ? t('download.queued') : t('download.downloading')}>
@@ -308,20 +327,37 @@ function StatusIcons({ b, seriesNo }: { b: Bookmark; seriesNo?: number }) {
       </span>
     )
   else if (d.status === 'error')
-    icons.push(<span key="dl" className="status-icon err" title={`${t('download.error')}: ${downloadErrorText(d)}`}><Icon name="alert" size={15} /></span>)
-  else if (d.status === 'paused') icons.push(<span key="dl" className="status-icon" title={t('download.paused')}><Icon name="pause" size={15} /></span>)
+    icons.push(
+      <span key="dl" className="status-icon err" title={`${t('download.error')}: ${downloadErrorText(d)}`}>
+        <Icon name="alert" size={15} />
+      </span>
+    )
+  else if (d.status === 'paused')
+    icons.push(
+      <span key="dl" className="status-icon" title={t('download.paused')}>
+        <Icon name="pause" size={15} />
+      </span>
+    )
   if (isLocalKey(b.key))
     icons.push(
       d.status === 'none' ? (
-        <span key="range" className="status-icon local" title={t('download.linkTitle')}><Icon name="link" size={15} /></span>
+        <span key="range" className="status-icon local" title={t('download.linkTitle')}>
+          <Icon name="link" size={15} />
+        </span>
       ) : (
-        <span key="range" className="status-icon local" title={t('download.localTitle')}><Icon name="bookmarkRange" size={15} /></span>
+        <span key="range" className="status-icon local" title={t('download.localTitle')}>
+          <Icon name="bookmarkRange" size={15} />
+        </span>
       )
     )
   // the series view shows the number at the top left, so not here
   if (inSeries && seriesNo === undefined)
     icons.push(
-      <span key="series" className="status-icon series" title={t('bookmarkCard.seriesChip', { name: inSeries.series.name, no: inSeries.index + 1 })}>
+      <span
+        key="series"
+        className="status-icon series"
+        title={t('bookmarkCard.seriesChip', { name: inSeries.series.name, no: inSeries.index + 1 })}
+      >
         <Icon name="book" size={15} />
       </span>
     )
@@ -338,7 +374,17 @@ function StatusIcons({ b, seriesNo }: { b: Bookmark; seriesNo?: number }) {
  * Circle and artist names at the bottom of a card: clicking opens the plugin's screen for the name if there is one
  * (a user's screen), otherwise that group of the bookmarks
  */
-function NameLink({ name, by, work, onShowGroup }: { name: string; by: GroupBy; work: GallerySummary; onShowGroup?(by: GroupBy, group: string): void }) {
+function NameLink({
+  name,
+  by,
+  work,
+  onShowGroup
+}: {
+  name: string
+  by: GroupBy
+  work: GallerySummary
+  onShowGroup?(by: GroupBy, group: string): void
+}) {
   const { nav } = useApp()
   const site = work.site
   const ns = by === 'circle' ? 'group' : 'artist'
@@ -350,7 +396,10 @@ function NameLink({ name, by, work, onShowGroup }: { name: string; by: GroupBy; 
       title={
         view
           ? t('bookmarks.openNameIn', { view: textOf(view.view.label), name })
-          : t('bookmarks.showName', { kind: by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist')), name })
+          : t('bookmarks.showName', {
+              kind: by === 'circle' ? creatorLabel('group', site, t('common.circle')) : creatorLabel('artist', site, t('common.artist')),
+              name
+            })
       }
       onClick={(e) => {
         e.stopPropagation()

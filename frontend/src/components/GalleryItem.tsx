@@ -29,7 +29,12 @@ export function BookmarkButton({ s, large = false }: { s: GallerySummary; large?
 export function DownloadBadge({ b }: { b?: Bookmark }) {
   if (!b) return null
   const d = b.download
-  if (d.status === 'done') return <span className="chip ok" title={t('download.doneTitle')}><Icon name="check" size={12} /> {t('download.done')}</span>
+  if (d.status === 'done')
+    return (
+      <span className="chip ok" title={t('download.doneTitle')}>
+        <Icon name="check" size={12} /> {t('download.done')}
+      </span>
+    )
   if (d.status === 'downloading' || d.status === 'queued')
     return (
       <span className="chip progress" title={t('download.downloading')}>
@@ -37,7 +42,12 @@ export function DownloadBadge({ b }: { b?: Bookmark }) {
         <span className="label">{d.status === 'queued' ? t('download.queued') : `${d.done}/${d.total}`}</span>
       </span>
     )
-  if (d.status === 'error') return <span className="chip err" title={downloadErrorText(d)}>{t('download.error')}</span>
+  if (d.status === 'error')
+    return (
+      <span className="chip err" title={downloadErrorText(d)}>
+        {t('download.error')}
+      </span>
+    )
   if (d.status === 'paused') return <span className="chip">{t('download.paused')}</span>
   return null
 }
@@ -60,9 +70,13 @@ export function Stats({ s }: { s: GallerySummary }) {
 /** Kind of page range bookmark (local if a cbz was made, otherwise a link to the source gallery) */
 export function RangeChip({ saved }: { saved: boolean }) {
   return saved ? (
-    <span className="chip local" title={t('download.localTitle')}>{t('download.local')}</span>
+    <span className="chip local" title={t('download.localTitle')}>
+      {t('download.local')}
+    </span>
   ) : (
-    <span className="chip local" title={t('download.linkTitle')}>{t('download.link')}</span>
+    <span className="chip local" title={t('download.linkTitle')}>
+      {t('download.link')}
+    </span>
   )
 }
 
@@ -111,10 +125,19 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
           {badge && <div className="thumb-tl">{badge}</div>}
         </div>
         <div className="card-body">
-          <div className="title" title={b ? bookmarkTitle(b) : displayTitle(s)}>{b ? bookmarkTitle(b) : displayTitle(s)}</div>
+          <div className="title" title={b ? bookmarkTitle(b) : displayTitle(s)}>
+            {b ? bookmarkTitle(b) : displayTitle(s)}
+          </div>
           <div className="sub">
             {subView ? (
-              <button className="link name-link" title={t('bookmarks.openNameIn', { view: textOf(subView.view.label), name: sub })} onClick={(e) => { e.stopPropagation(); nav.go(nameRoute(subNs, sub, s.site, s)) }}>
+              <button
+                className="link name-link"
+                title={t('bookmarks.openNameIn', { view: textOf(subView.view.label), name: sub })}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  nav.go(nameRoute(subNs, sub, s.site, s))
+                }}
+              >
                 {sub}
               </button>
             ) : (
@@ -139,7 +162,9 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
       <div className="row-body">
         <div className="row-head">
           {badge}
-          <span className="type" style={typeStyle(s.type)}>{optionLabel('type', s.type)}</span>
+          <span className="type" style={typeStyle(s.type)}>
+            {optionLabel('type', s.type)}
+          </span>
           <h3 className="title">{b ? bookmarkTitle(b) : displayTitle(s)}</h3>
           <BookmarkButton s={s} />
         </div>
@@ -161,14 +186,32 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
               </dd>
             </>
           )}
-          {s.artists.length > 0 && (<><dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt><dd>{s.artists.map((a) => link('artist', a))}</dd></>)}
-          {s.groups.length > 0 && (<><dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt><dd>{s.groups.map((g) => link('group', g))}</dd></>)}
-          {s.parodies.length > 0 && (<><dt>{t('meta.parodies')}</dt><dd>{s.parodies.map((p) => link('series', p))}</dd></>)}
-          {s.characters.length > 0 && (<><dt>{t('meta.characters')}</dt><dd>{s.characters.slice(0, 6).map((c) => link('character', c))}</dd></>)}
+          {s.artists.length > 0 && (
+            <>
+              <dt>{creatorLabel('artist', s.site, t('meta.artists'))}</dt>
+              <dd>{s.artists.map((a) => link('artist', a))}</dd>
+            </>
+          )}
+          {s.groups.length > 0 && (
+            <>
+              <dt>{creatorLabel('group', s.site, t('meta.groups'))}</dt>
+              <dd>{s.groups.map((g) => link('group', g))}</dd>
+            </>
+          )}
+          {s.parodies.length > 0 && (
+            <>
+              <dt>{t('meta.parodies')}</dt>
+              <dd>{s.parodies.map((p) => link('series', p))}</dd>
+            </>
+          )}
+          {s.characters.length > 0 && (
+            <>
+              <dt>{t('meta.characters')}</dt>
+              <dd>{s.characters.slice(0, 6).map((c) => link('character', c))}</dd>
+            </>
+          )}
         </dl>
-        <div className="tags">
-          {[...femaleMale, ...plain].slice(0, 18).map((t) => link(t.ns, t.name, 'tag'))}
-        </div>
+        <div className="tags">{[...femaleMale, ...plain].slice(0, 18).map((t) => link(t.ns, t.name, 'tag'))}</div>
         <div className="row-foot">
           <span>{s.languageLocal || s.language || '—'}</span>
           <span>{t('common.pages', { n: s.pageCount })}</span>

@@ -37,8 +37,7 @@ export function useGlobalNavigation(settings: Settings | null, back: () => void,
       const combo = comboFromMouse(e)
       if (combo && keymap().has(combo)) e.preventDefault()
       if (!latest.current.settings?.mouseGestures) return
-      const gesture =
-        e.button === LEFT && e.buttons & 2 ? 'back' : e.button === RIGHT && e.buttons & 1 ? 'forward' : null
+      const gesture = e.button === LEFT && e.buttons & 2 ? 'back' : e.button === RIGHT && e.buttons & 1 ? 'forward' : null
       if (!gesture) return
       e.preventDefault()
       e.stopPropagation()

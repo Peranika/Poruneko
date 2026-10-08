@@ -90,7 +90,17 @@ const toBase64 = (canvas: HTMLCanvasElement): Promise<string> =>
  * Dialog to choose the page and area for the thumbnail.
  * Drag the frame to move it and its corners to resize it. The aspect ratio matches the card by default; unchecking frees it.
  */
-export function ThumbEditor({ b, pageCount, initialPage, onClose }: { b: Bookmark; pageCount: number; initialPage: number; onClose(): void }) {
+export function ThumbEditor({
+  b,
+  pageCount,
+  initialPage,
+  onClose
+}: {
+  b: Bookmark
+  pageCount: number
+  initialPage: number
+  onClose(): void
+}) {
   const { toast } = useApp()
   const spec = b.customThumb
   const [page, setPage] = useState(spec?.page ?? Math.min(Math.max(0, initialPage), Math.max(0, pageCount - 1)))
@@ -221,8 +231,20 @@ export function ThumbEditor({ b, pageCount, initialPage, onClose }: { b: Bookmar
       }
     >
       <div className="thumb-editor-stage" style={{ width: viewW, height: viewH }} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
-        <img ref={img} key={page} src={imageUrl(b.key, page)} alt="" draggable={false} onLoad={onLoad} style={{ width: viewW, height: viewH }} />
-        {!nat && <div className="center"><div className="spinner" /></div>}
+        <img
+          ref={img}
+          key={page}
+          src={imageUrl(b.key, page)}
+          alt=""
+          draggable={false}
+          onLoad={onLoad}
+          style={{ width: viewW, height: viewH }}
+        />
+        {!nat && (
+          <div className="center">
+            <div className="spinner" />
+          </div>
+        )}
         {rect && nat && (
           <div
             className="thumb-crop"
@@ -240,13 +262,7 @@ export function ThumbEditor({ b, pageCount, initialPage, onClose }: { b: Bookmar
           <button className="icon-btn small" onClick={() => go(page - 1)} disabled={page === 0} title={t('thumb.prevPage')}>
             <Icon name="back" size={14} />
           </button>
-          <input
-            type="number"
-            min={1}
-            max={pageCount}
-            value={page + 1}
-            onChange={(e) => go((Number(e.target.value) || 1) - 1)}
-          />
+          <input type="number" min={1} max={pageCount} value={page + 1} onChange={(e) => go((Number(e.target.value) || 1) - 1)} />
           <span className="muted small">/ {pageCount}</span>
           <button className="icon-btn small" onClick={() => go(page + 1)} disabled={page >= pageCount - 1} title={t('thumb.nextPage')}>
             <Icon name="forward" size={14} />

@@ -94,7 +94,10 @@ export function prepareMoire(url: string, box: { w: number; h: number }, level: 
     const [k, old] = cache.entries().next().value!
     cache.delete(k)
     // the pages showing it have copied it into their own canvas, so it can be freed
-    void old.promise.then((b) => b?.close(), () => {})
+    void old.promise.then(
+      (b) => b?.close(),
+      () => {}
+    )
   }
   return entry.promise
 }

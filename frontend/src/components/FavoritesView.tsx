@@ -19,12 +19,25 @@ import { usePaneScroll } from '../usePaneScroll'
 import { FiltersToggle, ViewTop } from './ViewTop'
 
 /** Favorites: lists works by the artists (and groups) of bookmarked works, newest first */
-export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }: { site?: string; page: number; tag: string; scope?: string }) {
+export function FavoritesView({
+  site = '',
+  page,
+  tag,
+  scope: chosenScope = ''
+}: {
+  site?: string
+  page: number
+  tag: string
+  scope?: string
+}) {
   const { nav, settings, bookmarks } = useApp()
   const [includeGroups, setIncludeGroups] = useState(() => loadString('fav.groups', '0') === '1')
   // the site plugin's filters for Favorites (kept separately from Browse's; Browse's defaults to start with)
   const filtersKey = `fav.${site}.filters`
-  const [filters, setFilters] = useState<Record<string, string>>(() => ({ ...filterDefaults('favorites', site), ...loadJSON<Record<string, string>>(filtersKey, {}) }))
+  const [filters, setFilters] = useState<Record<string, string>>(() => ({
+    ...filterDefaults('favorites', site),
+    ...loadJSON<Record<string, string>>(filtersKey, {})
+  }))
   const specs = filtersOn('favorites', site)
   const [hideBookmarked, setHideBookmarked] = useState(() => loadString('fav.hide', '0') === '1')
   // page count filter (kept separately from Browse's, for each site)
@@ -45,7 +58,16 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
   )
   // the plugin gets the name chosen below, or the parent chosen above (a list) when none is. On a scoped site the
   // first parent is chosen at first, which the plugin takes "" for
-  const cond = { site, filters, tag: tag || chosenScope, includeGroups, hideBookmarked, excludeCollective, minPages: pages.minPages, maxPages: pages.maxPages }
+  const cond = {
+    site,
+    filters,
+    tag: tag || chosenScope,
+    includeGroups,
+    hideBookmarked,
+    excludeCollective,
+    minPages: pages.minPages,
+    maxPages: pages.maxPages
+  }
   // reload from the start when the query (other than the page number) or the Favorites targets change
   const resetKey = JSON.stringify(cond) + '|' + favSig
   const [res, setRes] = useState<FavoritesResult | null>(null)
@@ -107,94 +129,98 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
 
   return (
     <div className="view favorites" style={thumbSizeStyle(thumbSize)}>
-      {(!own || ownNames) && <ResizablePanel className="group-panel" storageKey="fav.panelWidth" defaultWidth={250} min={150} max={520}>
-        <div className="list-title-row">{parents.length ? parents[0].note || t('favorites.narrow') : own ? t('favorites.narrow') : t('favorites.artistScope')}</div>
-        {/* which artists are searched, in the box above the list it narrows (like a site's lists above their members).
+      {(!own || ownNames) && (
+        <ResizablePanel className="group-panel" storageKey="fav.panelWidth" defaultWidth={250} min={150} max={520}>
+          <div className="list-title-row">
+            {parents.length ? parents[0].note || t('favorites.narrow') : own ? t('favorites.narrow') : t('favorites.artistScope')}
+          </div>
+          {/* which artists are searched, in the box above the list it narrows (like a site's lists above their members).
             A setting kept across visits, not part of the screen's history */}
-        {!own && (
-          <>
-            <ul className="group-list parent-list">
-              {[false, true].map((on) => (
-                <li
-                  key={String(on)}
-                  className={`special ${excludeCollective === on ? 'active' : ''}`}
-                  title={on ? t('favorites.excludeCollectiveTitle') : undefined}
-                  onClick={() => toggle('fav.noCollective', on, setExcludeCollective)}
-                >
-                  <span>{on ? t('favorites.excludeCollective') : t('favorites.allArtists')}</span>
+          {!own && (
+            <>
+              <ul className="group-list parent-list">
+                {[false, true].map((on) => (
+                  <li
+                    key={String(on)}
+                    className={`special ${excludeCollective === on ? 'active' : ''}`}
+                    title={on ? t('favorites.excludeCollectiveTitle') : undefined}
+                    onClick={() => toggle('fav.noCollective', on, setExcludeCollective)}
+                  >
+                    <span>{on ? t('favorites.excludeCollective') : t('favorites.allArtists')}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="list-title-row">{t('favorites.artists')}</div>
+            </>
+          )}
+          {/* the parents (lists): choosing one narrows the works and the names below to it */}
+          {parents.length > 0 && (
+            <ul ref={parentScroll} className="group-list parent-list">
+              {!scoped && (
+                <>
+                  <li className={`special ${scope === '' ? 'active' : ''}`} onClick={() => go({ scope: '' })}>
+                    <span>{t('common.all')}</span>
+                    <em>{parents.length}</em>
+                  </li>
+                  <li className="sep" />
+                </>
+              )}
+              {parents.map((n) => (
+                <li key={n.tag} className={scope === n.tag ? 'active' : ''} onClick={() => go({ scope: n.tag })} title={n.name}>
+                  <span className="group-name">
+                    {n.name}
+                    {n.note && <small className="group-alt">{n.note}</small>}
+                  </span>
+                  {n.bookmarks > 0 && <em>{n.bookmarks}</em>}
                 </li>
               ))}
             </ul>
-            <div className="list-title-row">{t('favorites.artists')}</div>
-          </>
-        )}
-        {/* the parents (lists): choosing one narrows the works and the names below to it */}
-        {parents.length > 0 && (
-          <ul ref={parentScroll} className="group-list parent-list">
-            {!scoped && (
-              <>
-                <li className={`special ${scope === '' ? 'active' : ''}`} onClick={() => go({ scope: '' })}>
-                  <span>{t('common.all')}</span>
-                  <em>{parents.length}</em>
-                </li>
-                <li className="sep" />
-              </>
+          )}
+          {parents.length > 0 && <div className="list-title-row">{names.find((n) => n.tag === scope)?.name ?? t('favorites.members')}</div>}
+          <ul ref={namesScroll} className="group-list">
+            <li className={`special ${tag === '' ? 'active' : ''}`} onClick={() => go({ tag: '' })}>
+              <span>{t('common.all')}</span>
+              <em>{namesLoaded ? shownNames.length : '…'}</em>
+            </li>
+            <li className="sep" />
+            {namesLoaded && shownNames.length === 0 && (
+              <li className="muted small">{own ? t('favorites.noOwnNames') : t('favorites.noArtists')}</li>
             )}
-            {parents.map((n) => (
-              <li key={n.tag} className={scope === n.tag ? 'active' : ''} onClick={() => go({ scope: n.tag })} title={n.name}>
+            {shownNames.map((n) => (
+              <li
+                key={n.tag}
+                className={tag === n.tag ? 'active' : ''}
+                onClick={() => go({ tag: n.tag })}
+                title={own ? n.name : t('favorites.bookmarkCount', { n: n.bookmarks })}
+              >
                 <span className="group-name">
                   {n.name}
-                  {n.note && <small className="group-alt">{n.note}</small>}
+                  {n.note ? (
+                    <small className="group-alt">{n.note}</small>
+                  ) : (
+                    n.ns === 'group' && <small className="group-alt">{SITE_NAME_LABEL.group}</small>
+                  )}
                 </span>
-                {n.bookmarks > 0 && <em>{n.bookmarks}</em>}
+                {(!own || n.bookmarks > 0) && <em>{n.bookmarks}</em>}
+                {/* the plugin's screen for the name (a user's screen), apart from narrowing to it */}
+                {n.open && viewOf(site, n.open.view) && (
+                  <button
+                    className="icon-btn small name-open"
+                    title={t('bookmarks.openNameIn', { view: textOf(viewOf(site, n.open.view)!.label), name: n.name })}
+                    aria-label={t('bookmarks.openNameIn', { view: textOf(viewOf(site, n.open.view)!.label), name: n.name })}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      nav.go({ name: 'browse', q: { ...defaultQuery(site, n.open!.view), query: n.open!.query } })
+                    }}
+                  >
+                    <Icon name={viewOf(site, n.open.view)!.icon || 'user'} size={14} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
-        )}
-        {parents.length > 0 && (
-          <div className="list-title-row">{names.find((n) => n.tag === scope)?.name ?? t('favorites.members')}</div>
-        )}
-        <ul ref={namesScroll} className="group-list">
-          <li className={`special ${tag === '' ? 'active' : ''}`} onClick={() => go({ tag: '' })}>
-            <span>{t('common.all')}</span>
-            <em>{namesLoaded ? shownNames.length : '…'}</em>
-          </li>
-          <li className="sep" />
-          {namesLoaded && shownNames.length === 0 && <li className="muted small">{own ? t('favorites.noOwnNames') : t('favorites.noArtists')}</li>}
-          {shownNames.map((n) => (
-            <li
-              key={n.tag}
-              className={tag === n.tag ? 'active' : ''}
-              onClick={() => go({ tag: n.tag })}
-              title={own ? n.name : t('favorites.bookmarkCount', { n: n.bookmarks })}
-            >
-              <span className="group-name">
-                {n.name}
-                {n.note ? (
-                  <small className="group-alt">{n.note}</small>
-                ) : (
-                  n.ns === 'group' && <small className="group-alt">{SITE_NAME_LABEL.group}</small>
-                )}
-              </span>
-              {(!own || n.bookmarks > 0) && <em>{n.bookmarks}</em>}
-              {/* the plugin's screen for the name (a user's screen), apart from narrowing to it */}
-              {n.open && viewOf(site, n.open.view) && (
-                <button
-                  className="icon-btn small name-open"
-                  title={t('bookmarks.openNameIn', { view: textOf(viewOf(site, n.open.view)!.label), name: n.name })}
-                  aria-label={t('bookmarks.openNameIn', { view: textOf(viewOf(site, n.open.view)!.label), name: n.name })}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    nav.go({ name: 'browse', q: { ...defaultQuery(site, n.open!.view), query: n.open!.query } })
-                  }}
-                >
-                  <Icon name={viewOf(site, n.open.view)!.icon || 'user'} size={14} />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </ResizablePanel>}
+        </ResizablePanel>
+      )}
 
       <section className="bm-main">
         <ViewTop>
@@ -205,13 +231,24 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
               <MultiFilter key={f.id} f={f} site={site} value={filters[f.id] ?? ''} onChange={(v) => setFilter(f.id, v)} />
             ))}
           <div className="toolbar">
-            <h2>{current ? current.name : siteInfo(site)?.browse?.favoritesLabel ? textOf(siteInfo(site)!.browse!.favoritesLabel) : t('favorites.newest')}</h2>
+            <h2>
+              {current
+                ? current.name
+                : siteInfo(site)?.browse?.favoritesLabel
+                  ? textOf(siteInfo(site)!.browse!.favoritesLabel)
+                  : t('favorites.newest')}
+            </h2>
             <FiltersToggle />
             <div className="spacer" />
             {specs
               .filter((f) => !f.multi)
               .map((f) => (
-                <select key={f.id} value={filters[f.id] ?? f.default} title={textOf(f.label)} onChange={(e) => setFilter(f.id, e.target.value)}>
+                <select
+                  key={f.id}
+                  value={filters[f.id] ?? f.default}
+                  title={textOf(f.label)}
+                  onChange={(e) => setFilter(f.id, e.target.value)}
+                >
                   {f.options.map((o) => (
                     <option key={o.value} value={o.value}>
                       {textOf(o.label)}
@@ -227,10 +264,12 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
                 if (page !== 1) go({ page: 1 })
               }}
             />
-            {!own && <label className="check">
-              <input type="checkbox" checked={includeGroups} onChange={(e) => toggle('fav.groups', e.target.checked, setIncludeGroups)} />
-              {t('favorites.includeGroups')}
-            </label>}
+            {!own && (
+              <label className="check">
+                <input type="checkbox" checked={includeGroups} onChange={(e) => toggle('fav.groups', e.target.checked, setIncludeGroups)} />
+                {t('favorites.includeGroups')}
+              </label>
+            )}
             <label className="check">
               <input type="checkbox" checked={hideBookmarked} onChange={(e) => toggle('fav.hide', e.target.checked, setHideBookmarked)} />
               {t('favorites.hideBookmarked')}

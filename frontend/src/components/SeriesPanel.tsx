@@ -18,7 +18,17 @@ import { ViewTop } from './ViewTop'
 
 /** List of series and a field to create a new one */
 /** scrollKey: where the list keeps its scroll position across moves (none if absent) */
-export function SeriesList({ list, selected, onSelect, scrollKey }: { list: Series[]; selected: string; onSelect(id: string): void; scrollKey?: string }) {
+export function SeriesList({
+  list,
+  selected,
+  onSelect,
+  scrollKey
+}: {
+  list: Series[]
+  selected: string
+  onSelect(id: string): void
+  scrollKey?: string
+}) {
   const { toast } = useApp()
   const scroll = usePaneScroll<HTMLUListElement>(scrollKey ?? '', !!scrollKey && list.length > 0)
   const [name, setName] = useState('')
@@ -130,7 +140,12 @@ export function SeriesCard({
         {(circle || artists.length > 0) && (
           <div className="sub">
             {circle}
-            {artists.length > 0 && (circle ? <span className="muted"> {artists.join(t('common.listSeparator'))}</span> : artists.join(t('common.listSeparator')))}
+            {artists.length > 0 &&
+              (circle ? (
+                <span className="muted"> {artists.join(t('common.listSeparator'))}</span>
+              ) : (
+                artists.join(t('common.listSeparator'))
+              ))}
           </div>
         )}
         {tags.length > 0 && (
@@ -228,7 +243,12 @@ export function SeriesMain({
           {toolbarExtra}
           {members.length > 1 &&
             AUTO_SORTS.map(([by, label]) => (
-              <button key={by} className="btn small ghost" title={t('series.sortTitle', { sort: label })} onClick={() => reorder(autoSortedKeys(members, by))}>
+              <button
+                key={by}
+                className="btn small ghost"
+                title={t('series.sortTitle', { sort: label })}
+                onClick={() => reorder(autoSortedKeys(members, by))}
+              >
                 {t('series.sortButton', { sort: label })}
               </button>
             ))}

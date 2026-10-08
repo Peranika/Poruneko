@@ -437,7 +437,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dismissUpdate
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hist, settings, updateSettings, sites, setPluginSetting, refreshSettings, localIcons, reloadLocalIcons, bookmarks, toggleBookmark, toast, toasts, editCreatorKey, series, seriesOf, seriesDialogKey, selected, update, checkUpdate, dismissUpdate]
+    [
+      hist,
+      settings,
+      updateSettings,
+      sites,
+      setPluginSetting,
+      refreshSettings,
+      localIcons,
+      reloadLocalIcons,
+      bookmarks,
+      toggleBookmark,
+      toast,
+      toasts,
+      editCreatorKey,
+      series,
+      seriesOf,
+      seriesDialogKey,
+      selected,
+      update,
+      checkUpdate,
+      dismissUpdate
+    ]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

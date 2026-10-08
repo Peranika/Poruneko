@@ -85,7 +85,13 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
   // a list without a known total (a timeline) ends at the first page saying there is no more
   const unknownTotal = !!anyResult && anyResult.total < 0
   const endPage = unknownTotal ? Object.entries(results).find(([, r]) => !r.more)?.[0] : undefined
-  const totalPages = !anyResult ? undefined : unknownTotal ? (endPage ? Number(endPage) : undefined) : Math.max(1, Math.ceil(anyResult.total / perPage))
+  const totalPages = !anyResult
+    ? undefined
+    : unknownTotal
+      ? endPage
+        ? Number(endPage)
+        : undefined
+      : Math.max(1, Math.ceil(anyResult.total / perPage))
 
   const loadPage = useCallback(
     (p: number) => {
@@ -237,7 +243,9 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
         <div className="result-info">
           <span>
             {!unknownTotal && t('common.items', { n: anyResult.total.toLocaleString() })}
-            {!unknownTotal && totalPages && t('paged.pageOf', { page: infinite ? t('paged.showing', { page: current }) : startPage, total: totalPages })}
+            {!unknownTotal &&
+              totalPages &&
+              t('paged.pageOf', { page: infinite ? t('paged.showing', { page: current }) : startPage, total: totalPages })}
           </span>
           {!unknownTotal && infinite && totalPages && totalPages > 1 && <JumpInput pages={totalPages} onJump={onJump} />}
         </div>
@@ -282,13 +290,11 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
             </div>
           )}
         </div>
+      ) : // without a known total the pages go one at a time
+      unknownTotal ? (
+        <Pagination page={startPage} pages={results[startPage]?.more ? startPage + 1 : startPage} onPage={onJump} />
       ) : (
-        // without a known total the pages go one at a time
-        (unknownTotal ? (
-          <Pagination page={startPage} pages={results[startPage]?.more ? startPage + 1 : startPage} onPage={onJump} />
-        ) : (
-          totalPages && <Pagination page={startPage} pages={totalPages} onPage={onJump} />
-        ))
+        totalPages && <Pagination page={startPage} pages={totalPages} onPage={onJump} />
       )}
     </div>
   )
@@ -366,9 +372,7 @@ function PageSection({
           ) : (
             <>
               {result.failed.length > 0 && <div className="result-info muted">{t('paged.failedItems', { n: result.failed.length })}</div>}
-              {allHidden && !showDivider && (
-                <div className="page-filtered muted small">{t('paged.allHidden', { n: result.hidden })}</div>
-              )}
+              {allHidden && !showDivider && <div className="page-filtered muted small">{t('paged.allHidden', { n: result.hidden })}</div>}
               {result.items.length > 0 && <div className={`results ${layout}`}>{result.items.map((s) => renderItem(s, page, result))}</div>}
             </>
           )}

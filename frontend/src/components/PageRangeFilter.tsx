@@ -42,7 +42,11 @@ export function PageRangeFilter({ value, onChange }: { value: PageRange; onChang
       <span className="sep">{t('common.rangeSeparator')}</span>
       {input(max, setMax, t('pageRange.max'))}
       {active && (
-        <button className="icon-btn small" onClick={() => onChange({ minPages: undefined, maxPages: undefined })} title={t('pageRange.clear')}>
+        <button
+          className="icon-btn small"
+          onClick={() => onChange({ minPages: undefined, maxPages: undefined })}
+          title={t('pageRange.clear')}
+        >
           <Icon name="close" size={12} />
         </button>
       )}

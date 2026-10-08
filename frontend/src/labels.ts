@@ -4,8 +4,7 @@ import { language, t } from './i18n'
 import type { Bookmark, GallerySummary } from './types'
 
 /** The title to display: the Japanese title first, or the site's title with the English UI */
-export const displayTitle = (s: GallerySummary): string =>
-  language() === 'en' ? s.title || s.japaneseTitle : s.japaneseTitle || s.title
+export const displayTitle = (s: GallerySummary): string => (language() === 'en' ? s.title || s.japaneseTitle : s.japaneseTitle || s.title)
 
 /** The title of a bookmark: the user's title if set, otherwise the work's display title */
 export const bookmarkTitle = (b: Bookmark): string => b.customTitle || displayTitle(b.summary)
@@ -42,7 +41,6 @@ export const splitNames = (s: string): string[] =>
     .split(/[,、]/)
     .map((x) => x.trim())
     .filter(Boolean)
-
 
 /** Japanese names of work tags (English name -> Japanese), supplied by a site plugin; none in the base app */
 let TAG_NAMES_JA: Record<string, string> = {}

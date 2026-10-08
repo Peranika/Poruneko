@@ -41,7 +41,11 @@ export function ResizablePanel({ storageKey, defaultWidth, min, max, className =
         >
           {children}
         </aside>
-        <button className="panel-toggle drawer-toggle" onClick={() => setOpen(!open)} title={open ? t('list.closePanel') : t('list.openPanel')}>
+        <button
+          className="panel-toggle drawer-toggle"
+          onClick={() => setOpen(!open)}
+          title={open ? t('list.closePanel') : t('list.openPanel')}
+        >
           <Icon name={open ? 'back' : 'forward'} size={14} />
         </button>
       </>

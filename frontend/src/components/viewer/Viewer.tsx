@@ -66,7 +66,22 @@ export interface RangeControl {
 let slideshowCarriedAt = 0
 
 export function Viewer(props: Props) {
-  const { galleryKey, pages: allPages, settings, onSettings, immersive, onToggleImmersive, onPageChange, extra, keymap, onToggleBookmark, onNextWork, onPrevWork, onClose, range } = props
+  const {
+    galleryKey,
+    pages: allPages,
+    settings,
+    onSettings,
+    immersive,
+    onToggleImmersive,
+    onPageChange,
+    extra,
+    keymap,
+    onToggleBookmark,
+    onNextWork,
+    onPrevWork,
+    onClose,
+    range
+  } = props
   // a work whose pages are an animation's frames (a ugoira) is one page here, played as a whole
   const animation = useMemo(() => isAnimation(allPages), [allPages])
   const pages = useMemo(() => (animation ? allPages.slice(0, 1) : allPages), [animation, allPages])
@@ -115,7 +130,10 @@ export function Viewer(props: Props) {
     else if (videoEls.current.get(i)) videoEls.current.delete(i)
     setVideoTick((n) => n + 1)
   }, [])
-  const spreadIdx = Math.max(0, spreads.findIndex((s) => s.includes(page)))
+  const spreadIdx = Math.max(
+    0,
+    spreads.findIndex((s) => s.includes(page))
+  )
   const current = spreads[spreadIdx] ?? [0]
 
   const updateSingles = useCallback(
@@ -130,8 +148,10 @@ export function Viewer(props: Props) {
     if (mode !== 'spread') return
     const next = new Set(singles)
     const first = current[0]
-    if (current.length === 2) next.add(first) // show the earlier page alone and shift the following pairs by one
-    else if (next.has(first)) next.delete(first) // undo the shift
+    if (current.length === 2)
+      next.add(first) // show the earlier page alone and shift the following pairs by one
+    else if (next.has(first))
+      next.delete(first) // undo the shift
     else if (first + 1 < pages.length) next.add(first + 1) // shift by one after a single page (cover or landscape)
     updateSingles(next)
   }, [mode, singles, current, pages.length, updateSingles])
@@ -143,7 +163,10 @@ export function Viewer(props: Props) {
   const step = useCallback(
     (dir: 1 | -1) =>
       setPage((p) => {
-        const i = Math.max(0, spreads.findIndex((s) => s.includes(p)))
+        const i = Math.max(
+          0,
+          spreads.findIndex((s) => s.includes(p))
+        )
         const s = spreads[Math.min(spreads.length - 1, Math.max(0, i + dir))]
         return s ? s[0] : p
       }),
@@ -232,7 +255,20 @@ export function Viewer(props: Props) {
       window.clearTimeout(id)
       videoEnded.current = videoLength.current = null
     }
-  }, [slideshow, page, mode, pages.length, spreads, next, settings.slideSeconds, settings.slideNextWork, settings.slideAuto, onNextWork, galleryKey, videos])
+  }, [
+    slideshow,
+    page,
+    mode,
+    pages.length,
+    spreads,
+    next,
+    settings.slideSeconds,
+    settings.slideNextWork,
+    settings.slideAuto,
+    onNextWork,
+    galleryKey,
+    videos
+  ])
 
   // ---------------------------------------------------------------- Scroll mode
   const scroll = useMemo(() => scrollLayout(pages, fit, size), [pages, fit, size.w, size.h]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -379,7 +415,28 @@ export function Viewer(props: Props) {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('mouseup', onMouse)
     }
-  }, [keymap, mode, rtl, next, prev, jumpTo, pages.length, immersive, onToggleImmersive, onToggleBookmark, onNextWork, onPrevWork, onClose, showThumbs, onSettings, shiftHere, picking, range, changeSlideSeconds, toggleSlideshow])
+  }, [
+    keymap,
+    mode,
+    rtl,
+    next,
+    prev,
+    jumpTo,
+    pages.length,
+    immersive,
+    onToggleImmersive,
+    onToggleBookmark,
+    onNextWork,
+    onPrevWork,
+    onClose,
+    showThumbs,
+    onSettings,
+    shiftHere,
+    picking,
+    range,
+    changeSlideSeconds,
+    toggleSlideshow
+  ])
 
   // in fit-to-screen views the wheel turns pages
   const onWheel = useWheelPaging(mode !== 'scroll' && fit === 'contain', step)
@@ -503,7 +560,8 @@ export function Viewer(props: Props) {
       for (const d of MOIRE_AROUND) {
         const sp = spreads[at + d]
         if (!sp) continue
-        for (const it of layoutSpread(pages, sp, fit, size, rtl)) if (!videos.has(it.index)) void prepareMoire(imageUrl(galleryKey, it.index), it, moire, true).catch(() => {})
+        for (const it of layoutSpread(pages, sp, fit, size, rtl))
+          if (!videos.has(it.index)) void prepareMoire(imageUrl(galleryKey, it.index), it, moire, true).catch(() => {})
       }
     }, 0)
     return () => window.clearTimeout(timer)
@@ -599,12 +657,14 @@ export function Viewer(props: Props) {
       {/* the page range bookmark panel sits to the right of the view so it does not cover pages */}
       <div className="viewer-body">
         {/* the slideshow's time left as a bar along the chosen edge */}
-        {slideshow && settings.slideEdge && <SlideProgress
+        {slideshow && settings.slideEdge && (
+          <SlideProgress
             edge={settings.slideEdge}
             reverse={!!settings.slideEdgeReverse}
             shrink={!!settings.slideEdgeShrink}
             timer={slideTimer}
-          />}
+          />
+        )}
         <div
           ref={stageRef}
           className={`stage mode-${mode} fit-${fit} ${picking ? 'range-mode' : ''}`}
@@ -623,17 +683,11 @@ export function Viewer(props: Props) {
                   const w = fit === 'contain' ? Math.round(h * ratioOf(p)) : scroll.width
                   // load only around the visible position
                   const near = Math.abs(i - page) <= 4
-                  return near ? (
-                    renderPage(i, w, h)
-                  ) : (
-                    <div key={i} className="page placeholder" style={{ width: w, height: h }} />
-                  )
+                  return near ? renderPage(i, w, h) : <div key={i} className="page placeholder" style={{ width: w, height: h }} />
                 })}
               </div>
             ) : (
-              <div className="spread">
-                {layout.map((it) => renderPage(it.index, it.w, it.h))}
-              </div>
+              <div className="spread">{layout.map((it) => renderPage(it.index, it.w, it.h))}</div>
             ))}
         </div>
         {range?.active && range.panel}

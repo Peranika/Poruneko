@@ -29,7 +29,11 @@ function AccentPicker({ value, onChange }: { value: string; onChange(v: string):
           onClick={() => onChange(c)}
         />
       ))}
-      <label className={`accent-swatch custom ${custom ? 'on' : ''}`} title={t('settings.accentCustom')} style={custom ? { background: value } : undefined}>
+      <label
+        className={`accent-swatch custom ${custom ? 'on' : ''}`}
+        title={t('settings.accentCustom')}
+        style={custom ? { background: value } : undefined}
+      >
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
       </label>
     </span>
@@ -63,9 +67,7 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
       </div>
       {added.length > 0 && (
         <div className="row-setting local-only">
-          <span>
-            {t('settings.pluginsAdded', { names: added.map((p) => `${p.name} ${p.version}`).join(', ') })}
-          </span>
+          <span>{t('settings.pluginsAdded', { names: added.map((p) => `${p.name} ${p.version}`).join(', ') })}</span>
           <button className="btn" onClick={() => void api.restartApp().catch((e) => toast(errorText(e)))}>
             {t('settings.restart')}
           </button>
@@ -82,9 +84,7 @@ function PluginList({ list }: { list: PluginInfo[] | null }) {
           ) : (
             <span className="muted">{t('settings.noPlugins')}</span>
           )}
-          <small className="muted">
-            {t('settings.pluginsHint')}
-          </small>
+          <small className="muted">{t('settings.pluginsHint')}</small>
         </span>
       </div>
     </section>
@@ -243,7 +243,12 @@ function PluginTextSetting({ value, secret, onChange }: { value: string; secret:
         onKeyDown={(e) => e.key === 'Enter' && commit()}
       />
       {secret && (
-        <button type="button" className="icon-btn small" title={shown ? t('settings.hideSecret') : t('settings.showSecret')} onClick={() => setShown(!shown)}>
+        <button
+          type="button"
+          className="icon-btn small"
+          title={shown ? t('settings.hideSecret') : t('settings.showSecret')}
+          onClick={() => setShown(!shown)}
+        >
           <Icon name="eye" size={14} />
         </button>
       )}
@@ -325,13 +330,21 @@ export function SettingsView() {
         <div className="settings-layout">
           <nav className="settings-nav">
             {SECTIONS.map(([id, label]) => (
-              <button key={id} className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'local-only' : ''} ${id === 'gestures' ? 'touch-only' : ''}`} onClick={() => goTo(id)}>
+              <button
+                key={id}
+                className={`${currentSection === id ? 'active' : ''} ${id === 'window' || id === 'keys' || id === 'remote' ? 'local-only' : ''} ${id === 'gestures' ? 'touch-only' : ''}`}
+                onClick={() => goTo(id)}
+              >
                 {label()}
               </button>
             ))}
             {sites.length > 0 && <div className="settings-nav-sep">{t('settings.sites')}</div>}
             {sites.map((site) => (
-              <button key={site.id} className={currentSection === `site-${site.id}` ? 'active' : ''} onClick={() => goTo(`site-${site.id}`)}>
+              <button
+                key={site.id}
+                className={currentSection === `site-${site.id}` ? 'active' : ''}
+                onClick={() => goTo(`site-${site.id}`)}
+              >
                 <span className="site-head-icon">{site.icon ? <ImageIcon url={site.icon} /> : <Icon name="globe" size={16} />}</span>
                 {site.name}
               </button>
@@ -375,7 +388,10 @@ export function SettingsView() {
                   {t('settings.siteScreens')}
                   <small className="muted">{t('settings.siteScreensHint')}</small>
                 </span>
-                <select value={s.siteScreens ?? ''} onChange={(e) => updateSettings({ siteScreens: e.target.value as Settings['siteScreens'] })}>
+                <select
+                  value={s.siteScreens ?? ''}
+                  onChange={(e) => updateSettings({ siteScreens: e.target.value as Settings['siteScreens'] })}
+                >
                   <option value="">{t('settings.siteScreensList')}</option>
                   <option value="grid">{t('settings.siteScreensGrid')}</option>
                 </select>
@@ -385,11 +401,18 @@ export function SettingsView() {
                   {t('settings.siteScreensOpen')}
                   <small className="muted">{t('settings.siteScreensOpenHint')}</small>
                 </span>
-                <input type="checkbox" checked={!!s.siteScreensOpen} onChange={(e) => updateSettings({ siteScreensOpen: e.target.checked })} />
+                <input
+                  type="checkbox"
+                  checked={!!s.siteScreensOpen}
+                  onChange={(e) => updateSettings({ siteScreensOpen: e.target.checked })}
+                />
               </label>
               <div className="row-setting">
                 <span>{t('settings.accent')}</span>
-                <AccentPicker value={s.accent || DEFAULT_ACCENT} onChange={(accent) => updateSettings({ accent: accent === DEFAULT_ACCENT ? '' : accent })} />
+                <AccentPicker
+                  value={s.accent || DEFAULT_ACCENT}
+                  onChange={(accent) => updateSettings({ accent: accent === DEFAULT_ACCENT ? '' : accent })}
+                />
               </div>
             </section>
 
@@ -433,7 +456,10 @@ export function SettingsView() {
                   {t('settings.moire')}
                   <small className="muted">{t('settings.moireHint')}</small>
                 </span>
-                <select value={s.viewer.moire ?? ''} onChange={(e) => updateSettings({ viewer: { moire: e.target.value } as ViewerSettings })}>
+                <select
+                  value={s.viewer.moire ?? ''}
+                  onChange={(e) => updateSettings({ viewer: { moire: e.target.value } as ViewerSettings })}
+                >
                   <option value="">{t('settings.moireOff')}</option>
                   <option value="weak">{t('settings.moireWeak')}</option>
                   <option value="strong">{t('settings.moireStrong')}</option>
@@ -474,7 +500,10 @@ export function SettingsView() {
                   {t('settings.rangeThumb')}
                   <small className="muted">{t('settings.rangeThumbHint')}</small>
                 </span>
-                <select value={s.rangeThumb ?? 'page'} onChange={(e) => updateSettings({ rangeThumb: e.target.value as 'page' | 'source' })}>
+                <select
+                  value={s.rangeThumb ?? 'page'}
+                  onChange={(e) => updateSettings({ rangeThumb: e.target.value as 'page' | 'source' })}
+                >
                   <option value="page">{t('settings.rangeThumbPage')}</option>
                   <option value="source">{t('settings.rangeThumbSource')}</option>
                 </select>
@@ -484,7 +513,10 @@ export function SettingsView() {
                   {t('settings.tempFiles')}
                   <small className="muted">{t('settings.tempFilesHint')}</small>
                 </span>
-                <select value={s.tempFiles ?? 'startup'} onChange={(e) => updateSettings({ tempFiles: e.target.value as Settings['tempFiles'] })}>
+                <select
+                  value={s.tempFiles ?? 'startup'}
+                  onChange={(e) => updateSettings({ tempFiles: e.target.value as Settings['tempFiles'] })}
+                >
                   <option value="startup">{t('settings.tempFilesStartup')}</option>
                   <option value="viewerClose">{t('settings.tempFilesViewerClose')}</option>
                   <option value="pack">{t('settings.tempFilesPack')}</option>
@@ -647,7 +679,12 @@ function LocalDirs() {
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               />
               <code title={d.path}>{d.path}</code>
-              <button className="icon-btn small" disabled={i === 0} title={t('settings.localDirUp')} onClick={() => void run(() => api.moveLocalDir(d.id, -1))}>
+              <button
+                className="icon-btn small"
+                disabled={i === 0}
+                title={t('settings.localDirUp')}
+                onClick={() => void run(() => api.moveLocalDir(d.id, -1))}
+              >
                 <Icon name="back" size={14} className="rot90" />
               </button>
               <button
@@ -670,12 +707,20 @@ function LocalDirs() {
                   </button>
                 ))}
                 {localIcons.map((f) => (
-                  <button key={f.name} className={d.icon === 'file:' + f.name ? 'on' : ''} title={f.name} onClick={() => setIcon(d, 'file:' + f.name)}>
+                  <button
+                    key={f.name}
+                    className={d.icon === 'file:' + f.name ? 'on' : ''}
+                    title={f.name}
+                    onClick={() => setIcon(d, 'file:' + f.name)}
+                  >
                     <ImageIcon url={f.url} />
                   </button>
                 ))}
                 <span className="icon-picker-actions">
-                  <button className="btn ghost small local-only" onClick={() => void api.openIconsFolder().catch((e) => toast(errorText(e)))}>
+                  <button
+                    className="btn ghost small local-only"
+                    onClick={() => void api.openIconsFolder().catch((e) => toast(errorText(e)))}
+                  >
                     <Icon name="folder" size={14} /> {t('settings.iconsFolder')}
                   </button>
                   <button className="btn ghost small" onClick={reloadLocalIcons} title={t('settings.iconsReloadTitle')}>
@@ -703,4 +748,3 @@ function LocalDirs() {
     </section>
   )
 }
-
