@@ -152,7 +152,11 @@ func (a *App) ViewAction(siteID model.SiteID, view, query, action string) (model
 	}
 	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
 	defer cancel()
-	return v.ViewAction(ctx, view, query, action)
+	msg, err := v.ViewAction(ctx, view, query, action)
+	if err != nil {
+		log.Printf("[site] %s: %s on %q (%s): %v", siteID, action, query, view, err)
+	}
+	return msg, err
 }
 
 // OpenAttachment opens an attachment of a work (a file that is not a page) in the browser, from where its site
