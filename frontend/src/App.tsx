@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
+import { androidPage, isRemote } from './backend'
 import { errorText, t } from './i18n'
 import { BookmarksView } from './components/BookmarksView'
 import { BrowseView } from './components/BrowseView'
@@ -27,33 +28,60 @@ export default function App() {
 
   useGlobalNavigation(settings, nav.back, nav.forward)
 
-  // the Android back button (MainActivity calls window.poruneko.back): first what Esc closes (a dialog, the
-  // viewer's full screen) and a work's info, then back. false when there is nothing to go back to (the app goes to the background)
+  // back as the device's back button does it: first what Esc closes (a dialog, the viewer's full screen) and a work's
+  // info, then back. false when there is nothing to go back to
   const backState = useRef({ nav, immersive })
   backState.current = { nav, immersive }
+  const deviceBack = (): boolean => {
+    const { nav, immersive } = backState.current
+    if (immersive || document.querySelector('.modal-backdrop')) {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      return true
+    }
+    // a work's info over its pages closes back to the pages
+    const infoToggle = document.querySelector<HTMLElement>('.view.gallery:not(.panel-closed) .panel-toggle')
+    if (infoToggle) {
+      infoToggle.click()
+      return true
+    }
+    if (!nav.canBack) return false
+    nav.back()
+    return true
+  }
+  // the Android app's back button (MainActivity calls window.poruneko.back; with nothing to go back to, the app goes
+  // to the background)
   useEffect(() => {
     const w = window as unknown as { poruneko?: { back(): boolean } }
-    w.poruneko = {
-      back: () => {
-        const { nav, immersive } = backState.current
-        if (immersive || document.querySelector('.modal-backdrop')) {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-          return true
-        }
-        // a work's info over its pages closes back to the pages
-        const infoToggle = document.querySelector<HTMLElement>('.view.gallery:not(.panel-closed) .panel-toggle')
-        if (infoToggle) {
-          infoToggle.click()
-          return true
-        }
-        if (!nav.canBack) return false
-        nav.back()
-        return true
-      }
-    }
+    w.poruneko = { back: deviceBack }
     return () => {
       delete w.poruneko
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // the back of a browser of remote access (a phone's back button, an iPad's swipe from the edge): it takes off a
+  // guard entry of the browser's history, goes back like the Android app's button, and the guard is put back. With
+  // nothing to go back to in the app, the browser goes back (leaving the app)
+  useEffect(() => {
+    if (!isRemote() || androidPage()) return
+    let guarded = false
+    const guard = () => {
+      if (guarded) return
+      history.pushState({ poruneko: 'guard' }, '')
+      guarded = true
+    }
+    const onPop = () => {
+      guarded = false
+      if (deviceBack()) guard()
+      else history.back()
+    }
+    // put on the first touch: a browser skips the entries a page adds before the user acts on it
+    window.addEventListener('pointerdown', guard)
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('pointerdown', guard)
+      window.removeEventListener('popstate', onPop)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const r = nav.route

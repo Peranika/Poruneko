@@ -129,7 +129,8 @@ held upright. On a touch screen (`<html data-touch>`, `useTouch`) the viewer tur
 middle of the page shows its bar, the buttons that hovering brings out are always shown, the bars above a list
 (`ViewTop`) lie over it and slide away while it scrolls down (the list starts below them, so they cover nothing at
 its top and it does not move), their filters can be folded away, and there is no title bar (back is at the head of the tabs, or the Android app's back
-button). Gestures with more fingers (`gestures.ts`: taps with two or three fingers, swipes with two) run actions bound in
+button). The browser's own back (a phone's back button, an iPad's swipe from the edge) goes back in the app the same
+way: it takes off a guard entry of the browser's history, which is then put back. Gestures with more fingers (`gestures.ts`: taps with two or three fingers, swipes with two) run actions bound in
 the settings, in the viewer (the key actions, closing and maximizing it) and elsewhere (back and forward); they are
 each device's own settings. To work on it in a browser, run `wails dev` and open `http://127.0.0.1:34115` with the browser's device
 emulation (a phone's size and touch).
