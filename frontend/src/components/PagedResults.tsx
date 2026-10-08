@@ -17,6 +17,8 @@ const KEEP_MARGIN = '2500px 0px'
 const LOAD_AHEAD = '0px 0px 1500px 0px'
 /** How far to scroll on at the bottom of the list before the next page loads (wheel distance in px) */
 const PULL_TO_LOAD = 600
+/** The same with a finger pulling the list up past its end (px the finger moves) */
+const PULL_TO_LOAD_TOUCH = 160
 
 interface SavedState {
   key: string
@@ -159,28 +161,55 @@ export function PagedResults<R extends ListResult>(props: Props<R>) {
     setLast(last + 1)
     loadPage(last + 1)
   }, [canLoadNext, last, loadPage])
-  // how far the wheel has gone on at the bottom (0 to 1), shown as a bar
+  // how far the wheel (or a finger) has gone on at the bottom (0 to 1), shown as a bar
   const [pull, setPull] = useState(0)
   useEffect(() => {
     const el = scroller.current
     if (!infinite || loadMore !== 'bottom' || !el) return
     let pulled = 0
-    const onWheel = (e: WheelEvent) => {
+    const reset = () => {
+      if (pulled) setPull((pulled = 0))
+    }
+    // a step on past the bottom: the next page loads once the steps reach need
+    const onPast = (delta: number, need: number) => {
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4
-      if (!atBottom || e.deltaY <= 0 || !canLoadNext) {
-        if (pulled) setPull((pulled = 0))
-        return
-      }
-      pulled += e.deltaY
-      if (pulled >= PULL_TO_LOAD) {
+      if (!atBottom || delta <= 0 || !canLoadNext) return reset()
+      pulled += delta
+      if (pulled >= need) {
         setPull((pulled = 0))
         loadNext()
       } else {
-        setPull(pulled / PULL_TO_LOAD)
+        setPull(pulled / need)
       }
     }
+    const onWheel = (e: WheelEvent) => onPast(e.deltaY, PULL_TO_LOAD)
+    // a finger pulling the list up past its end; let go before it is far enough, the pull goes back
+    let lastY: number | null = null
+    const onTouchStart = (e: TouchEvent) => {
+      lastY = e.touches.length === 1 ? e.touches[0].clientY : null
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      if (lastY === null || e.touches.length !== 1) return
+      const y = e.touches[0].clientY
+      onPast(lastY - y, PULL_TO_LOAD_TOUCH)
+      lastY = y
+    }
+    const onTouchEnd = () => {
+      lastY = null
+      reset()
+    }
     el.addEventListener('wheel', onWheel, { passive: true })
-    return () => el.removeEventListener('wheel', onWheel)
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
   }, [infinite, loadMore, canLoadNext, loadNext, scroller])
 
   // prepend the previous page
