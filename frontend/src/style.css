@@ -1272,13 +1272,20 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 :root[data-touch] .bm-card .select-btn, :root[data-touch] .group-list li .name-open, :root[data-touch] .info-cover.editable .thumb-change,
 :root[data-touch] .editable-title .icon-btn, :root[data-touch] .history-item .history-remove, :root[data-touch] .sidebar .add-tab { opacity: 1; }
 :root[data-touch] .group-list li.tag-item .tag-rename { display: inline-flex; }
-/* the bars above a list go away while it scrolls down (useCollapseOnScroll) */
-:root[data-touch] .titlebar, :root[data-touch] .toolbar:has(+ .scroll) {
-  max-height: 60vh; transition: max-height 0.2s, padding 0.2s, border-width 0.2s, opacity 0.2s;
+/* the bars above a list (ViewTop) */
+.view-top { flex-shrink: 0; }
+.filters-toggle { flex-shrink: 0; }
+/* on a touch screen they lie over the list, which starts below them, and slide away while it scrolls down
+   (useCollapseOnScroll): the list does not move */
+:root[data-touch] :has(> .view-top) { position: relative; }
+:root[data-touch] .view-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20; background: var(--bg); transition: transform 0.2s;
 }
-:root[data-touch] .app.bars-hidden .titlebar, :root[data-touch] .app.bars-hidden .toolbar:has(+ .scroll) {
-  max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom-width: 0; overflow: hidden; opacity: 0;
-}
+:root[data-touch] .app.bars-hidden .view-top { transform: translateY(-100%); }
+:root[data-touch] .view-top + .scroll { padding-top: var(--top-h, 0px); scroll-padding-top: var(--top-h, 0px); }
+/* folded: only the search (or the title) and the buttons beside it stay */
+:root[data-touch] .view-top.folded > :not(.toolbar),
+:root[data-touch] .view-top.folded .toolbar > :not(.searchbar, .view-input, h2, .filters-toggle) { display: none; }
 /* a touch device using the computer's screen has no window to move or title to show: the title bar goes, and back
    is a button at the head of the tabs (the Android app's own back button goes back) */
 .sidebar-back { display: none !important; }

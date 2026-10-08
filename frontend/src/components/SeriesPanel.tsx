@@ -12,6 +12,7 @@ import type { Bookmark, Series } from '../types'
 import { BookmarkCard } from './BookmarkCard'
 import { Icon } from './Icon'
 import { SeriesTagPopover } from './TagEditor'
+import { ViewTop } from './ViewTop'
 
 // Series view of the Bookmarks screen (the list on the left and the works of the selected series)
 
@@ -217,26 +218,28 @@ export function SeriesMain({
 
   return (
     <>
-      <div className="toolbar">
-        <h2>
-          <Icon name="book" size={16} className="series-icon" /> {series.name}
-        </h2>
-        <span className="muted">{t('common.items', { n: members.length })}</span>
-        <div className="spacer" />
-        {toolbarExtra}
-        {members.length > 1 &&
-          AUTO_SORTS.map(([by, label]) => (
-            <button key={by} className="btn small ghost" title={t('series.sortTitle', { sort: label })} onClick={() => reorder(autoSortedKeys(members, by))}>
-              {t('series.sortButton', { sort: label })}
-            </button>
-          ))}
-        <button className="icon-btn small" title={t('series.rename')} onClick={() => void rename()}>
-          <Icon name="edit" size={15} />
-        </button>
-        <button className="icon-btn small" title={t('series.delete')} onClick={() => void remove()}>
-          <Icon name="trash" size={15} />
-        </button>
-      </div>
+      <ViewTop>
+        <div className="toolbar">
+          <h2>
+            <Icon name="book" size={16} className="series-icon" /> {series.name}
+          </h2>
+          <span className="muted">{t('common.items', { n: members.length })}</span>
+          <div className="spacer" />
+          {toolbarExtra}
+          {members.length > 1 &&
+            AUTO_SORTS.map(([by, label]) => (
+              <button key={by} className="btn small ghost" title={t('series.sortTitle', { sort: label })} onClick={() => reorder(autoSortedKeys(members, by))}>
+                {t('series.sortButton', { sort: label })}
+              </button>
+            ))}
+          <button className="icon-btn small" title={t('series.rename')} onClick={() => void rename()}>
+            <Icon name="edit" size={15} />
+          </button>
+          <button className="icon-btn small" title={t('series.delete')} onClick={() => void remove()}>
+            <Icon name="trash" size={15} />
+          </button>
+        </div>
+      </ViewTop>
       <div className="scroll" ref={scroller}>
         {members.length === 0 ? (
           <div className="center muted">

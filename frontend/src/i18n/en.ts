@@ -763,6 +763,10 @@ export const en: Dict = {
     resetButton: 'Reset to cover'
   },
 
+  viewTop: {
+    fold: 'Hide the filters',
+    unfold: 'Show the filters'
+  },
   gestures: {
     title: 'Finger gestures',
     hint: 'Binds actions to taps with two or three fingers and swipes with two (a move that changes the distance between the fingers is a pinch, not a gesture). Many Android phones take a three-finger swipe down as a screenshot, and an iPad uses three-finger gestures for copy and paste',

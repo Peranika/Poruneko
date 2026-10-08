@@ -41,6 +41,7 @@ import { ThumbSizeSlider, thumbSizeStyle, useThumbSize } from './ListControls'
 import { ResizablePanel, useLabelsOverflow } from './ResizablePanel'
 import { SeriesCard, SeriesList, SeriesMain } from './SeriesPanel'
 import { WorkTagList, TagList } from './TagEditor'
+import { FiltersToggle, ViewTop } from './ViewTop'
 
 /**
  * The Bookmarks screen of a site, and the screen of a local folder's tab, which works the same way.
@@ -363,75 +364,78 @@ export function BookmarksView({ view, scope = 'bookmarks', dir, site }: { view?:
           <SeriesMain series={currentSeries} onShowGroup={showGroup} onShowTag={showTag} toolbarExtra={thumbSlider} />
         ) : (
           <>
-            <div className="toolbar">
-              <h2>
-                {searching ? (
-                  t('bookmarks.searchResults', { query: filter.trim() })
-                ) : pane === 'tags' ? (
-                  tags.length ? tags.map((x) => (x === UNTAGGED ? t('tags.untagged') : x)).join(' + ') : t('bookmarkList.special.all')
-                ) : (
-                  <GroupName k={group} localTab={localTab} />
-                )}
-              </h2>
-              <span className="muted">{t('common.items', { n: selected.length })}</span>
-              <div className="spacer" />
-              {/* read the local folders again (new archives become works, gone ones leave) */}
-              {scope === 'local' && (
-                <button
-                  className="btn small"
-                  onClick={() =>
-                    void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
-                  }
-                  title={t('library.rescanTitle')}
-                >
-                  <Icon name="refresh" size={14} /> {t('library.rescan')}
-                </button>
-              )}
-              {fromUrl && (
-                <button className="btn small" onClick={() => void addFromUrl()} title={t('bookmarks.fromUrlTitle')}>
-                  <Icon name="link" size={14} /> {t('bookmarks.fromUrl')}
-                </button>
-              )}
-              {/* shuffle play; hovering shows its option */}
-              <div className="shuffle-ctl">
-                <button className="btn small" onClick={() => void playShuffled()} disabled={!selected.length} title={t('bookmarks.shuffleTitle')}>
-                  <Icon name="shuffle" size={14} /> {t('bookmarks.shuffle')}
-                  {avoidRecent && (
-                    <span className="shuffle-mark" title={t('bookmarks.avoidRecent')}>
-                      <Icon name="historyOff" size={16} />
-                    </span>
+            <ViewTop>
+              <div className="toolbar">
+                <h2>
+                  {searching ? (
+                    t('bookmarks.searchResults', { query: filter.trim() })
+                  ) : pane === 'tags' ? (
+                    tags.length ? tags.map((x) => (x === UNTAGGED ? t('tags.untagged') : x)).join(' + ') : t('bookmarkList.special.all')
+                  ) : (
+                    <GroupName k={group} localTab={localTab} />
                   )}
-                </button>
-                <div className="shuffle-pop">
-                  <label className="check" title={t('bookmarks.avoidRecentTitle')}>
-                    <input
-                      type="checkbox"
-                      checked={avoidRecent}
-                      onChange={(e) => {
-                        setAvoidRecent(e.target.checked)
-                        saveString('bm.shuffleAvoidRecent', e.target.checked ? '1' : '0')
-                      }}
-                    />
-                    {t('bookmarks.avoidRecent')}
-                  </label>
+                </h2>
+                <FiltersToggle />
+                <span className="muted">{t('common.items', { n: selected.length })}</span>
+                <div className="spacer" />
+                {/* read the local folders again (new archives become works, gone ones leave) */}
+                {scope === 'local' && (
+                  <button
+                    className="btn small"
+                    onClick={() =>
+                      void api.scanLibrary().then((n) => toast(n ? t('library.added', { n }) : t('library.noNew')))
+                    }
+                    title={t('library.rescanTitle')}
+                  >
+                    <Icon name="refresh" size={14} /> {t('library.rescan')}
+                  </button>
+                )}
+                {fromUrl && (
+                  <button className="btn small" onClick={() => void addFromUrl()} title={t('bookmarks.fromUrlTitle')}>
+                    <Icon name="link" size={14} /> {t('bookmarks.fromUrl')}
+                  </button>
+                )}
+                {/* shuffle play; hovering shows its option */}
+                <div className="shuffle-ctl">
+                  <button className="btn small" onClick={() => void playShuffled()} disabled={!selected.length} title={t('bookmarks.shuffleTitle')}>
+                    <Icon name="shuffle" size={14} /> {t('bookmarks.shuffle')}
+                    {avoidRecent && (
+                      <span className="shuffle-mark" title={t('bookmarks.avoidRecent')}>
+                        <Icon name="historyOff" size={16} />
+                      </span>
+                    )}
+                  </button>
+                  <div className="shuffle-pop">
+                    <label className="check" title={t('bookmarks.avoidRecentTitle')}>
+                      <input
+                        type="checkbox"
+                        checked={avoidRecent}
+                        onChange={(e) => {
+                          setAvoidRecent(e.target.checked)
+                          saveString('bm.shuffleAvoidRecent', e.target.checked ? '1' : '0')
+                        }}
+                      />
+                      {t('bookmarks.avoidRecent')}
+                    </label>
+                  </div>
                 </div>
+                {thumbSlider}
+                <select
+                  value={sort}
+                  onChange={(e) => {
+                    const v = e.target.value as BookmarkSort
+                    setSort(v)
+                    savePrefs({ sort: v }, space)
+                  }}
+                >
+                  {BOOKMARK_SORTS.filter(([v]) => !(localTab && v === 'circle')).map(([v, label]) => (
+                    <option key={v} value={v}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              {thumbSlider}
-              <select
-                value={sort}
-                onChange={(e) => {
-                  const v = e.target.value as BookmarkSort
-                  setSort(v)
-                  savePrefs({ sort: v }, space)
-                }}
-              >
-                {BOOKMARK_SORTS.filter(([v]) => !(localTab && v === 'circle')).map(([v, label]) => (
-                  <option key={v} value={v}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            </ViewTop>
             <div className="scroll" ref={gridScroll}>
               {all.length === 0 ? (
                 scope === 'local' ? (

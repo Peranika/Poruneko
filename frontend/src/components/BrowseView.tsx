@@ -15,6 +15,7 @@ import { Icon } from './Icon'
 import { MultiFilter } from './MultiFilter'
 import { SearchBar } from './SearchBar'
 import { ViewHeader } from './ViewHeader'
+import { FiltersToggle, ViewTop } from './ViewTop'
 
 /** The input of a plugin's own screen: typed, or taken from the clipboard */
 function ViewInput({ value, placeholder, onSubmit }: { value: string; placeholder: string; onSubmit(v: string): void }) {
@@ -71,58 +72,61 @@ export function BrowseView({ q }: { q: ListQuery }) {
 
   return (
     <div className="view browse" style={thumbSizeStyle(thumbSize)}>
-      <div className="toolbar">
-        {view ? (
-          <ViewInput key={q.query} value={q.query} placeholder={textOf(view.placeholder)} onSubmit={enter} />
-        ) : (
-          <SearchBar value={q.query} onSubmit={search} placeholder={searchPlaceholder(site)} site={site} />
-        )}
-        {/* the site plugin's filters; a value chosen here is used by default from now on */}
-        {filtersOn(q.view ?? 'browse', site)
-          .filter((f) => !f.multi)
-          .map((f) => (
-            <select
-              key={f.id}
-              value={q.filters?.[f.id] ?? savedValue(f, site)}
-              title={textOf(f.label)}
-              onChange={(e) => {
-                setPluginSetting(site, f.id, e.target.value)
-                setQ({ filters: { ...q.filters, [f.id]: e.target.value } })
-              }}
-            >
-              {f.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {textOf(o.label)}
-                </option>
-              ))}
-            </select>
-          ))}
-        {!view && <PageRangeFilter
-          value={{ minPages: q.minPages, maxPages: q.maxPages }}
-          onChange={(r: PageRange) => {
-            saveJSON(pageRangeKey('browse', site), r) // carry it over to the site's next search
-            setQ(r)
-          }}
-        />}
-        <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
-        <LayoutToggle value={layout} onChange={setLayout} />
-      </div>
-
-      {/* filters with several choices (the site's categories...), as chips under the toolbar */}
-      {filtersOn(q.view ?? 'browse', site)
-        .filter((f) => f.multi)
-        .map((f) => (
-          <MultiFilter
-            key={f.id}
-            f={f}
-            site={site}
-            value={q.filters?.[f.id] ?? savedValue(f, site)}
-            onChange={(v) => {
-              setPluginSetting(site, f.id, v)
-              setQ({ filters: { ...q.filters, [f.id]: v } })
+      <ViewTop>
+        <div className="toolbar">
+          {view ? (
+            <ViewInput key={q.query} value={q.query} placeholder={textOf(view.placeholder)} onSubmit={enter} />
+          ) : (
+            <SearchBar value={q.query} onSubmit={search} placeholder={searchPlaceholder(site)} site={site} />
+          )}
+          <FiltersToggle />
+          {/* the site plugin's filters; a value chosen here is used by default from now on */}
+          {filtersOn(q.view ?? 'browse', site)
+            .filter((f) => !f.multi)
+            .map((f) => (
+              <select
+                key={f.id}
+                value={q.filters?.[f.id] ?? savedValue(f, site)}
+                title={textOf(f.label)}
+                onChange={(e) => {
+                  setPluginSetting(site, f.id, e.target.value)
+                  setQ({ filters: { ...q.filters, [f.id]: e.target.value } })
+                }}
+              >
+                {f.options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {textOf(o.label)}
+                  </option>
+                ))}
+              </select>
+            ))}
+          {!view && <PageRangeFilter
+            value={{ minPages: q.minPages, maxPages: q.maxPages }}
+            onChange={(r: PageRange) => {
+              saveJSON(pageRangeKey('browse', site), r) // carry it over to the site's next search
+              setQ(r)
             }}
-          />
-        ))}
+          />}
+          <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
+          <LayoutToggle value={layout} onChange={setLayout} />
+        </div>
+
+        {/* filters with several choices (the site's categories...), as chips under the toolbar */}
+        {filtersOn(q.view ?? 'browse', site)
+          .filter((f) => f.multi)
+          .map((f) => (
+            <MultiFilter
+              key={f.id}
+              f={f}
+              site={site}
+              value={q.filters?.[f.id] ?? savedValue(f, site)}
+              onChange={(v) => {
+                setPluginSetting(site, f.id, v)
+                setQ({ filters: { ...q.filters, [f.id]: v } })
+              }}
+            />
+          ))}
+      </ViewTop>
 
       <div className="scroll" ref={scroller}>
         {view && q.query && (

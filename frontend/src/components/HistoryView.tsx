@@ -9,6 +9,7 @@ import { listSource } from '../workSequence'
 import { GalleryItem } from './GalleryItem'
 import { Icon } from './Icon'
 import { LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useListLayout, useThumbSize } from './ListControls'
+import { FiltersToggle, ViewTop } from './ViewTop'
 
 /** Icon and description of where a work was opened from */
 const ORIGIN: Record<string, { icon: string; title: string }> = {
@@ -67,24 +68,27 @@ export function HistoryView() {
 
   return (
     <div className="view history" style={thumbSizeStyle(thumbSize)}>
-      <div className="toolbar">
-        <h2>{t('history.title')}</h2>
-        <span className="muted">{t('common.items', { n: shown.length })}</span>
-        <input className="history-filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('history.filter')} />
-        <div className="spacer" />
-        <button
-          className="btn small ghost"
-          disabled={!entries?.length}
-          onClick={() => {
-            if (!confirm(t('history.clearConfirm'))) return
-            void api.clearHistory().then(reload)
-          }}
-        >
-          <Icon name="trash" size={14} /> {t('history.clear')}
-        </button>
-        <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
-        <LayoutToggle value={layout} onChange={setLayout} />
-      </div>
+      <ViewTop>
+        <div className="toolbar">
+          <h2>{t('history.title')}</h2>
+          <FiltersToggle />
+          <span className="muted">{t('common.items', { n: shown.length })}</span>
+          <input className="history-filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('history.filter')} />
+          <div className="spacer" />
+          <button
+            className="btn small ghost"
+            disabled={!entries?.length}
+            onClick={() => {
+              if (!confirm(t('history.clearConfirm'))) return
+              void api.clearHistory().then(reload)
+            }}
+          >
+            <Icon name="trash" size={14} /> {t('history.clear')}
+          </button>
+          <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
+          <LayoutToggle value={layout} onChange={setLayout} />
+        </div>
+      </ViewTop>
       <div className="scroll" ref={scroller}>
         {entries && shown.length === 0 ? (
           <div className="center muted">{t('history.empty')}</div>

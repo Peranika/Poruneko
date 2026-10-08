@@ -16,6 +16,7 @@ import { useCardKeyNav } from '../useCardKeyNav'
 import { PagedResults } from './PagedResults'
 import { ResizablePanel } from './ResizablePanel'
 import { usePaneScroll } from '../usePaneScroll'
+import { FiltersToggle, ViewTop } from './ViewTop'
 
 /** Favorites: lists works by the artists (and groups) of bookmarked works, newest first */
 export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }: { site?: string; page: number; tag: string; scope?: string }) {
@@ -196,54 +197,57 @@ export function FavoritesView({ site = '', page, tag, scope: chosenScope = '' }:
       </ResizablePanel>}
 
       <section className="bm-main">
-        {/* the plugin's filters with several choices, as chips (none chosen means all) */}
-        {specs
-          .filter((f) => f.multi)
-          .map((f) => (
-            <MultiFilter key={f.id} f={f} site={site} value={filters[f.id] ?? ''} onChange={(v) => setFilter(f.id, v)} />
-          ))}
-        <div className="toolbar">
-          <h2>{current ? current.name : siteInfo(site)?.browse?.favoritesLabel ? textOf(siteInfo(site)!.browse!.favoritesLabel) : t('favorites.newest')}</h2>
-          <div className="spacer" />
+        <ViewTop>
+          {/* the plugin's filters with several choices, as chips (none chosen means all) */}
           {specs
-            .filter((f) => !f.multi)
+            .filter((f) => f.multi)
             .map((f) => (
-              <select key={f.id} value={filters[f.id] ?? f.default} title={textOf(f.label)} onChange={(e) => setFilter(f.id, e.target.value)}>
-                {f.options.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {textOf(o.label)}
-                  </option>
-                ))}
-              </select>
+              <MultiFilter key={f.id} f={f} site={site} value={filters[f.id] ?? ''} onChange={(v) => setFilter(f.id, v)} />
             ))}
-          <PageRangeFilter
-            value={pages}
-            onChange={(r) => {
-              setPages(r)
-              saveJSON(pageRangeKey('fav', site), r)
-              if (page !== 1) go({ page: 1 })
-            }}
-          />
-          {!own && <label className="check">
-            <input type="checkbox" checked={includeGroups} onChange={(e) => toggle('fav.groups', e.target.checked, setIncludeGroups)} />
-            {t('favorites.includeGroups')}
-          </label>}
-          <label className="check">
-            <input type="checkbox" checked={hideBookmarked} onChange={(e) => toggle('fav.hide', e.target.checked, setHideBookmarked)} />
-            {t('favorites.hideBookmarked')}
-          </label>
-          {current && !own && (
-            <button
-              className="btn small ghost"
-              title={t('favorites.searchInBrowse')}
-              onClick={() => nav.go({ name: 'browse', q: searchQuery(current.tag, filters, site) })}
-            >
-              <Icon name="search" size={13} /> {t('favorites.openInBrowse')}
-            </button>
-          )}
-          <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
-          <LayoutToggle value={layout} onChange={setLayout} />
-        </div>
+          <div className="toolbar">
+            <h2>{current ? current.name : siteInfo(site)?.browse?.favoritesLabel ? textOf(siteInfo(site)!.browse!.favoritesLabel) : t('favorites.newest')}</h2>
+            <FiltersToggle />
+            <div className="spacer" />
+            {specs
+              .filter((f) => !f.multi)
+              .map((f) => (
+                <select key={f.id} value={filters[f.id] ?? f.default} title={textOf(f.label)} onChange={(e) => setFilter(f.id, e.target.value)}>
+                  {f.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {textOf(o.label)}
+                    </option>
+                  ))}
+                </select>
+              ))}
+            <PageRangeFilter
+              value={pages}
+              onChange={(r) => {
+                setPages(r)
+                saveJSON(pageRangeKey('fav', site), r)
+                if (page !== 1) go({ page: 1 })
+              }}
+            />
+            {!own && <label className="check">
+              <input type="checkbox" checked={includeGroups} onChange={(e) => toggle('fav.groups', e.target.checked, setIncludeGroups)} />
+              {t('favorites.includeGroups')}
+            </label>}
+            <label className="check">
+              <input type="checkbox" checked={hideBookmarked} onChange={(e) => toggle('fav.hide', e.target.checked, setHideBookmarked)} />
+              {t('favorites.hideBookmarked')}
+            </label>
+            {current && !own && (
+              <button
+                className="btn small ghost"
+                title={t('favorites.searchInBrowse')}
+                onClick={() => nav.go({ name: 'browse', q: searchQuery(current.tag, filters, site) })}
+              >
+                <Icon name="search" size={13} /> {t('favorites.openInBrowse')}
+              </button>
+            )}
+            <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
+            <LayoutToggle value={layout} onChange={setLayout} />
+          </div>
+        </ViewTop>
 
         <div className="scroll" ref={scroller}>
           <PagedResults

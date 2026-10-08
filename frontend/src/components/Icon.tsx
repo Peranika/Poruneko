@@ -75,6 +75,9 @@ const PATHS: Record<string, string> = {
   book: 'M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2zm0 0a2 2 0 0 0 2 2h14',
   link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
   check: 'M5 12l5 5L20 7',
+  // a funnel (the filters) and an arrow up (folding them away)
+  filter: 'M3 5h18l-7 8.5V19l-4 2v-7.5z',
+  chevronUp: 'M6 15l6-6 6 6',
   // an i in a circle (the work's info)
   info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5h.01',
   alert: 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'

@@ -123,8 +123,9 @@ On a phone or a tablet the screen is laid out for touch. Below 760px wide (`@med
 `style.css`, `useCompact`) the tabs are a bar along the bottom, the side panels (a work's info, the lists' groups)
 slide over the content, and a work opens straight in the viewer, which shows one page at a time while the phone is
 held upright. On a touch screen (`<html data-touch>`, `useTouch`) the viewer turns pages by swiping, tapping the
-middle of the page shows its bar, the buttons that hovering brings out are always shown, the bars above a list go
-away while it scrolls down, and there is no title bar (back is at the head of the tabs, or the Android app's back
+middle of the page shows its bar, the buttons that hovering brings out are always shown, the bars above a list
+(`ViewTop`) lie over it and slide away while it scrolls down (the list starts below them, so they cover nothing at
+its top and it does not move), their filters can be folded away, and there is no title bar (back is at the head of the tabs, or the Android app's back
 button). Gestures with more fingers (`gestures.ts`: taps with two or three fingers, swipes with two) run actions bound in
 the settings, in the viewer (the key actions, closing and maximizing it) and elsewhere (back and forward); they are
 each device's own settings. To work on it in a browser, run `wails dev` and open `http://127.0.0.1:34115` with the browser's device
