@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -121,7 +120,7 @@ func Install(ctx context.Context, rel *Release, progress func(done, total int64)
 	if err := replace(ctx, rel, exe, progress); err != nil {
 		return err
 	}
-	if err := exec.Command(exe).Start(); err != nil {
+	if err := Relaunch(exe); err != nil {
 		return apperr.Wrap(err, "update.restartFailed", "updated, but failed to restart")
 	}
 	return nil

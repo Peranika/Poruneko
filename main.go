@@ -1,11 +1,14 @@
 package main
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -25,6 +28,9 @@ import (
 var assets embed.FS
 
 func main() {
+	update.WaitForPrevious() // when restarted, for the previous instance to quit
+	instanceID := instanceID()
+	handOffToRunning(instanceID)
 	logPath := setupLog()
 	update.Cleanup() // remove the old exe left by the previous update
 	st := store.Open()
@@ -58,7 +64,12 @@ func main() {
 			Assets:     assets,
 			Middleware: img.Middleware,
 		},
-		BackgroundColour:   &options.RGBA{R: 15, G: 17, B: 21, A: 255},
+		BackgroundColour: &options.RGBA{R: 15, G: 17, B: 21, A: 255},
+		// one instance for a data folder: starting it again shows the running one's window
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId:               instanceID,
+			OnSecondInstanceLaunch: func(options.SecondInstanceData) { app.sh.show() },
+		},
 		OnStartup:          app.startup,
 		OnBeforeClose:      app.beforeClose,
 		OnShutdown:         app.shutdown,
@@ -78,6 +89,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// instanceID names the running instance for its data folder (the release and a dev build keep their data apart)
+func instanceID() string {
+	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(store.DataDir()))))
+	return "poruneko-" + hex.EncodeToString(sum[:8])
 }
 
 // webviewDataDir is where WebView2 keeps its user data (EBWebView is created directly in the data folder).

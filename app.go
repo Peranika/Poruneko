@@ -6,8 +6,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/imgserver"
@@ -41,6 +44,9 @@ type App struct {
 	updateMu      sync.Mutex
 	pendingUpdate *update.Release // the newer version found (installed by InstallUpdate)
 
+	inTray   atomic.Bool // the app's icon is in the task tray (closing the window hides it there)
+	quitting atomic.Bool // the app is quitting (not only closing the window)
+
 	// remote access from browsers on other devices (app_remote.go)
 	remote    *remote.Server
 	remoteAPI *webapi.Server
@@ -66,6 +72,7 @@ func (a *App) startup(ctx context.Context) {
 	a.markInterruptedRanges()
 	a.scaleOwnerValues()
 	_ = a.remote.Start()
+	a.startTray()
 	go func() {
 		if n := a.lib.RenameLegacyExt(); n > 0 {
 			log.Printf("[library] renamed %d .zip files to .cbz", n)
@@ -175,11 +182,20 @@ func isASCII(s string) bool {
 	return true
 }
 
-// beforeClose saves the window position and size before quitting
-func (a *App) beforeClose(context.Context) bool {
-	if !a.st.Settings().RememberWindow {
-		return false
+// beforeClose saves the window position and size, and then hides the window in the task tray (while the app's icon
+// is there) or lets the app quit
+func (a *App) beforeClose(ctx context.Context) bool {
+	if a.st.Settings().RememberWindow {
+		a.saveWindowState()
 	}
+	if a.inTray.Load() && !a.quitting.Load() {
+		runtime.WindowHide(ctx)
+		return true
+	}
+	return false
+}
+
+func (a *App) saveWindowState() {
 	a.winMu.Lock()
 	before := a.beforeFullscreen
 	a.winMu.Unlock()
@@ -192,10 +208,10 @@ func (a *App) beforeClose(context.Context) bool {
 			log.Println("[window]", err)
 		}
 	}
-	return false
 }
 
 func (a *App) shutdown(context.Context) {
+	stopTray()
 	a.remote.Stop()
 	a.remoteAPI.Close()
 	a.lib.Close()

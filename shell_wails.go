@@ -3,10 +3,12 @@ package main
 import (
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"poruneko/internal/loginwin"
+	"poruneko/internal/update"
 )
 
 // wailsShell is the window around the app (Wails): the App reaches the screen and the OS through it
@@ -54,7 +56,23 @@ func (s wailsShell) toggleFullscreen() bool {
 
 func (s wailsShell) minimise()       { runtime.WindowMinimise(s.a.ctx) }
 func (s wailsShell) toggleMaximise() { runtime.WindowToggleMaximise(s.a.ctx) }
-func (s wailsShell) quit()           { runtime.Quit(s.a.ctx) }
+
+// quit quits the app (closing the window may only hide it in the task tray: closeWindow)
+func (s wailsShell) quit() {
+	s.a.quitting.Store(true)
+	runtime.Quit(s.a.ctx)
+}
+
+// closeWindow closes the window: it goes into the task tray while the app's icon is there, otherwise the app quits
+// (beforeClose)
+func (s wailsShell) closeWindow() { runtime.Quit(s.a.ctx) }
+
+// show brings the window back (from the task tray, or minimised) to the front
+func (s wailsShell) show() {
+	runtime.WindowShow(s.a.ctx)
+	runtime.WindowUnminimise(s.a.ctx)
+	bringToFront()
+}
 
 // chooseFile asks the user for a file with the extension (such as "wasm"); "" if cancelled
 func (s wailsShell) chooseFile(title, ext string) (string, error) {
@@ -71,10 +89,16 @@ func (s wailsShell) restart() error {
 	if err != nil {
 		return err
 	}
-	if err := exec.Command(exe, os.Args[1:]...).Start(); err != nil {
+	// a build that finds this exe running moves it aside (Poruneko.exe~) and puts the new one in its place: start that
+	if built := strings.TrimSuffix(exe, "~"); built != exe {
+		if _, err := os.Stat(built); err == nil {
+			exe = built
+		}
+	}
+	if err := update.Relaunch(exe); err != nil {
 		return err
 	}
-	runtime.Quit(s.a.ctx)
+	s.quit()
 	return nil
 }
 

@@ -141,7 +141,7 @@ func (a *App) SetFullscreen(on bool) {
 
 func (a *App) WindowMinimise()       { a.sh.minimise() }
 func (a *App) WindowToggleMaximise() { a.sh.toggleMaximise() }
-func (a *App) WindowClose()          { a.sh.quit() }
+func (a *App) WindowClose()          { a.sh.closeWindow() }
 
 // ClipboardText is the text on the clipboard
 func (a *App) ClipboardText() (string, error) { return a.sh.clipboardText() }
