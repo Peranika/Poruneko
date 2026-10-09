@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"time"
 
 	"poruneko/internal/apperr"
 	"poruneko/internal/remote"
@@ -68,3 +69,14 @@ func (a *App) SetRemoteEnabled(on bool) error {
 
 // RemoteSignOutAll signs out every browser
 func (a *App) RemoteSignOutAll() { a.remote.SignOutAll() }
+
+// RestartHost restarts the app on this machine for a browser of remote access (RestartApp is not served to it): it
+// answers first and restarts a moment later, so the answer reaches the browser, which waits for the app to be back
+func (a *App) RestartHost() {
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		if err := a.sh.restart(); err != nil {
+			log.Printf("[remote] restart: %v", err)
+		}
+	}()
+}

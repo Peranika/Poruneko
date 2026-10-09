@@ -14,6 +14,7 @@ import { TabIcon } from './components/TabIcon'
 import { SeriesDialog } from './components/SeriesDialog'
 import { SettingsView } from './components/SettingsView'
 import { UpdateNotice } from './components/UpdateNotice'
+import { DownloadChoiceHost } from './components/DownloadChoiceDialog'
 import { useApp } from './state'
 import { useAutoReveal } from './useAutoReveal'
 import { useGlobalNavigation } from './useGlobalNavigation'
@@ -235,6 +236,7 @@ export default function App() {
       {editCreatorKey && <CreatorDialog bookmarkKey={editCreatorKey} />}
       {seriesDialogKey && <SeriesDialog bookmarkKey={seriesDialogKey} />}
       {update && <UpdateNotice release={update} onClose={dismissUpdate} />}
+      <DownloadChoiceHost />
 
       <div className="toasts">
         {toasts.map((t) => (

@@ -31,6 +31,7 @@ import type {
   Bookmark,
   IconFile,
   CreatorCandidate,
+  DownloadOptions,
   DownloadProgress,
   FavoriteName,
   FavoritesQuery,
@@ -63,6 +64,8 @@ export const api = {
   addPlugin: (title: string): Promise<PluginInfo | null> => go.AddPlugin(title),
   /** Start the app again (to load the plugins added) */
   restartApp: (): Promise<void> => go.RestartApp(),
+  /** Restarts the app on the computer from a browser of remote access (it answers first, then restarts) */
+  restartHost: (): Promise<void> => go.RestartHost(),
   /** Register the archives in the local folders that are not works yet (returns how many were added) */
   scanLibrary: (): Promise<number> => go.ScanLibrary(),
   /** Let the archives removed from the library come back, and scan */
@@ -155,6 +158,13 @@ export const api = {
   reorderSeries: (id: string, keys: string[]): Promise<Series> => go.ReorderSeries(id, keys),
 
   startDownload: (key: string): Promise<void> => go.StartDownload(key),
+  /** What can be chosen to download of a work (its pages and its attachments that are archives) */
+  downloadOptions: (key: string): Promise<DownloadOptions> => go.DownloadOptions(key),
+  /** Download what was chosen: the pages and archives among the attachments (by index) */
+  startDownloadWith: (key: string, pages: boolean, attachments: number[]): Promise<void> => go.StartDownloadWith(key, pages, attachments),
+  /** Choose again what to keep of a downloaded work: its cbz is built again (only what was added is downloaded) */
+  changeDownloadChoice: (key: string, pages: boolean, attachments: number[]): Promise<void> =>
+    go.ChangeDownloadChoice(key, pages, attachments),
   pauseDownload: (key: string): Promise<void> => go.PauseDownload(key),
   deleteDownload: (key: string): Promise<void> => go.DeleteDownload(key),
   openFolder: (key: string): Promise<void> => go.OpenFolder(key),

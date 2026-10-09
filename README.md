@@ -2,13 +2,13 @@
 
 English / [日本語](#japanese)
 
-A viewer for the comic archives (cbz / zip) on your computer, made mainly with Claude Code.
+A viewer for the comic archives (cbz / zip / rar / 7z) on your computer, made mainly with Claude Code.
 
 ## Getting started
 
 1. Download `Poruneko-x.y.z-windows-amd64.zip` from [Releases](https://github.com/Peranika/Poruneko/releases)
 2. Extract it anywhere and run `Poruneko.exe` (requires Windows 10/11 with WebView2)
-3. Press + in the sidebar (or add a folder in Settings): each folder becomes a tab listing its cbz / zip files (subfolders included)
+3. Press + in the sidebar (or add a folder in Settings): each folder becomes a tab listing its cbz / zip / rar / 7z files (subfolders included)
 4. When a new version is released, a notice appears at the bottom right and you can update from it
 
 macOS and Linux are not distributed as builds, but you can build the app yourself (untested; see [DEVELOPMENT.md](DEVELOPMENT.md#building-on-each-platform)).
@@ -17,12 +17,12 @@ macOS and Linux are not distributed as builds, but you can build the app yoursel
 
 ### Library
 - Each folder you add becomes a tab, with the name and icon you choose (built-in icons, or images you put in the icons folder)
-- Every cbz / zip in it becomes a work: the title and creators come from ComicInfo.xml or the file name (`[Group (Artist)] Title`)
+- Every cbz / zip / rar / 7z (cbr / cb7) in it becomes a work: the title and creators come from ComicInfo.xml or the file name (`[Group (Artist)] Title`)
 - Each subfolder becomes a series automatically (works in file name order; new files join it)
 - Local tags, series and creator info can be set on every work (bookmarks are for works from site plugins)
 - Site plugins (.wasm) add a tab for each site below the folders: hovering shows its list, bookmarks and Favorites, and clicking opens the one used last. Each site has its own bookmarks and save location
 - Archives with any page names or nested folders are read in natural order
-- More archive formats (rar, 7z, etc.) with Susie 64-bit archive plug-ins (.sph) put in a `plugins` folder next to `Poruneko.exe`
+- More archive formats (lzh, etc.) with Susie 64-bit archive plug-ins (.sph) put in a `plugins` folder next to `Poruneko.exe`
 - Your files are only read: Poruneko never renames, rewrites or deletes them. Removing a work only takes it out of the library
 - Rescan at any time; works whose file is gone leave the library (with series left empty). When a whole folder cannot be read (a disconnected drive), its works are only marked and recover when it is back
 
@@ -60,13 +60,13 @@ Building from source, the project layout and the release process are described i
 
 <a id="japanese"></a>
 
-パソコンにある漫画のアーカイブ（cbz / zip）を読むためのビューア。主に Claude Code で作成
+パソコンにある漫画のアーカイブ（cbz / zip / rar / 7z）を読むためのビューア。主に Claude Code で作成
 
 ## 使い始める
 
 1. [Releases](https://github.com/Peranika/Poruneko/releases) から `Poruneko-x.y.z-windows-amd64.zip` をダウンロード
 2. 好きな場所に展開して `Poruneko.exe` を実行（Windows 10/11、WebView2 が必要）
-3. サイドバーの ＋（または設定画面）でフォルダを追加すると、フォルダごとにタブができ、中の cbz / zip（サブフォルダも含む）が並ぶ
+3. サイドバーの ＋（または設定画面）でフォルダを追加すると、フォルダごとにタブができ、中の cbz / zip / rar / 7z（サブフォルダも含む）が並ぶ
 4. 新しい版が出ると右下に通知が出て、そこから更新できる
 
 macOS・Linux 向けのビルド済みファイルは配布していないが、自分でビルドすれば使える（動作未確認。[DEVELOPMENT.md](DEVELOPMENT.md#building-on-each-platform) を参照）。
@@ -75,12 +75,12 @@ macOS・Linux 向けのビルド済みファイルは配布していないが、
 
 ### ライブラリ
 - 追加したフォルダはそれぞれタブになり、名前とアイコンを選べる（用意したアイコンのほか、アイコンのフォルダに置いた画像も使える）
-- フォルダの中の cbz / zip が、そのまま作品になる。タイトルと作者は ComicInfo.xml かファイル名（`[サークル (作者)] タイトル`）から読む
+- フォルダの中の cbz / zip / rar / 7z（cbr / cb7）が、そのまま作品になる。タイトルと作者は ComicInfo.xml かファイル名（`[サークル (作者)] タイトル`）から読む
 - サブフォルダは自動でシリーズになる（ファイル名順。あとから増えたファイルも加わる）
 - ローカルタグ・シリーズ・作者情報はどの作品にも付けられる（ブックマークはサイトプラグインの作品用）
 - サイトプラグイン（.wasm）を入れると、フォルダのタブの下にサイトごとのタブが加わる。カーソルを乗せると一覧・ブックマーク・お気に入りが出て、押すと前回開いていたものが開く。ブックマークと保存先はサイトごと
 - ページの名前やフォルダ分けが自由なアーカイブも、自然な順番で読める
-- Susie 64bit 書庫プラグイン（.sph）を `Poruneko.exe` の横の `plugins` フォルダに置くと、rar・7z などの形式も読める
+- Susie 64bit 書庫プラグイン（.sph）を `Poruneko.exe` の横の `plugins` フォルダに置くと、lzh などほかの形式も読める
 - 自分のファイルは読むだけで、名前の変更・書き換え・削除は一切しない。作品を外してもライブラリから外れるだけ
 - いつでも読み込み直せる。ファイルが無くなった作品はライブラリから消え、作品が無くなったシリーズも消える。フォルダごと読めないとき（外付けドライブを外したときなど）は印が付くだけで、戻すと元に戻る
 

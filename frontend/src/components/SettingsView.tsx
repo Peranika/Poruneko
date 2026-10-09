@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import { isRemote } from '../backend'
 import { ACCENT_PRESETS, DEFAULT_ACCENT, FONT_SCALES } from '../display'
 import { errorText, t } from '../i18n'
 import { loadMoreOf, specFilters, textOf } from '../browseSpec'
@@ -37,6 +38,54 @@ function AccentPicker({ value, onChange }: { value: string; onChange(v: string):
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
       </label>
     </span>
+  )
+}
+
+/** How long a restarting app may take to come back before the page reloads anyway (ms) */
+const HOST_RESTART_LIMIT = 60_000
+
+/** Waits for the app on the computer to restart: until it has gone and answers again (or long enough) */
+async function waitForHost(): Promise<void> {
+  const start = Date.now()
+  let down = false
+  while (Date.now() - start < HOST_RESTART_LIMIT) {
+    await new Promise((r) => setTimeout(r, 700))
+    // any answer (a sign-in page included) means the app is there
+    const up = await fetch('/', { cache: 'no-store' }).then(
+      () => true,
+      () => false
+    )
+    if (!up) down = true
+    else if (down || Date.now() - start > 15_000) return
+  }
+}
+
+/** Restarting the app on the computer (a browser of remote access only); the page reloads once it is back */
+function HostRestart() {
+  const { toast } = useApp()
+  const [waiting, setWaiting] = useState(false)
+  const restart = async () => {
+    if (!confirm(t('settings.hostRestartConfirm'))) return
+    try {
+      await api.restartHost()
+    } catch (e) {
+      toast(errorText(e))
+      return
+    }
+    setWaiting(true)
+    await waitForHost()
+    location.reload()
+  }
+  return (
+    <div className="row-setting">
+      <span>
+        {t('settings.hostRestart')}
+        <small className="muted">{waiting ? t('settings.hostRestarting') : t('settings.hostRestartHint')}</small>
+      </span>
+      <button className="btn" disabled={waiting} onClick={() => void restart()}>
+        {t('settings.restart')}
+      </button>
+    </div>
   )
 }
 
@@ -592,6 +641,7 @@ export function SettingsView() {
                   onChange={(e) => updateSettings({ updateCheck: e.target.checked ? '' : 'off' })}
                 />
               </label>
+              {isRemote() && <HostRestart />}
             </section>
 
             <PluginList list={plugins} />

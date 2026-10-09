@@ -261,6 +261,9 @@ export const en: Dict = {
     members: 'Members',
     noOwnNames: 'Nothing to narrow down by',
     noArtists: 'Your bookmarked works have no artist info',
+    sortTitle: 'Order of the artists',
+    sortCount: 'Most',
+    sortName: 'Name',
     bookmarkCount: '{n} bookmarks',
     multiSelect: 'You can select more than one',
     newest: 'New from favorites',
@@ -289,6 +292,20 @@ export const en: Dict = {
     fromBookmarks: 'Opened from Bookmarks',
     fromLocal: 'Opened from Local',
     openedAt: 'Opened {date}'
+  },
+
+  downloadChoice: {
+    title: 'What to download',
+    pages: 'Images and videos ({n})',
+    hint: 'The images and videos in the checked attachments are added after the pages, and read in the viewer once downloaded',
+    start: 'Download',
+    failed: 'Could not check what can be downloaded: {error}',
+    rechooseTitle: 'Choose the files to keep again',
+    rechoose: 'Choose',
+    rechooseHint:
+      'The cbz is built again. What stays is taken from the saved work and only what was added is downloaded; what was unchecked leaves it',
+    rechooseButton: 'Choose the files to keep again',
+    noAttachments: 'This work has no attachments to choose'
   },
 
   viewHeader: {
@@ -352,6 +369,8 @@ export const en: Dict = {
   gallery: {
     attachments: 'Attachments ({n})',
     openAttachment: 'Open {name} in the browser',
+    importable: 'Can add',
+    importableHint: "Chosen when downloading, its images and videos are added to the work's pages",
     originPages: ' (pp. {from}–{to})',
     editTitle: 'Change the title (only in this app; empty goes back to the original title)',
     titleSaved: 'Changed the title',
@@ -570,9 +589,9 @@ export const en: Dict = {
     infiniteScroll: 'Load the next page automatically when scrolling',
     infiniteScrollHint: 'When off, shows one page at a time with page navigation at the bottom',
     viewer: 'Viewer',
-    spreadForManga: 'Open manga in spreads',
+    spreadForManga: 'Open manga in spreads and other works on single pages',
     spreadForMangaHint:
-      'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads instead',
+      'Single page, spreads or scroll is remembered for each work. A work never switched opens in the mode used last; with this on, the types a site plugin counts as manga (doujinshi and the like) open in spreads, and other types (illustrations and the like) and works of sites without manga (Twitter and the like) on single pages. Works of an unknown type (a local archive without ComicInfo and the like) keep the mode used last',
     moire: 'Moire reduction',
     moireHint:
       'Smooths pages shown smaller than their size so that screentone does not turn into moire. Strong suppresses more but softens fine lines a little',
@@ -644,6 +663,10 @@ export const en: Dict = {
     addPluginTitle: 'Choose a plugin (.wasm)',
     pluginsAdded: 'Added: {names}. Restart to use them',
     restart: 'Restart',
+    hostRestart: 'Restart the app on the computer',
+    hostRestartHint: 'Restarts Poruneko on the computer this device is connected to',
+    hostRestartConfirm: 'Restart Poruneko on the computer? (Downloads carry on after the restart)',
+    hostRestarting: 'Restarting… this screen reloads once it is back',
     pluginHosts: 'connects to: {hosts}',
     pluginFormats: 'Susie archive plug-in ({formats})',
     pluginDefault: 'Default {filter}',
@@ -725,6 +748,13 @@ export const en: Dict = {
     lockBar: 'Pin the toolbar (always shown, with the pages above it)',
     unlockBar: 'Unpin the toolbar (shown only when the cursor is at the bottom)',
     slideSecondsNow: 'Slideshow: every {n} s',
+    edgeNext: 'Next work',
+    edgePrev: 'Previous work',
+    edgeHintNext: 'Turn the page once more to go there',
+    edgeHintPrev: 'Turn back once more to go there',
+    edgeGoNext: 'To the next work',
+    edgeGoPrev: 'To the previous work',
+    edgeClose: 'Close',
     slideshowStarted: 'Slideshow started (every {n} s)',
     slideshowStopped: 'Slideshow stopped',
     slideshowStart: 'Slideshow (every {n} s; hover for settings)',
@@ -899,7 +929,10 @@ export const en: Dict = {
       notDownloaded: 'Not downloaded yet',
       pagesFailed: 'Failed to fetch {count} pages ({detail})',
       packFailed: 'Failed to build the cbz: {detail}',
-      pageMissing: 'Page {page} is missing'
+      pageMissing: 'Page {page} is missing',
+      attachmentFailed: 'Could not download {name}: {detail}',
+      attachmentUnreadable: 'Could not open {name}: {detail}',
+      nothingChosen: 'Nothing is chosen to download'
     },
     library: {
       dirOverlapsSave: 'This folder overlaps the save location of a site ({path})',

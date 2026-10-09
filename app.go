@@ -253,7 +253,14 @@ func (a *App) Gallery(key string) (*model.GalleryDetail, error) {
 	if b, ok := a.st.Bookmark(key); ok && b.Download.Status == model.DownloadDone && !model.IsFileKey(key) {
 		a.resetMissing([]string{key})
 	}
-	return a.lib.Detail(a.ctx, key)
+	d, err := a.lib.Detail(a.ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	for i := range d.Attachments {
+		d.Attachments[i].Importable = library.CanOpenArchive(d.Attachments[i].Name)
+	}
+	return d, nil
 }
 
 // CancelViewerLoads is called when a gallery page is closed. It drops the remaining viewer fetches

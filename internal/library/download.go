@@ -117,14 +117,34 @@ func (d *Downloader) run(ctx context.Context, key string) error {
 	if err != nil {
 		return err
 	}
-	total := len(detail.Pages)
 	// already a cbz, so it is done
 	if d.lib.ArchivePath(key) != "" {
+		if info := d.lib.LocalInfo(key); info != nil {
+			detail = info // its pages may include those of attachments
+		}
+		total := len(detail.Pages)
 		d.setState(key, func(s *model.DownloadState) {
 			s.Status, s.Done, s.Total, s.Error = model.DownloadDone, total, total, ""
 		})
 		return nil
 	}
+	// with attachments chosen, their images and videos are taken out first, then the work info is saved: a viewer
+	// that reads it finds those pages already there
+	sitePages := len(detail.Pages)
+	if b, ok := d.st.Bookmark(key); ok && b.DownloadChoice != nil {
+		d.setState(key, func(s *model.DownloadState) { s.Status = model.DownloadDownloading })
+		c := *b.DownloadChoice
+		var counts []int
+		if detail, sitePages, counts, err = d.lib.addAttachments(ctx, p, id, key, detail, &c); err != nil {
+			return err
+		}
+		d.st.Update(key, func(b *model.Bookmark) {
+			if b.DownloadChoice != nil {
+				b.DownloadChoice.Planned, b.DownloadChoice.SitePages, b.DownloadChoice.Counts = true, sitePages, counts
+			}
+		})
+	}
+	total := len(detail.Pages)
 	if err := d.lib.SaveInfo(key, detail); err != nil {
 		return err
 	}
@@ -174,7 +194,8 @@ func (d *Downloader) run(ctx context.Context, key string) error {
 		return failed
 	}
 
-	failed := fetchWithRetry(ctx, detail.Pages, fetchPages)
+	// the pages from attachments are there already; the site's are fetched
+	failed := fetchWithRetry(ctx, detail.Pages[:sitePages], fetchPages)
 	if ctx.Err() != nil {
 		return nil
 	}

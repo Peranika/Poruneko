@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, isFileKey, localDirOfKey, siteOfBookmark } from '../api'
-import { isSpreadType } from '../browseSpec'
+import { openModeOf } from '../browseSpec'
 import { errorText, t } from '../i18n'
 import { buildKeymap } from '../keybindings'
+import { bookmarkTitle, displayTitle } from '../labels'
 import { useApp } from '../state'
 import { loadPagePos, loadString, loadWorkMode, savePagePos, saveString, saveWorkMode } from '../storage'
 import type { GalleryDetail, GallerySummary, ViewerSettings } from '../types'
@@ -12,8 +13,9 @@ import { BookmarkButton } from './GalleryItem'
 import { Icon } from './Icon'
 import { RangePanel, type RangeSession } from './RangePanel'
 import { ResizablePanel } from './ResizablePanel'
-import { Viewer } from './viewer/Viewer'
+import { Viewer, type EdgeWork } from './viewer/Viewer'
 import { useCompact } from '../useCompact'
+import { hideRevealed } from '../useAutoReveal'
 
 /** Default width of the info panel on the left */
 const INFO_PANEL_WIDTH = 360
@@ -22,6 +24,8 @@ const INFO_PANEL_WIDTH = 360
 let carryImmersive = false
 // whether we came via next/previous work (then "Auto full screen" is not used and the current state carries over)
 let carrying = false
+// whether that was by a key, a gesture or the slideshow (then the bars start hidden: nothing points at them)
+let carryingQuietly = false
 
 interface Props {
   galleryKey: string
@@ -62,10 +66,10 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
     api
       .gallery(galleryKey)
       .then((d) => {
-        // the reading mode: the one chosen for this work, else spreads for manga / doujinshi if so set,
-        // else the one last used (shown before the viewer appears, so it does not switch after opening)
+        // the reading mode: the one chosen for this work, else if so set spreads for manga / doujinshi and single
+        // pages for other works (openModeOf), else the one last used (shown before the viewer appears, so it does not switch after opening)
         const viewer = settingsRef.current?.viewer
-        const mode = loadWorkMode(galleryKey) ?? (viewer?.spreadForManga && isSpreadType(d.type) ? 'spread' : undefined)
+        const mode = loadWorkMode(galleryKey) ?? (viewer?.spreadForManga ? openModeOf(d.type, d.site) : undefined)
         if (mode && mode !== viewer?.mode) updateSettings({ viewer: { mode } as ViewerSettings })
         setDetail(d)
         // the history lists every work opened in the viewer, with where it was opened from
@@ -76,9 +80,13 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
 
   const immRef = useRef(immersive)
   const arrivedByBookmarkNav = useRef(carrying)
+  const arrivedQuietly = useRef(carryingQuietly)
   useEffect(() => {
     carryImmersive = false
     carrying = false
+    carryingQuietly = false
+    // the title bar shown over the viewer goes too
+    if (arrivedQuietly.current) hideRevealed()
   }, [])
   const toggleImmersive = useCallback(() => {
     const n = !immRef.current
@@ -109,34 +117,58 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
 
   // to the next/previous work. Opened from a list: that result's order (loading the neighboring page at its edges);
   // opened from bookmarks: the group and order selected on the Bookmarks screen
+  const src: WorkSource = useMemo(
+    () =>
+      from ??
+      (isFileKey(galleryKey)
+        ? { kind: 'local', dir: localDirOfKey(galleryKey) ?? 0 }
+        : { kind: 'bookmarks', site: b ? siteOfBookmark(b) : galleryKey.slice(0, galleryKey.indexOf(':')) }),
+    [from, b, galleryKey]
+  )
+  // the neighboring work with its title, or why there is none
+  const findWork = useCallback(
+    async (dir: 1 | -1): Promise<EdgeWork | string> => {
+      try {
+        const next = await neighborWork(src, [...bookmarks.values()], series, galleryKey, dir)
+        if (next === undefined) return t('gallery.notInList')
+        if (next === 'end') {
+          if (src.kind === 'bookmarks' && ![...bookmarks.keys()].some((k) => !isFileKey(k))) return t('gallery.noBookmarks')
+          return dir > 0 ? t('gallery.lastWork') : t('gallery.firstWork')
+        }
+        const nb = bookmarks.get(next.key)
+        return { work: next, title: nb ? bookmarkTitle(nb) : displayTitle(next) }
+      } catch (e) {
+        return t('gallery.nextFailed', { error: errorText(e) })
+      }
+    },
+    [src, bookmarks, series, galleryKey]
+  )
+  // byButton: clicked on the screen (the bars are shown as usual); otherwise a key, a gesture or the slideshow
+  const openWork = useCallback(
+    (next: GallerySummary, byButton = false) => {
+      carryImmersive = immRef.current
+      carrying = true
+      carryingQuietly = !byButton
+      nav.replace({ name: 'gallery', key: next.key, summary: next, from: src })
+    },
+    [src, nav]
+  )
   const moving = useRef(false)
   const goWork = useCallback(
     async (dir: 1 | -1) => {
       if (moving.current) return
       moving.current = true
-      const src: WorkSource =
-        from ??
-        (isFileKey(galleryKey)
-          ? { kind: 'local', dir: localDirOfKey(galleryKey) ?? 0 }
-          : { kind: 'bookmarks', site: b ? siteOfBookmark(b) : galleryKey.slice(0, galleryKey.indexOf(':')) })
       try {
-        const next = await neighborWork(src, [...bookmarks.values()], series, galleryKey, dir)
-        if (next === undefined) return toast(t('gallery.notInList'))
-        if (next === 'end') {
-          if (src.kind === 'bookmarks' && ![...bookmarks.keys()].some((k) => !isFileKey(k))) return toast(t('gallery.noBookmarks'))
-          return toast(dir > 0 ? t('gallery.lastWork') : t('gallery.firstWork'))
-        }
-        carryImmersive = immRef.current
-        carrying = true
-        nav.replace({ name: 'gallery', key: next.key, summary: next, from: src })
-      } catch (e) {
-        toast(t('gallery.nextFailed', { error: errorText(e) }))
+        const found = await findWork(dir)
+        if (typeof found === 'string') toast(found)
+        else openWork(found.work)
       } finally {
         moving.current = false
       }
     },
-    [from, b, bookmarks, series, galleryKey, nav, toast]
+    [findWork, openWork, toast]
   )
+  const edgeWork = useMemo(() => ({ find: findWork, open: openWork }), [findWork, openWork])
 
   // when the gallery page closes, drop the unfinished loads (prefetching all pages)
   // so they do not slow down the next gallery (bookmark downloads continue)
@@ -218,6 +250,8 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             onToggleBookmark={() => void toggleBookmark(detail)}
             onNextWork={() => void goWork(1)}
             onPrevWork={() => void goWork(-1)}
+            edgeWork={edgeWork}
+            startHidden={arrivedQuietly.current}
             range={{
               active: rangeSession !== null,
               picking: rangeSession?.picking ?? null,

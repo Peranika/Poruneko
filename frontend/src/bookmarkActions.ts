@@ -1,6 +1,7 @@
 // Actions of a bookmark's download box. The Bookmarks screen cards and the gallery page use the same logic.
 import { api, isFileKey, isLocalKey } from './api'
 import { errorText, t } from './i18n'
+import { downloadChoosing } from './components/DownloadChoiceDialog'
 import type { Bookmark } from './types'
 
 /**
@@ -25,14 +26,18 @@ export function downloadAction(b: Bookmark): DownloadAction | null {
   return s !== 'done' ? 'download' : null
 }
 
-/** Run the action (for page range cbz builds, the reason it could not start goes to onError) */
-export function runDownloadAction(b: Bookmark, action: DownloadAction, onError: (msg: string) => void): void {
+/**
+ * Run the action (for page range cbz builds, the reason it could not start goes to onError). choose: a download not
+ * started yet first asks what to download when the work has archives among its attachments (not for several works)
+ */
+export function runDownloadAction(b: Bookmark, action: DownloadAction, onError: (msg: string) => void, choose = true): void {
   switch (action) {
     case 'pause':
       void api.pauseDownload(b.key)
       break
     case 'download':
-      void api.startDownload(b.key)
+      if (choose && b.download.status === 'none') void downloadChoosing(b.key, onError)
+      else void api.startDownload(b.key)
       break
     default:
       api.startDownload(b.key).catch((e) => onError(errorText(e)))

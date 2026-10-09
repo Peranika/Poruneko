@@ -109,16 +109,22 @@ func (a *App) ScanLibrary() int {
 // folderSeries makes each subfolder of the local folders a series: its works in file name order, named after the
 // folder. A folder becomes a series once it holds two works that are in no series; after that, works added to the
 // folder (added: the works this scan added) join its series. Deleting the series stops this for the folder.
-// The top of each local folder is not a series
+// A folder with no series of its own whose name is a series' (one made by hand, or made again after its folder
+// series was deleted) adds its new works to the end of that series instead. The top of each local folder is not a series
 func (a *App) folderSeries(added map[string]bool) {
 	off := map[string]bool{}
 	for _, f := range a.st.Settings().FolderSeriesOff {
 		off[strings.ToLower(f)] = true
 	}
 	existing := map[string]model.Series{}
+	// the series not made from a folder, by name (a name two of them share points to neither)
+	named := map[string][]model.Series{}
 	for _, s := range a.st.SeriesList() {
 		if s.Folder != "" {
 			existing[strings.ToLower(s.Folder)] = s
+		} else {
+			n := strings.ToLower(strings.TrimSpace(s.Name))
+			named[n] = append(named[n], s)
 		}
 	}
 	// works in no series, by folder
@@ -142,19 +148,27 @@ func (a *App) folderSeries(added map[string]bool) {
 	}
 	slices.Sort(folders)
 	for _, folder := range folders {
-		if off[strings.ToLower(folder)] {
-			continue
-		}
 		list := groups[folder]
 		slices.SortFunc(list, func(x, y model.Bookmark) int {
 			return library.NaturalCompare(path.Base(x.ArchiveFile), path.Base(y.ArchiveFile))
 		})
-		var keys []string
 		s, ok := existing[strings.ToLower(folder)]
+		byName := false
+		if !ok {
+			if same := named[strings.ToLower(path.Base(folder))]; len(same) == 1 {
+				s, ok, byName = same[0], true, true
+			} else if off[strings.ToLower(folder)] {
+				continue
+			}
+		}
+		var keys []string
 		for _, b := range list {
 			if !ok || added[b.Key] {
 				keys = append(keys, b.Key)
 			}
+		}
+		if len(keys) == 0 {
+			continue
 		}
 		if !ok {
 			if len(keys) < 2 {
@@ -163,7 +177,10 @@ func (a *App) folderSeries(added map[string]bool) {
 			s = a.st.CreateSeries(path.Base(folder))
 		}
 		if _, err := a.updateSeries(s.ID, func(x *model.Series) {
-			x.Folder = folder
+			// a series found by its name stays the user's own (it is not tied to the folder)
+			if !byName {
+				x.Folder = folder
+			}
 			x.Keys = append(x.Keys, keys...)
 		}); err != nil {
 			log.Printf("[library] series of %s: %v", folder, err)

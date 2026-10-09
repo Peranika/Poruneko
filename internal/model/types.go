@@ -159,6 +159,9 @@ type Attachment struct {
 	Kind string `json:"kind"`
 	// Size in bytes (0 when unknown)
 	Size int64 `json:"size,omitempty"`
+	// Importable: an archive the app reads, whose images and videos can be added to the work when it is downloaded
+	// (set by the app when the work is opened)
+	Importable bool `json:"importable,omitempty"`
 }
 
 // kinds of attachments, by file extension (an archive can later be opened and its images and videos shown as pages)
@@ -378,6 +381,27 @@ type Bookmark struct {
 	CustomThumb *ThumbSpec `json:"customThumb,omitempty"`
 	// CustomTitle is the title the user gave the work ("" for the work's own title)
 	CustomTitle string `json:"customTitle,omitempty"`
+	// DownloadChoice is what of the work is downloaded, when the user chose among its attachments (nil: its pages)
+	DownloadChoice *DownloadChoice `json:"downloadChoice,omitempty"`
+}
+
+// DownloadChoice is what of a work with attachments is downloaded: its pages, and archives among its attachments
+// whose images and videos are added after them as pages (of the saved work, which then shows them)
+type DownloadChoice struct {
+	Pages       bool  `json:"pages"`
+	Attachments []int `json:"attachments,omitempty"`
+	// Planned: the download has laid the pages out. Then the first SitePages of them are the site's pages and the
+	// rest come from the attachments (they are not on the site)
+	Planned   bool `json:"planned,omitempty"`
+	SitePages int  `json:"sitePages,omitempty"`
+	// Counts are how many pages each of Attachments gave (in its order), so they can be found again in the saved work
+	Counts []int `json:"counts,omitempty"`
+}
+
+// IsSitePage reports whether a page of a work is the site's own page of that index (fetched from it when not saved)
+func (b *Bookmark) IsSitePage(index int) bool {
+	c := b.DownloadChoice
+	return c == nil || !c.Planned || index < c.SitePages
 }
 
 // LocalDir is a folder of the user's own archives, shown as a tab of its own. The id stays the same for as long as

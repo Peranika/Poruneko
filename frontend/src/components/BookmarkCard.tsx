@@ -124,7 +124,8 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
               title={ACTION_TITLE[action]}
               onClick={stop(() => {
                 // with a selection, the same action on every selected work it applies to
-                for (const x of targetBookmarks) if (downloadAction(x) === action) runDownloadAction(x, action, toast)
+                for (const x of targetBookmarks)
+                  if (downloadAction(x) === action) runDownloadAction(x, action, toast, targetBookmarks.length === 1)
               })}
             >
               <Icon name={DOWNLOAD_ACTION_ICON[action]} size={15} />

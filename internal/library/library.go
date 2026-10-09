@@ -264,6 +264,17 @@ func (l *Library) Delete(key string) error {
 	if !Owned(key) {
 		return os.RemoveAll(l.WorkDir(key))
 	}
+	if err := l.removeArchive(key); err != nil {
+		return err
+	}
+	work := l.WorkDir(key)
+	err := os.RemoveAll(work)
+	l.removeEmptyDirs(filepath.Dir(work))
+	return err
+}
+
+// removeArchive deletes a work's cbz (not its work dir)
+func (l *Library) removeArchive(key string) error {
 	if p := l.ArchivePath(key); p != "" {
 		release := l.zips.exclusive(p)
 		err := removeRetry(p)
@@ -274,10 +285,7 @@ func (l *Library) Delete(key string) error {
 		l.removeEmptyDirs(filepath.Dir(p))
 	}
 	l.setArchive(key, "")
-	work := l.WorkDir(key)
-	err := os.RemoveAll(work)
-	l.removeEmptyDirs(filepath.Dir(work))
-	return err
+	return nil
 }
 
 // DeleteWork deletes only the work dir (the work's folder in .parts)

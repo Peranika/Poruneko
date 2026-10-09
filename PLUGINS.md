@@ -194,8 +194,9 @@ how many works have them (0 if unknown).
 
 **Attachments**: files of a work that are not pages (archives, PSDs, PDFs...) go in `gallery`'s `attachments`
 (`[{index, name, kind, size}]`; `kind` is archive / document / audio / other, told by the name when left out). The
-work page lists them; their URL comes from `attachment` when one is opened, so it may expire. They are kept in the
-work info, as the app is to download them, open archives and show their images later.
+work page lists them; their URL comes from `attachment` when one is opened or downloaded, so it may expire. When a
+work with archives the app reads (zip / cbz / rar / 7z) is downloaded, the user chooses which to take in: their images
+and videos are added after the work's pages, and the choice can be changed later.
 
 **fromURL** reads a URL the user copied (Bookmarks → Add from URL, or pasting on the Bookmarks screen): return the
 work's id, or `""` when the URL is not one of the site's works.
@@ -456,8 +457,9 @@ func handle(method string, params json.RawMessage) (any, error) {
 - **webURL**：サイト上の作品ページ（なければ `""`）。
 - **添付**：ページではない作品のファイル（書庫・PSD・PDF など）は、`gallery` の `attachments`（`[{index, name, kind, size}]`。
   `kind` は archive / document / audio / other で、省くと名前から決めます）に入れます。作品ページに一覧が出て、開くときに
-  `attachment`（`image` と同じ形）で取得先を聞くので、期限付きの URL でも構いません。添付は作品情報に残り、将来アプリが
-  ダウンロード・書庫の展開・中の画像の表示をするのに使います。
+  `attachment`（`image` と同じ形）で取得先を聞くので、期限付きの URL でも構いません。アプリが読める書庫（zip / cbz /
+  rar / 7z）の添付がある作品をダウンロードするときは、どれを取り込むかをユーザーが選び、中の画像と動画が作品のページの
+  後ろに加わります（あとから選び直せます）。
 - **fromURL**：ユーザーがコピーした URL（ブックマーク → URL から追加、またはブックマーク画面での貼り付け）を読みます。
   その作品の id を、サイトの作品でなければ `""` を返します。
 - **tagNamesJa**：1 回だけ聞かれます。英語のタグ名 → 日本語名で、`translated` の名前空間に使われます。

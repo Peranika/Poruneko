@@ -19,18 +19,35 @@ import (
 // Japanese names fetched from DLsite etc. cannot be searched on the site, so the site's spelling is used.
 // With excludeCollective, anthologies and magazines (works with many artists) are left out.
 func (a *App) favoriteNames(siteID model.SiteID, excludeCollective bool) []model.FavoriteName {
+	// a kind of name that stands for another, as a plugin's screen says (a user's display name for their id): the
+	// other's entry shows it, and it is not listed apart
+	aliasOf := map[string]string{}
+	if br := pluginInfoOf(string(siteID)).Browse; br != nil {
+		for _, v := range br.Views {
+			for _, al := range v.Aliases {
+				if len(v.Namespaces) > 0 && al != v.Namespaces[0] {
+					aliasOf[al] = v.Namespaces[0]
+				}
+			}
+		}
+	}
 	found := map[string]*model.FavoriteName{}
-	add := func(ns, name string) {
+	add := func(ns, name, display string) {
 		name = strings.ToLower(strings.TrimSpace(name))
 		if name == "" {
 			return
 		}
 		tag := ns + ":" + strings.ReplaceAll(name, " ", "_")
-		if f, ok := found[tag]; ok {
+		f, ok := found[tag]
+		if ok {
 			f.Bookmarks++
-			return
+		} else {
+			f = &model.FavoriteName{Tag: tag, Name: name, NS: ns, Bookmarks: 1}
+			found[tag] = f
 		}
-		found[tag] = &model.FavoriteName{Tag: tag, Name: name, NS: ns, Bookmarks: 1}
+		if display = strings.TrimSpace(display); display != "" {
+			f.Name = display
+		}
 	}
 	for _, b := range a.st.Bookmarks() {
 		if model.IsFileKey(b.Key) || siteOfBookmark(&b) != siteID {
@@ -45,11 +62,23 @@ func (a *App) favoriteNames(siteID model.SiteID, excludeCollective bool) []model
 		if excludeCollective && (len(s.Artists) >= meta.ManyArtists || meta.IsCollectiveCircle(b.Creator.Circle)) {
 			continue
 		}
-		for _, name := range s.Artists {
-			add("artist", name)
+		names := map[string][]string{"artist": s.Artists, "group": s.Groups}
+		// the display names of the names others stand for (the one at the same place, else the first)
+		display := map[string][]string{}
+		for al, of := range aliasOf {
+			display[of] = names[al]
 		}
-		for _, name := range s.Groups {
-			add("group", name)
+		for _, ns := range []string{"artist", "group"} {
+			if _, isAlias := aliasOf[ns]; isAlias {
+				continue
+			}
+			for i, name := range names[ns] {
+				shown := ""
+				if ds := display[ns]; len(ds) > 0 {
+					shown = ds[min(i, len(ds)-1)]
+				}
+				add(ns, name, shown)
+			}
 		}
 	}
 	out := make([]model.FavoriteName, 0, len(found))

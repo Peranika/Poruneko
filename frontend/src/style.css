@@ -508,7 +508,10 @@ select { cursor: pointer; }
 .view-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 /* the filter values kept for the user (marked when one is set) */
 .view-header-own { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.8571rem; color: var(--text-2); }
-.view-header-own label { display: flex; align-items: center; gap: 8px; }
+.view-header-own label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; max-width: 100%; }
+/* on a narrow screen the choice goes below the name rather than squeezing it to a letter a line */
+.view-header-own label span { white-space: nowrap; }
+.view-header-own select { min-width: 0; max-width: 100%; }
 .view-header-own label.on span { color: var(--accent); font-weight: 600; }
 .view-header-action { position: relative; }
 .view-header-actions .btn.on { color: var(--accent); border-color: var(--accent-line); }
@@ -618,6 +621,24 @@ select { cursor: pointer; }
 .predecode-cost { color: var(--text-2); margin-top: 2px; }
 .predecode-cost.warn { color: var(--warn); }
 
+/* ---------------------------------------------------------------- The neighboring work past the edge */
+.edge-work {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 30; width: 220px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 14px 14px; border-radius: 12px; text-align: center;
+  background: var(--glass); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.edge-work.at-left { left: 16px; }
+.edge-work.at-right { right: 16px; }
+.edge-work .edge-head { align-self: stretch; display: flex; align-items: center; justify-content: space-between; font-size: 0.8571rem; color: var(--text-2); }
+.edge-work img { max-width: 100%; max-height: 240px; border-radius: 6px; object-fit: contain; }
+.edge-work .edge-title { font-weight: 700; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+.edge-work p { margin: 4px 0; }
+
+/* ---------------------------------------------------------------- Choosing what to download */
+.download-choice { width: min(520px, calc(100vw - 32px)); }
+.download-choice .choice-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.download-choice .choice-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
 /* ---------------------------------------------------------------- Page range selection */
 .stage.range-mode { cursor: crosshair; }
 .stage.range-mode .page:hover { outline: 3px solid var(--accent); outline-offset: -3px; }
@@ -643,6 +664,9 @@ select { cursor: pointer; }
 /* ---------------------------------------------------------------- Favorites */
 .view.favorites { flex-direction: row; }
 .list-title-row { font-size: 0.8571rem; color: var(--text-3); padding: 2px 4px; }
+/* a list's title with the choice of its order at the right */
+.list-title-row.with-sort { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.list-title-row .seg.small button { padding: 0 7px; min-height: 22px; font-size: 0.7857rem; }
 .page-range { display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 6px 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); font-size: 0.8571rem; color: var(--text-2); white-space: nowrap; }
 .page-range.active { border-color: var(--accent-line); color: var(--accent); }
 .page-range input { width: 46px; padding: 4px 6px; text-align: center; font-size: 0.8571rem; }
@@ -1160,6 +1184,7 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .attachment:hover { background: var(--bg-2); color: var(--text); }
 .attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .attachment-size { font-family: var(--mono); font-size: 0.7857rem; color: var(--text-3); }
+.attachment-importable { flex-shrink: 0; padding: 0 6px; border-radius: 4px; font-size: 0.7143rem; color: var(--accent); border: 1px solid var(--accent-line); }
 /* a work's own text (a post's body) on its page */
 .description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; color: var(--text-2); line-height: 1.6; }
 

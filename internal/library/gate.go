@@ -136,7 +136,9 @@ func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, ind
 	l.pmu.Lock()
 	pf := l.pending[key]
 	if pf == nil {
-		fctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		// no limit on the whole fetch (a large video from a slow server takes minutes): a fetch that stops getting
+		// data ends by itself (netx), and one nobody waits for any more is cancelled
+		fctx, cancel := context.WithCancel(context.Background())
 		pf = &pendingFetch{cancel: cancel, done: make(chan struct{})}
 		l.pending[key] = pf
 		go func() {
@@ -215,6 +217,7 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 		o.Headers = src.Headers
 		if IsVideoExt(src.Ext) {
 			o.Timeout = 3 * time.Minute // a video is much larger than a page image
+			o.Large = true
 		}
 		res, err := netx.Get(ctx, src.URL, &o)
 		if err != nil && src.Fallback != "" && netx.IsStatus(err, 404, 410) {

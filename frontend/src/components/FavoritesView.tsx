@@ -32,6 +32,8 @@ export function FavoritesView({
 }) {
   const { nav, settings, bookmarks } = useApp()
   const [includeGroups, setIncludeGroups] = useState(() => loadString('fav.groups', '0') === '1')
+  // the order of the artists from the bookmarks: most bookmarked first, or by name (kept on the device)
+  const [nameSort, setNameSort] = useState<'count' | 'name'>(() => (loadString('fav.nameSort', 'count') === 'name' ? 'name' : 'count'))
   // the site plugin's filters for Favorites (kept separately from Browse's; Browse's defaults to start with)
   const filtersKey = `fav.${site}.filters`
   const [filters, setFilters] = useState<Record<string, string>>(() => ({
@@ -119,9 +121,14 @@ export function FavoritesView({
   // the parent chosen above: on a scoped site always one (the first at first), else none for all
   const scoped = !!siteInfo(site)?.browse?.favoritesScoped
   const scope = chosenScope || (scoped ? (parents[0]?.tag ?? '') : '')
-  const shownNames = names.filter(
-    (n) => !parentTags.has(n.tag) && (own || n.ns === 'artist' || includeGroups || n.tag === tag) && (!scope || n.parents?.includes(scope))
-  )
+  const byName = (x: FavoriteName, y: FavoriteName) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' })
+  const shownNames = names
+    .filter(
+      (n) =>
+        !parentTags.has(n.tag) && (own || n.ns === 'artist' || includeGroups || n.tag === tag) && (!scope || n.parents?.includes(scope))
+    )
+    // a plugin's own names keep its order
+    .sort(own ? () => 0 : nameSort === 'name' ? byName : (x, y) => y.bookmarks - x.bookmarks || byName(x, y))
   const current = names.find((n) => n.tag === tag) ?? names.find((n) => n.tag === scope)
   // both boxes keep where they were scrolled to across choosing in them and coming back from a work
   const parentScroll = usePaneScroll<HTMLUListElement>(`fav:${site}:parents`, parents.length > 0)
@@ -150,7 +157,23 @@ export function FavoritesView({
                   </li>
                 ))}
               </ul>
-              <div className="list-title-row">{t('favorites.artists')}</div>
+              <div className="list-title-row with-sort">
+                <span>{t('favorites.artists')}</span>
+                <div className="seg small" title={t('favorites.sortTitle')}>
+                  {(['count', 'name'] as const).map((k) => (
+                    <button
+                      key={k}
+                      className={nameSort === k ? 'active' : ''}
+                      onClick={() => {
+                        saveString('fav.nameSort', k)
+                        setNameSort(k)
+                      }}
+                    >
+                      {k === 'count' ? t('favorites.sortCount') : t('favorites.sortName')}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
           {/* the parents (lists): choosing one narrows the works and the names below to it */}

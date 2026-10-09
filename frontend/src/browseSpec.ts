@@ -132,6 +132,19 @@ export function typeStyle(type: string, site?: string): CSSProperties | undefine
 /** Whether works of a type are manga, opened in spreads when the viewer setting asks for it */
 export const isSpreadType = (type: string, site?: string): boolean => !!optionOf('type', type, site)?.spread
 
+/**
+ * How a work first opens with "open manga in spreads" on: manga in spreads; a type known not to be manga, or a work
+ * of a site with no manga types (posts and the like), on single pages; undefined (the mode last used) when the type
+ * says nothing, such as a user's archive without a genre
+ */
+export function openModeOf(type: string, site?: string): 'spread' | 'single' | undefined {
+  if (isSpreadType(type, site)) return 'spread'
+  if (type && optionOf('type', type, site)) return 'single'
+  const own = sites.find((s) => s.id === site)
+  const types = own?.browse?.filters.find((f) => f.id === 'type')?.options ?? []
+  return own && !types.some((o) => o.spread) ? 'single' : undefined
+}
+
 /** When a site's list loads its next page while scrolling: the user's choice, its plugin's, or as the end comes near */
 export function loadMoreOf(site: string | undefined, chosen: Record<string, LoadMore> | undefined): LoadMore {
   const s = siteInfo(site)

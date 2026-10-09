@@ -2,11 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { imageUrl, isFileKey, thumbUrl } from '../../api'
 import { useBackdropClose } from '../../backdrop'
 import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../keybindings'
-import type { PageInfo, ViewerSettings } from '../../types'
+import type { GallerySummary, PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
 import { useTouch } from '../../useCompact'
 import { setViewerGestures, type GestureAction } from '../../gestures'
+import { Icon } from '../Icon'
 import { PageAnimation, PageImage, PageVideo } from './PageImage'
 import { isAnimation, type MediaLike } from './animation'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
@@ -42,7 +43,22 @@ interface Props {
   onClose?(): void
   /** Page range bookmark (the gallery page holds the state; the viewer only selects pages and shows marks) */
   range?: RangeControl
+  /**
+   * Turning past the last (or before the first) page shows the next (previous) work; turning once more opens it.
+   * find gives the work, or why there is none
+   */
+  edgeWork?: { find(dir: 1 | -1): Promise<EdgeWork | string>; open(work: GallerySummary, byButton?: boolean): void }
+  /** The bars start hidden (arrived from the previous work by a key or the slideshow, with no cursor to show them) */
+  startHidden?: boolean
 }
+
+export interface EdgeWork {
+  work: GallerySummary
+  title: string
+}
+
+/** A press past the edge within this long after the work is shown does not open it yet (the rest of a wheel spin) */
+const EDGE_CONFIRM_DELAY = 400
 
 export interface RangeControl {
   /** Whether the input panel is open */
@@ -80,11 +96,25 @@ export function Viewer(props: Props) {
     onNextWork,
     onPrevWork,
     onClose,
-    range
+    range,
+    edgeWork,
+    startHidden
   } = props
   // a work whose pages are an animation's frames (a ugoira) is one page here, played as a whole
   const animation = useMemo(() => isAnimation(allPages), [allPages])
-  const pages = useMemo(() => (animation ? allPages.slice(0, 1) : allPages), [animation, allPages])
+  // the sizes of pages the site does not give (a post's pictures), measured once they load: until then a page is
+  // laid out as a portrait page, after that as it is (no bars around a picture of another shape)
+  const [measured, setMeasured] = useState<Record<number, [number, number]>>({})
+  const measure = useCallback((i: number, w: number, h: number) => {
+    if (w > 0 && h > 0) setMeasured((m) => (m[i]?.[0] === w && m[i]?.[1] === h ? m : { ...m, [i]: [w, h] }))
+  }, [])
+  const pages = useMemo(() => {
+    const ps = animation ? allPages.slice(0, 1) : allPages
+    return ps.map((p) => {
+      const m = p.width > 0 && p.height > 0 ? undefined : measured[p.index]
+      return m ? { ...p, width: m[0], height: m[1] } : p
+    })
+  }, [animation, allPages, measured])
   const { direction, coverSingle, fit } = settings
   const moire = settings.moire || undefined
   const rtl = direction === 'rtl'
@@ -111,7 +141,7 @@ export function Viewer(props: Props) {
     return marks.length ? marks.join(t('viewer.markSeparator')) : undefined
   }
 
-  const [uiVisible, setUiVisible] = useState(true)
+  const [uiVisible, setUiVisible] = useState(!startHidden)
   // hide the mouse cursor while using the keyboard (show it when the mouse moves)
   const [cursorHidden, setCursorHidden] = useState(false)
   const lastMouse = useRef<{ x: number; y: number } | null>(null)
@@ -159,18 +189,54 @@ export function Viewer(props: Props) {
 
   useEffect(() => onPageChange(page), [page, onPageChange])
 
+  // ---------------------------------------------------------------- Past the last / before the first page
+  // the neighboring work shown on turning past the edge (found: the work, or why there is none; absent while looking)
+  const [edge, setEdge] = useState<{ dir: 1 | -1; found?: EdgeWork | string; at: number } | null>(null)
+  const edgeRef = useRef(edge)
+  edgeRef.current = edge
+  const pastEdge = useCallback(
+    (dir: 1 | -1) => {
+      if (!edgeWork) return
+      const e = edgeRef.current
+      if (e?.dir === dir) {
+        // turning once more opens the work shown
+        if (typeof e.found === 'object' && performance.now() - e.at >= EDGE_CONFIRM_DELAY) edgeWork.open(e.found.work)
+        return
+      }
+      const shown = { dir, at: performance.now() }
+      edgeRef.current = shown
+      setEdge(shown)
+      void edgeWork.find(dir).then((found) => {
+        if (edgeRef.current !== shown) return
+        const next = { dir, found, at: performance.now() }
+        edgeRef.current = next
+        setEdge(next)
+      })
+    },
+    [edgeWork]
+  )
+  const closeEdge = useCallback(() => {
+    edgeRef.current = null
+    setEdge(null)
+  }, [])
+  // turning to another page puts it away
+  useEffect(closeEdge, [page, closeEdge])
+
   // count from the latest page so quick repeated presses are not lost before re-rendering
+  const pageRef = useRef(page)
+  pageRef.current = page
   const step = useCallback(
-    (dir: 1 | -1) =>
-      setPage((p) => {
-        const i = Math.max(
-          0,
-          spreads.findIndex((s) => s.includes(p))
-        )
-        const s = spreads[Math.min(spreads.length - 1, Math.max(0, i + dir))]
-        return s ? s[0] : p
-      }),
-    [spreads]
+    (dir: 1 | -1) => {
+      const i = Math.max(
+        0,
+        spreads.findIndex((s) => s.includes(pageRef.current))
+      )
+      const s = spreads[i + dir]
+      if (!s) return pastEdge(dir)
+      pageRef.current = s[0]
+      setPage(s[0])
+    },
+    [spreads, pastEdge]
   )
   const next = useCallback(() => step(1), [step])
   const prev = useCallback(() => step(-1), [step])
@@ -302,6 +368,8 @@ export function Viewer(props: Props) {
       suppressScrollSync.current = false
       return
     }
+    // scrolling back from the end puts the neighboring work away
+    if (edgeRef.current) closeEdge()
     const p = pageAtOffset(scroll.offsets, stageRef.current.scrollTop + stageRef.current.clientHeight / 3)
     if (p !== page) setPage(p)
   }
@@ -317,6 +385,7 @@ export function Viewer(props: Props) {
       // Esc is fixed (closes the page list or full screen)
       if (e.key === 'Escape') {
         if (picking) range?.onCancelPick()
+        else if (edgeRef.current) closeEdge()
         else if (showThumbs) setShowThumbs(false)
         else if (immersive) onToggleImmersive()
         return
@@ -337,7 +406,13 @@ export function Viewer(props: Props) {
       // ↑↓ and Space first scroll normally on tall pages
       const scrollFirst = combo === 'ArrowDown' || combo === 'ArrowUp' || combo === 'Space' || combo === 'Shift+Space'
       const paging = ['pageLeft', 'pageRight', 'next', 'prev'].includes(action)
-      if (paging && mode === 'scroll') return false
+      if (paging && mode === 'scroll') {
+        // in vertical scroll view going on at the very end (or back at the very top) goes to the neighboring work
+        if (action === 'next' && !canScrollDown) pastEdge(1)
+        else if (action === 'prev' && !canScrollUp) pastEdge(-1)
+        else return false
+        return true
+      }
       switch (action) {
         case 'closeViewer':
           if (immersive) onToggleImmersive()
@@ -435,7 +510,9 @@ export function Viewer(props: Props) {
     picking,
     range,
     changeSlideSeconds,
-    toggleSlideshow
+    toggleSlideshow,
+    pastEdge,
+    closeEdge
   ])
 
   // in fit-to-screen views the wheel turns pages
@@ -491,8 +568,10 @@ export function Viewer(props: Props) {
   const poke = (e: React.MouseEvent) => {
     const last = lastMouse.current
     lastMouse.current = { x: e.clientX, y: e.clientY }
-    if (last && Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y) > 3) setCursorHidden(false)
-    if (!immersive) return
+    const moved = !!last && Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y) > 3
+    if (moved) setCursorHidden(false)
+    // a page drawn under a resting cursor sends a move too: only a real move shows the bar
+    if (!immersive || !moved) return
     setUiVisible(true)
     window.clearTimeout(hideTimer.current)
     hideTimer.current = window.setTimeout(() => setUiVisible(false), 2500)
@@ -501,15 +580,27 @@ export function Viewer(props: Props) {
   const barRef = useRef<HTMLDivElement>(null)
   // a locked bar is always shown (and sits below the pages instead of over them)
   const barLocked = !!settings.barLocked
-  const barRevealed = useAutoReveal(!immersive && !barLocked, barRef, (e) => {
-    const r = stageRef.current?.getBoundingClientRect()
-    return !!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.bottom - 96 && e.clientY <= r.bottom
-  })
+  const barRevealed = useAutoReveal(
+    !immersive && !barLocked,
+    barRef,
+    (e) => {
+      const r = stageRef.current?.getBoundingClientRect()
+      return !!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.bottom - 96 && e.clientY <= r.bottom
+    },
+    undefined,
+    startHidden
+  )
   // a touch screen has no cursor: tapping the middle of the page shows and hides the bar
   const barVisible = barLocked || (touch ? uiVisible : barRevealed)
   // whether the toolbar is actually on screen (in full screen it hides with the rest of the UI unless locked)
   const barShown = immersive ? uiVisible || barLocked : barVisible
+  // shown for a moment on opening and on entering or leaving full screen (not when the work opened with them hidden)
+  const quietStart = useRef(!!startHidden)
   useEffect(() => {
+    if (quietStart.current) {
+      quietStart.current = false
+      return
+    }
     setUiVisible(true)
     if (immersive || touch) hideTimer.current = window.setTimeout(() => setUiVisible(false), 2500)
     return () => window.clearTimeout(hideTimer.current)
@@ -534,7 +625,7 @@ export function Viewer(props: Props) {
       .map((i) => {
         const im = new Image()
         im.src = imageUrl(galleryKey, i)
-        return im
+        return { i, im }
       })
     // with the moire reduction, also wait for the reduced pages so they do not show unreduced first
     const reduced = moire
@@ -542,7 +633,14 @@ export function Viewer(props: Props) {
           .filter((it) => !videos.has(it.index))
           .map((it) => prepareMoire(imageUrl(galleryKey, it.index), it, moire).catch(() => {}))
       : []
-    Promise.all([...imgs.map((im) => im.decode().catch(() => {})), ...reduced]).then(swap)
+    // the pages are measured as they decode, so they are shown in their own shape at once
+    const decoded = imgs.map(({ i, im }) =>
+      im.decode().then(
+        () => measure(i, im.naturalWidth, im.naturalHeight),
+        () => {}
+      )
+    )
+    Promise.all([...decoded, ...reduced]).then(swap)
     const timer = window.setTimeout(swap, 350)
     return () => {
       done = true
@@ -674,6 +772,19 @@ export function Viewer(props: Props) {
           onPointerCancel={() => (swipeStart.current = null)}
           onWheel={onWheel}
           onScroll={onStageScroll}
+          // a page's picture or video measured when it loads (in vertical scroll view and when shown before decoding)
+          onLoadCapture={(e) => {
+            const el = e.target
+            if (!(el instanceof HTMLImageElement) || el.classList.contains('page-placeholder')) return
+            const at = el.closest<HTMLElement>('.page[data-index]')
+            if (at) measure(Number(at.dataset.index), el.naturalWidth, el.naturalHeight)
+          }}
+          onLoadedMetadataCapture={(e) => {
+            const el = e.target
+            if (!(el instanceof HTMLVideoElement)) return
+            const at = el.closest<HTMLElement>('.page[data-index]')
+            if (at) measure(Number(at.dataset.index), el.videoWidth, el.videoHeight)
+          }}
         >
           {size.w > 0 &&
             (mode === 'scroll' ? (
@@ -692,6 +803,32 @@ export function Viewer(props: Props) {
         </div>
         {range?.active && range.panel}
       </div>
+
+      {/* the neighboring work, on the side the pages turn towards */}
+      {edge && (
+        <div className={`edge-work at-${edge.dir > 0 === rtl ? 'left' : 'right'}`}>
+          <div className="edge-head">
+            <span>{edge.dir > 0 ? t('viewer.edgeNext') : t('viewer.edgePrev')}</span>
+            <button className="icon-btn" onClick={closeEdge} title={t('viewer.edgeClose')}>
+              <Icon name="close" size={14} />
+            </button>
+          </div>
+          {edge.found === undefined ? (
+            <div className="spinner" />
+          ) : typeof edge.found === 'string' ? (
+            <p className="muted">{edge.found}</p>
+          ) : (
+            <>
+              <img src={thumbUrl(edge.found.work.key)} alt="" />
+              <div className="edge-title">{edge.found.title}</div>
+              <div className="muted small">{edge.dir > 0 ? t('viewer.edgeHintNext') : t('viewer.edgeHintPrev')}</div>
+              <button className="btn primary small" onClick={() => typeof edge.found === 'object' && edgeWork?.open(edge.found.work, true)}>
+                {edge.dir > 0 ? t('viewer.edgeGoNext') : t('viewer.edgeGoPrev')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {picking && (
         <div className="range-banner">

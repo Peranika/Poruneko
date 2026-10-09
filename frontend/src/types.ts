@@ -81,6 +81,8 @@ export interface Attachment {
   kind: 'archive' | 'document' | 'audio' | 'other'
   /** Bytes (absent when unknown) */
   size?: number
+  /** An archive the app reads: its images and videos can be added to the work when it is downloaded */
+  importable?: boolean
 }
 
 export interface ListQuery {
@@ -185,6 +187,21 @@ export interface Bookmark {
   customThumb?: ThumbSpec
   /** The title the user gave the work (the work's own title if absent) */
   customTitle?: string
+  /** What was chosen to download of a work with attachments (its pages if absent) */
+  downloadChoice?: DownloadChoice
+}
+
+/** What of a work with attachments is downloaded: its pages, and archives among its attachments (by index), whose
+ * images and videos are added after the pages */
+export interface DownloadChoice {
+  pages: boolean
+  attachments?: number[]
+}
+
+/** What can be chosen to download of a work: how many pages it has, and its attachments that are archives the app reads */
+export interface DownloadOptions {
+  pages: number
+  attachments: Attachment[]
 }
 
 /** The page and area used for the thumbnail (the area is a fraction of the page width and height) */

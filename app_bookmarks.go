@@ -13,6 +13,7 @@ import (
 	"poruneko/internal/library"
 	"poruneko/internal/meta"
 	"poruneko/internal/model"
+	"poruneko/internal/site"
 	"poruneko/internal/store"
 )
 
@@ -35,6 +36,13 @@ func (a *App) updateBookmark(key string, fn func(b *model.Bookmark)) (model.Book
 // notDownloaded is the download state of a work with nothing saved
 func notDownloaded(b *model.Bookmark) model.DownloadState {
 	return model.DownloadState{Status: model.DownloadNone, Total: b.Summary.PageCount}
+}
+
+// resetDownload makes a work one with nothing saved (what was chosen of its attachments goes too: its pages are the
+// site's again)
+func resetDownload(b *model.Bookmark) {
+	b.Download = notDownloaded(b)
+	b.DownloadChoice = nil
 }
 
 // Works in the local folders have records like bookmarks (for their tags, series and creator info) but are not
@@ -460,6 +468,116 @@ func (a *App) StartDownload(key string) error {
 	a.dl.Enqueue(key)
 	return nil
 }
+
+// DownloadOptions is what can be chosen to download of a work: its pages, and the archives among its attachments
+// (their images and videos are added after the pages)
+type DownloadOptions struct {
+	Pages       int                `json:"pages"`
+	Attachments []model.Attachment `json:"attachments"`
+}
+
+// DownloadOptions lists what of a work can be downloaded (no attachments: only its pages, nothing to choose)
+func (a *App) DownloadOptions(key string) (DownloadOptions, error) {
+	d, err := a.lib.Detail(a.ctx, key)
+	if err != nil {
+		return DownloadOptions{}, err
+	}
+	o := DownloadOptions{Pages: len(d.Pages), Attachments: []model.Attachment{}}
+	// a saved work's pages include those of the attachments it was downloaded with: count the post's own files
+	if b, ok := a.st.Bookmark(key); ok && b.DownloadChoice != nil && b.DownloadChoice.Planned {
+		if b.DownloadChoice.Pages {
+			o.Pages = b.DownloadChoice.SitePages
+		} else if n, err := a.sitePageCount(key); err == nil {
+			o.Pages = n // none of them were kept: only the site knows
+		} else {
+			return DownloadOptions{}, err
+		}
+	}
+	for _, at := range d.Attachments {
+		if library.CanOpenArchive(at.Name) {
+			o.Attachments = append(o.Attachments, at)
+		}
+	}
+	return o, nil
+}
+
+// sitePageCount is how many pages a work has on its site
+func (a *App) sitePageCount(key string) (int, error) {
+	siteID, id, err := model.ParseKey(key)
+	if err != nil {
+		return 0, err
+	}
+	p, err := site.Get(siteID)
+	if err != nil {
+		return 0, err
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+	defer cancel()
+	d, err := p.Gallery(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	return len(d.Pages), nil
+}
+
+// StartDownloadWith starts a download of what was chosen: the work's pages (pages) and archives among its
+// attachments (by Attachment.Index)
+func (a *App) StartDownloadWith(key string, pages bool, attachments []int) error {
+	if !pages && len(attachments) == 0 {
+		return apperr.New("download.nothingChosen", "nothing to download")
+	}
+	b, ok := a.st.Update(key, func(b *model.Bookmark) {
+		b.DownloadChoice = nil
+		if !pages || len(attachments) > 0 {
+			b.DownloadChoice = &model.DownloadChoice{Pages: pages, Attachments: slices.Clone(attachments)}
+		}
+	})
+	if !ok {
+		return errNotBookmarked()
+	}
+	return a.StartDownload(b.Key)
+}
+
+// ChangeDownloadChoice chooses again what to keep of a downloaded work with attachments: its cbz is built again
+// with the pages and archives now chosen. What it keeps is taken from the saved work; only what was added is
+// downloaded
+func (a *App) ChangeDownloadChoice(key string, pages bool, attachments []int) error {
+	if !pages && len(attachments) == 0 {
+		return apperr.New("download.nothingChosen", "nothing to download")
+	}
+	b, ok := a.st.Bookmark(key)
+	if !ok {
+		return errNotBookmarked()
+	}
+	if b.Download.Status != model.DownloadDone || model.IsFileKey(key) || model.IsLocalKey(key) {
+		return apperr.New("download.notDownloaded", "not downloaded yet")
+	}
+	var next *model.DownloadChoice
+	if !pages || len(attachments) > 0 {
+		next = &model.DownloadChoice{Pages: pages, Attachments: slices.Clone(attachments)}
+	}
+	// the same as now: nothing to do
+	old := b.DownloadChoice
+	if same := (old == nil && next == nil) ||
+		(old != nil && next != nil && old.Pages == next.Pages && slices.Equal(old.Attachments, next.Attachments)); same {
+		return nil
+	}
+	cur := next
+	if cur == nil {
+		cur = &model.DownloadChoice{Pages: true}
+	}
+	if err := a.lib.Rechoose(key, old, cur); err != nil {
+		return err
+	}
+	a.st.Update(key, func(b *model.Bookmark) {
+		b.DownloadChoice = next
+		b.Download = notDownloaded(b)
+	})
+	a.dl.Enqueue(key)
+	a.notifyBookmarks()
+	return nil
+}
+
 func (a *App) PauseDownload(key string) { a.dl.Pause(key) }
 
 func (a *App) DeleteDownload(key string) error {
@@ -477,7 +595,7 @@ func (a *App) DeleteDownload(key string) error {
 	if err := a.lib.Delete(key); err != nil {
 		return err
 	}
-	a.st.Update(key, func(b *model.Bookmark) { b.Download = notDownloaded(b) })
+	a.st.Update(key, func(b *model.Bookmark) { resetDownload(b) })
 	a.notifyBookmarks()
 	return nil
 }
@@ -501,7 +619,7 @@ func (a *App) resetMissing(keys []string) {
 	missing := a.lib.FindMissing(keys)
 	for _, k := range missing {
 		a.st.Update(k, func(b *model.Bookmark) {
-			b.Download = notDownloaded(b)
+			resetDownload(b)
 			b.ArchiveFile = ""
 		})
 	}

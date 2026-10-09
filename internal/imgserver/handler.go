@@ -218,7 +218,17 @@ func (h *Handler) image(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		}
 		return h.remoteImage(ctx, w, r, key, src.key, src.site, src.id, src.index)
 	}
+	// a page from a downloaded attachment is not on the site
+	if !h.isSitePage(key, index) {
+		return os.ErrNotExist
+	}
 	return h.remoteImage(ctx, w, r, key, key, siteID, id, index)
+}
+
+// isSitePage reports whether a page of a work is the site's page of that index (not one from its attachments)
+func (h *Handler) isSitePage(key string, index int) bool {
+	b, ok := h.st.Bookmark(key)
+	return !ok || b.IsSitePage(index)
 }
 
 // sourcePage is the source gallery page corresponding to a page of a page range bookmark
@@ -260,8 +270,8 @@ func (h *Handler) remoteImage(ctx context.Context, w http.ResponseWriter, r *htt
 		return err
 	}
 	h.pages.Put(ck, body, ext)
-	// save it while viewing if bookmarked
-	if h.st.Has(key) {
+	// save it while viewing if bookmarked (not where a download put a page of an attachment)
+	if h.st.Has(key) && h.isSitePage(key, index) {
 		go func() {
 			if h.lib.SavePage(key, index, ext, body) == nil && h.OnPageSaved != nil {
 				h.OnPageSaved(key)
@@ -318,6 +328,14 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		if p := h.lib.LocalThumb(key); p != "" {
 			return writeFile(w, r, p)
 		}
+	}
+	// a page from a downloaded attachment has no thumbnail on the site: the page itself
+	if !h.isSitePage(key, index) {
+		if b, ext, ok := h.lib.ReadPage(key, index); ok {
+			writeImage(w, r, b, ext)
+			return nil
+		}
+		return os.ErrNotExist
 	}
 	ck := key + "/" + strconv.Itoa(index) + "/" + strconv.FormatBool(big)
 	if b, ok := h.thumbs.Get(ck); ok {

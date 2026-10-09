@@ -7,6 +7,7 @@ import { altTitle, bookmarkTitle, displayTitle, sourceClass, sourceLabel, tagLab
 import { nameRoute, searchQuery, tagToken, useApp } from '../state'
 import { loadPagePos, savePagePos } from '../storage'
 import type { Attachment, Bookmark, GallerySummary } from '../types'
+import { rechooseDownload } from './DownloadChoiceDialog'
 import { BookmarkButton, RangeChip } from './GalleryItem'
 import { SiteNamePicker, type SiteNames } from './SiteNamePicker'
 import { Icon } from './Icon'
@@ -135,7 +136,7 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
         </div>
       </div>
       <div className="actions centered">
-        <div className="actions-left">{b && <DownloadButtons b={b} />}</div>
+        <div className="actions-left">{b && <DownloadButtons b={b} attachments={attachments} />}</div>
         <BookmarkButton s={s} large />
         <div className="actions-right">
           {onRead && (
@@ -155,6 +156,31 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
       )}
       {thumbEditing && b && (
         <ThumbEditor b={b} pageCount={s.pageCount} initialPage={loadPagePos(galleryKey)} onClose={() => setThumbEditing(false)} />
+      )}
+      {/* files that are not pages, right under the download button: what a download can take in is marked. Each opens
+          from the site */}
+      {attachments && attachments.length > 0 && (
+        <section className="attachments">
+          <div className="attachments-head">{t('gallery.attachments', { n: attachments.length })}</div>
+          {attachments.map((a) => (
+            <button
+              key={a.index}
+              className="attachment"
+              title={t('gallery.openAttachment', { name: a.name })}
+              onClick={() => void api.openAttachment(galleryKey, a.index).catch((e) => toast(errorText(e)))}
+            >
+              <Icon name={ATTACHMENT_ICON[a.kind] ?? 'link'} size={14} />
+              <span className="attachment-name">{a.name}</span>
+              {a.importable && (
+                <span className="attachment-importable" title={t('gallery.importableHint')}>
+                  {t('gallery.importable')}
+                </span>
+              )}
+              {a.size ? <span className="attachment-size">{shortSize(a.size)}</span> : null}
+              <Icon name="external" size={12} />
+            </button>
+          ))}
+        </section>
       )}
 
       {b && (
@@ -260,25 +286,6 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
       )}
 
       {s.description && <p className="description">{s.description}</p>}
-      {/* files that are not pages: opened from the site for now (downloading and opening archives comes later) */}
-      {attachments && attachments.length > 0 && (
-        <section className="attachments">
-          <div className="attachments-head">{t('gallery.attachments', { n: attachments.length })}</div>
-          {attachments.map((a) => (
-            <button
-              key={a.index}
-              className="attachment"
-              title={t('gallery.openAttachment', { name: a.name })}
-              onClick={() => void api.openAttachment(galleryKey, a.index).catch((e) => toast(errorText(e)))}
-            >
-              <Icon name={ATTACHMENT_ICON[a.kind] ?? 'link'} size={14} />
-              <span className="attachment-name">{a.name}</span>
-              {a.size ? <span className="attachment-size">{shortSize(a.size)}</span> : null}
-              <Icon name="external" size={12} />
-            </button>
-          ))}
-        </section>
-      )}
       <dl className="meta">
         {s.artists.length > 0 && (
           <>
@@ -352,12 +359,17 @@ function downloadStateText(b: Bookmark): string {
   return ''
 }
 
+/** Whether a site's work is downloaded (its cbz is there) */
+const isDownloadedSiteWork = (b: Bookmark): boolean => b.download.status === 'done' && !isFileKey(b.key) && !isLocalKey(b.key)
+
 /**
  * Download controls as icons, placed left of the bookmark button: the action (download / pause / retry),
  * with a progress ring while downloading, and "show in folder" once something is saved.
  */
-function DownloadButtons({ b }: { b: Bookmark }) {
+function DownloadButtons({ b, attachments }: { b: Bookmark; attachments?: Attachment[] }) {
   const { toast } = useApp()
+  // a downloaded work with archives among its attachments: what to keep can be chosen again
+  const rechoose = isDownloadedSiteWork(b) && !!attachments?.some((a) => a.kind === 'archive')
   const d = b.download
   const action = downloadAction(b)
   const state = downloadStateText(b)
@@ -382,6 +394,11 @@ function DownloadButtons({ b }: { b: Bookmark }) {
           onClick={() => runDownloadAction(b, action, toast)}
         >
           <Icon name={DOWNLOAD_ACTION_ICON[action]} />
+        </button>
+      )}
+      {rechoose && (
+        <button className="icon-btn" title={t('downloadChoice.rechooseButton')} onClick={() => void rechooseDownload(b, toast)}>
+          <Icon name="archive" />
         </button>
       )}
     </>

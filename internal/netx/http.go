@@ -57,6 +57,8 @@ type Opts struct {
 	Timeout time.Duration
 	// MaxBackoff caps the wait between retries (default 15 seconds)
 	MaxBackoff time.Duration
+	// Large: a large body (a video) may take as long as it needs while data keeps coming (no maxTransfer)
+	Large bool
 	// Method is the HTTP method (GET if empty); Body is sent with it
 	Method string
 	Body   []byte
@@ -85,7 +87,7 @@ func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 	}
 	var lastErr error
 	for attempt := 0; attempt <= retries; attempt++ {
-		res, err := do(ctx, o.Method, url, o.Headers, o.Body, timeout)
+		res, err := do(ctx, o.Method, url, o.Headers, o.Body, timeout, o.Large)
 		if err == nil {
 			return res, nil
 		}
@@ -121,8 +123,13 @@ func Get(ctx context.Context, url string, o *Opts) (*Response, error) {
 // maxTransfer is the longest a request may take in all, however steadily its body comes
 const maxTransfer = 10 * time.Minute
 
-func do(ctx context.Context, method, url string, headers map[string]string, body []byte, timeout time.Duration) (*Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, maxTransfer)
+func do(ctx context.Context, method, url string, headers map[string]string, body []byte, timeout time.Duration, large bool) (*Response, error) {
+	var cancel context.CancelFunc
+	if large {
+		ctx, cancel = context.WithCancel(ctx)
+	} else {
+		ctx, cancel = context.WithTimeout(ctx, maxTransfer)
+	}
 	defer cancel()
 	// cancelled when nothing comes for timeout: the timer starts again whenever part of the body arrives
 	stall := time.AfterFunc(timeout, cancel)
@@ -161,6 +168,13 @@ func do(ctx context.Context, method, url string, headers map[string]string, body
 		return nil, err
 	}
 	return &Response{Body: data, Header: res.Header}, nil
+}
+
+// StallReader reads r, cancelling (cancel) when nothing comes for timeout: for a body read as it comes (a download
+// written to a file), which may take long while data keeps coming
+func StallReader(r io.Reader, timeout time.Duration, cancel context.CancelFunc) (io.Reader, func()) {
+	stall := time.AfterFunc(timeout, cancel)
+	return &progressReader{r: r, onRead: func() { stall.Reset(timeout) }}, func() { stall.Stop() }
 }
 
 // progressReader tells when part of a body has arrived

@@ -264,6 +264,9 @@ export const ja = {
     noOwnNames: '絞り込める項目がありません',
     noArtists: 'ブックマークした作品にアーティスト情報がありません',
     bookmarkCount: 'ブックマーク {n} 件',
+    sortTitle: '作者の並び順',
+    sortCount: '件数順',
+    sortName: '名前順',
     multiSelect: '複数選べます',
     newest: 'お気に入りの新着',
     includeGroups: 'グループ（サークル）も含める',
@@ -276,6 +279,20 @@ export const ja = {
     openInBrowse: 'サイトで開く',
     emptyNoBookmarks: 'ブックマークするとアーティストの作品がここに並びます',
     empty: '該当する作品がありません'
+  },
+
+  downloadChoice: {
+    title: 'ダウンロードするもの',
+    pages: '画像と動画（{n} 件）',
+    hint: 'チェックした添付アーカイブの中の画像と動画は作品のページの後ろに加わり、ダウンロード後はビューアで読めます',
+    start: 'ダウンロード',
+    failed: 'ダウンロードできるものを確認できませんでした: {error}',
+    rechooseTitle: '保存するファイルを選び直す',
+    rechoose: '選び直す',
+    rechooseHint:
+      'cbz を作り直します。残すものは保存済みのものを使い、新しく加えたものだけをダウンロードします。外したものは保存から消えます',
+    rechooseButton: '保存するファイルを選び直す',
+    noAttachments: 'この作品には選べる添付アーカイブがありません'
   },
 
   viewHeader: {
@@ -353,6 +370,8 @@ export const ja = {
   gallery: {
     attachments: '添付ファイル（{n}）',
     openAttachment: '{name} をブラウザで開く',
+    importable: '取り込み可',
+    importableHint: 'ダウンロード時に選ぶと、中の画像と動画が作品のページに加わります',
     originPages: '（p.{from}–{to}）',
     editTitle: 'タイトルを変える（このアプリの中だけ。空にすると元のタイトルに戻る）',
     titleSaved: 'タイトルを変えました',
@@ -571,9 +590,9 @@ export const ja = {
     infiniteScroll: 'スクロールで次のページを自動で読み込む',
     infiniteScrollHint: 'オフにすると 1 ページずつ表示し、下にページ切り替えを出します',
     viewer: 'ビューア',
-    spreadForManga: '漫画は見開きで開く',
+    spreadForManga: '漫画は見開き、それ以外は単ページで開く',
     spreadForMangaHint:
-      '単ページ・見開き・スクロールの切り替えは作品ごとに記憶されます。まだ切り替えたことのない作品は、直前に使った表示で開きますが、これをオンにするとサイトのプラグインが漫画とする種別（同人誌など）は見開きで開きます',
+      '単ページ・見開き・スクロールの切り替えは作品ごとに記憶されます。まだ切り替えたことのない作品は、直前に使った表示で開きますが、これをオンにするとサイトのプラグインが漫画とする種別（同人誌など）は見開きで、漫画でない種別（イラストなど）や漫画を扱わないサイト（Twitter など）の作品は単ページで開きます。種別の分からない作品（ComicInfo のないローカルの書庫など）は直前の表示のままです',
     moire: 'モアレ軽減',
     moireHint:
       '元の大きさより縮めて表示するページをなめらかにして、トーンがモアレになるのを抑えます。「強」はより抑えますが、細い線が少しやわらかくなります',
@@ -646,6 +665,10 @@ export const ja = {
     addPluginTitle: 'プラグイン（.wasm）を選ぶ',
     pluginsAdded: '追加しました: {names}。使うには再起動してください',
     restart: '再起動',
+    hostRestart: 'PC のアプリを再起動',
+    hostRestartHint: 'この端末から接続している PC 上の Poruneko を再起動します',
+    hostRestartConfirm: 'PC 上の Poruneko を再起動しますか？（ダウンロードは再起動後に続きから再開します）',
+    hostRestarting: '再起動しています…戻り次第この画面を読み込み直します',
     pluginHosts: '接続先: {hosts}',
     pluginFormats: 'Susie 書庫プラグイン（{formats}）',
     pluginDefault: '既定の{filter}',
@@ -726,6 +749,13 @@ export const ja = {
     lockBar: 'ツールバーを固定する（常に表示し、ページはその上に収める）',
     unlockBar: 'ツールバーの固定を外す（カーソルを下に寄せた時だけ表示）',
     slideSecondsNow: 'スライドショー: {n} 秒ごと',
+    edgeNext: '次の作品',
+    edgePrev: '前の作品',
+    edgeHintNext: 'もう一度ページを送ると移動します',
+    edgeHintPrev: 'もう一度ページを戻すと移動します',
+    edgeGoNext: '次の作品へ',
+    edgeGoPrev: '前の作品へ',
+    edgeClose: '閉じる',
     slideshowStarted: 'スライドショー開始（{n} 秒ごと）',
     slideshowStopped: 'スライドショー停止',
     slideshowStart: 'スライドショー（{n} 秒ごと。カーソルを合わせると設定）',
@@ -899,7 +929,10 @@ export const ja = {
       notDownloaded: 'まだダウンロードされていません',
       pagesFailed: '{count} ページの取得に失敗しました（{detail}）',
       packFailed: 'cbz の作成に失敗しました: {detail}',
-      pageMissing: 'ページ {page} がありません'
+      pageMissing: 'ページ {page} がありません',
+      attachmentFailed: '{name} をダウンロードできませんでした: {detail}',
+      attachmentUnreadable: '{name} を開けませんでした: {detail}',
+      nothingChosen: 'ダウンロードするものが選ばれていません'
     },
     library: {
       dirOverlapsSave: 'このフォルダはサイトの保存先（{path}）と重なっています',
