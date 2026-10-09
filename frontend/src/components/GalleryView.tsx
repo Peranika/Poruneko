@@ -28,6 +28,8 @@ let carryImmersive = false
 let carrying = false
 // whether that was by a key, a gesture or the slideshow (then the bars start hidden: nothing points at them)
 let carryingQuietly = false
+// whether the next work opens at its last page (going back while reading a series through)
+let carryAtEnd = false
 
 interface Props {
   galleryKey: string
@@ -83,10 +85,12 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
   const immRef = useRef(immersive)
   const arrivedByBookmarkNav = useRef(carrying)
   const arrivedQuietly = useRef(carryingQuietly)
+  const arrivedAtEnd = useRef(carryAtEnd)
   useEffect(() => {
     carryImmersive = false
     carrying = false
     carryingQuietly = false
+    carryAtEnd = false
     // the title bar shown over the viewer goes too
     if (arrivedQuietly.current) hideRevealed()
   }, [])
@@ -145,12 +149,14 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
     },
     [src, bookmarks, series, galleryKey]
   )
-  // byButton: clicked on the screen (the bars are shown as usual); otherwise a key, a gesture or the slideshow
+  // byButton: clicked on the screen (the bars are shown as usual); otherwise a key, a gesture or the slideshow.
+  // atEnd: open it at its last page
   const openWork = useCallback(
-    (next: GallerySummary, byButton = false) => {
+    (next: GallerySummary, byButton = false, atEnd = false) => {
       carryImmersive = immRef.current
       carrying = true
       carryingQuietly = !byButton
+      carryAtEnd = atEnd
       nav.replace({ name: 'gallery', key: next.key, summary: next, from: src })
     },
     [src, nav]
@@ -170,7 +176,16 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
     },
     [findWork, openWork, toast]
   )
-  const edgeWork = useMemo(() => ({ find: findWork, open: openWork }), [findWork, openWork])
+  // a series read through as one: past a work's end on to the next at once, and back to the previous one's end
+  const continuous = from?.kind === 'series' && !!from.continuous
+  const edgeWork = useMemo(
+    () => ({
+      find: findWork,
+      open: (work: GallerySummary, byButton: boolean, dir: 1 | -1) => openWork(work, byButton, continuous && dir < 0),
+      seamless: continuous
+    }),
+    [findWork, openWork, continuous]
+  )
 
   // when the gallery page closes, drop the unfinished loads (prefetching all pages)
   // so they do not slow down the next gallery (bookmark downloads continue)
@@ -244,7 +259,14 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             onToggleImmersive={toggleImmersive}
             onClose={nav.back}
             // shuffle play starts every work from its first page; otherwise from where it was left
-            initialPage={from?.kind === 'playlist' ? 0 : resumePage(galleryKey, () => loadPagePos(galleryKey))}
+            initialPage={
+              // back from the next work of a series read through: its end; shuffle play: its start; else where it was left
+              arrivedAtEnd.current
+                ? detail.pages.length - 1
+                : from?.kind === 'playlist'
+                  ? 0
+                  : resumePage(galleryKey, () => loadPagePos(galleryKey))
+            }
             onPageChange={onPageChange}
             extra={
               <>

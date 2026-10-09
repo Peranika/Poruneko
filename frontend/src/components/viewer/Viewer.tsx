@@ -182,7 +182,7 @@ export function Viewer(props: Props) {
   const atEnd = mode === 'scroll' ? page >= pages.length - 1 : !!spreads[spreads.length - 1]?.includes(page)
   // the page a work was left at does not make it read by its being opened there again: only turning to the end does
   // (a work with one spread is read once opened)
-  const resumedAt = useRef(props.initialPage > 0 ? props.initialPage : -1)
+  const resumedAt = useRef(page > 0 ? page : -1)
   useEffect(() => {
     const turned = page !== resumedAt.current
     if (turned) resumedAt.current = -1

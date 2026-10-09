@@ -17,8 +17,10 @@ export interface EdgeWork {
 export interface EdgeWorkSource {
   /** The work, or why there is none */
   find(dir: 1 | -1): Promise<EdgeWork | string>
-  /** byButton: opened with the card's button (not by turning the page) */
-  open(work: GallerySummary, byButton?: boolean): void
+  /** byButton: opened with the card's button (not by turning the page); dir: the way it was turned to */
+  open(work: GallerySummary, byButton: boolean, dir: 1 | -1): void
+  /** Read through (a series as one): turning past the edge goes on to the work at once, with no card to confirm */
+  seamless?: boolean
 }
 
 /** The work shown: found is the work, or why there is none (absent while looking); at is when it was shown */
@@ -48,13 +50,16 @@ export function useEdgeWork(source: EdgeWorkSource | undefined, page: number) {
       if (!source) return
       const e = current.current
       if (e?.dir === dir) {
-        if (typeof e.found === 'object' && performance.now() - e.at >= CONFIRM_DELAY) source.open(e.found.work)
+        if (typeof e.found === 'object' && performance.now() - e.at >= CONFIRM_DELAY) source.open(e.found.work, false, dir)
         return
       }
       const looking = { dir, at: performance.now() }
       show(looking)
       void source.find(dir).then((found) => {
-        if (current.current === looking) show({ dir, found, at: performance.now() })
+        if (current.current !== looking) return
+        // read through: on to it at once (the card stays only to tell why there is none)
+        if (source.seamless && typeof found === 'object') source.open(found.work, false, dir)
+        else show({ dir, found, at: performance.now() })
       })
     },
     [source, show]
@@ -86,7 +91,7 @@ export function EdgeWorkCard({ edge, rtl, source, onClose }: { edge: EdgeState; 
           <img src={thumbUrl(found.work.key)} alt="" />
           <div className="edge-title">{found.title}</div>
           <div className="muted small">{next ? t('viewer.edgeHintNext') : t('viewer.edgeHintPrev')}</div>
-          <button className="btn primary small" onClick={() => source?.open(found.work, true)}>
+          <button className="btn primary small" onClick={() => source?.open(found.work, true, edge.dir)}>
             {next ? t('viewer.edgeGoNext') : t('viewer.edgeGoPrev')}
           </button>
         </>

@@ -12,7 +12,8 @@ import type { Bookmark, GallerySummary, ListResult, Series } from './types'
 export type WorkSource =
   | { kind: 'bookmarks'; site?: string }
   | { kind: 'local'; dir: number }
-  | { kind: 'series'; id: string }
+  // continuous: read through as one (turning past a work's end goes on to the next at once)
+  | { kind: 'series'; id: string; continuous?: boolean }
   | { kind: 'playlist'; keys: string[] }
   | ListSource
 

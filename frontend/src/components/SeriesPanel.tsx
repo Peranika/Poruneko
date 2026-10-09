@@ -3,7 +3,7 @@ import { api, thumbUrl } from '../api'
 import { commonTags, type GroupBy } from '../bookmarkList'
 import { errorText, t, tx } from '../i18n'
 import { autoSortedKeys, seriesMembers, type SeriesAutoSort } from '../series'
-import { artistsBesideCircle } from '../labels'
+import { artistsBesideCircle, bookmarkTitle } from '../labels'
 import { useApp } from '../state'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { useScrollMemory } from '../useScrollMemory'
@@ -13,6 +13,7 @@ import { BookmarkCard } from './BookmarkCard'
 import { Icon } from './Icon'
 import { SeriesTagPopover } from './TagEditor'
 import { ViewTop } from './ViewTop'
+import { isRead, useReadStates } from '../reads'
 
 // Series view of the Bookmarks screen (the list on the left and the works of the selected series)
 
@@ -73,6 +74,34 @@ export function SeriesList({
 }
 
 /**
+ * Reading a series on, through as one: from its first work not read to its end, where that was left (all read: the
+ * first from its start). compact: an icon on a card, else a button with its name
+ */
+export function ReadSeriesButton({ series, compact }: { series: Series; compact?: boolean }) {
+  const { bookmarks, nav } = useApp()
+  const reads = useReadStates()
+  const members = seriesMembers(series, bookmarks)
+  const next = members.find((b) => !isRead(reads, b.key))
+  const b = next ?? members[0]
+  if (!b) return null
+  const page = (reads.get(b.key)?.page ?? 0) + 1
+  const title = next ? t('series.readOnTitle', { title: bookmarkTitle(b), page }) : t('series.readAgainTitle')
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    nav.go({ name: 'gallery', key: b.key, summary: b.summary, from: { kind: 'series', id: series.id, continuous: true } })
+  }
+  return compact ? (
+    <button className="series-read" title={title} onClick={open}>
+      <Icon name="play" size={15} />
+    </button>
+  ) : (
+    <button className="btn small primary" title={title} onClick={open}>
+      <Icon name="play" size={14} /> {next ? t('series.readOn') : t('series.readAgain')}
+    </button>
+  )
+}
+
+/**
  * One card representing a series in a bookmark list (showing the first works' thumbnails stacked).
  * members are the works shown in that list (only part of the series when filtered by group)
  */
@@ -116,6 +145,7 @@ export function SeriesCard({
         <span className="pages">{t('common.works', { n: all.length })}</span>
         {/* when only part of the series is visible (e.g. by circle), show the count at the top right */}
         <div className="thumb-tr">
+          <ReadSeriesButton series={series} compact />
           {members.length < all.length && (
             <span className="status-icon count" title={t('series.inThisGroup', { n: members.length })}>
               {members.length}/{all.length}
@@ -240,6 +270,7 @@ export function SeriesMain({
           </h2>
           <span className="muted">{t('common.items', { n: members.length })}</span>
           <div className="spacer" />
+          <ReadSeriesButton series={series} />
           {toolbarExtra}
           {members.length > 1 &&
             AUTO_SORTS.map(([by, label]) => (

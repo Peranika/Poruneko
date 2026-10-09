@@ -176,6 +176,10 @@ export const ja = {
     newSeries: '＋ 新しいシリーズ',
     create: '作る',
     open: 'シリーズ「{name}」を開く',
+    readOn: '続きから読む',
+    readOnTitle: '「{title}」の {page} ページから、シリーズを通して読む',
+    readAgain: '最初から読む',
+    readAgainTitle: 'すべて読み終えています。最初の作品から、シリーズを通して読む',
     inThisGroup: 'この分類に {n} 作品',
     sorts: {
       title: 'タイトル順',

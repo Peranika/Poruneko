@@ -296,7 +296,7 @@ select { cursor: pointer; }
 .card:hover .thumb img { transform: scale(1.03); }
 .card .pages { position: absolute; left: 8px; bottom: 8px; font-size: 0.7857rem; padding: 1px 7px; border-radius: 6px; background: rgba(0, 0, 0, 0.65); color: #fff; }
 /* buttons and marks on thumbnails share one size, shape and background (--overlay) */
-.card .bookmark-btn, .card .tag-add, .bm-card .select-btn, .status-icon, .history-item .history-remove {
+.card .bookmark-btn, .card .tag-add, .card .series-read, .bm-card .select-btn, .status-icon, .history-item .history-remove {
   min-width: var(--overlay); height: var(--overlay); border-radius: 8px; background: rgba(0, 0, 0, 0.62); color: #fff;
 }
 .card .bookmark-btn { position: absolute; top: 6px; right: 6px; width: var(--overlay); }
@@ -633,6 +633,10 @@ select { cursor: pointer; }
 .edge-work img { max-width: 100%; max-height: 240px; border-radius: 6px; object-fit: contain; }
 .edge-work .edge-title { font-weight: 700; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
 .edge-work p { margin: 4px 0; }
+
+/* reading a series on (its card's button) */
+.card .series-read { display: flex; align-items: center; justify-content: center; }
+.card .series-read:hover { background: var(--accent); }
 
 /* ---------------------------------------------------------------- How far works were read (ReadMark) */
 .card.is-read .thumb img, .row.is-read .thumb img { opacity: 0.5; }

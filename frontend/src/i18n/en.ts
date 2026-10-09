@@ -173,6 +173,10 @@ export const en: Dict = {
     newSeries: '+ New series',
     create: 'Create',
     open: 'Open the series "{name}"',
+    readOn: 'Read on',
+    readOnTitle: 'Read the series through from page {page} of "{title}"',
+    readAgain: 'Read from the start',
+    readAgainTitle: 'All read. Read the series through from its first work',
     inThisGroup: '{n} works in this group',
     sorts: {
       title: 'title',
