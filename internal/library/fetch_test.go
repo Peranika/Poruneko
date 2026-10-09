@@ -24,17 +24,16 @@ func (s *slowProvider) List(context.Context, model.ListQuery) (*model.ListResult
 func (s *slowProvider) Gallery(context.Context, string) (*model.GalleryDetail, error) {
 	return nil, nil
 }
-func (s *slowProvider) Image(ctx context.Context, id string, index int, format string) (*site.ImageSource, error) {
+func (s *slowProvider) Image(ctx context.Context, id string, index int, retry bool) (*site.ImageSource, error) {
 	s.calls.Add(1)
 	<-ctx.Done()
 	s.stopped.Add(1)
 	return nil, ctx.Err()
 }
-func (s *slowProvider) Thumb(context.Context, string, int, bool) (*site.ImageSource, error) {
+func (s *slowProvider) Thumb(context.Context, string, int, bool, bool) (*site.ImageSource, error) {
 	return nil, nil
 }
 func (s *slowProvider) Suggest(context.Context, string) ([]model.Suggestion, error) { return nil, nil }
-func (s *slowProvider) Invalidate()                                                 {}
 
 func TestFetchPageCancelsWhenAllWaitersLeave(t *testing.T) {
 	lib, _, _ := setup(t)

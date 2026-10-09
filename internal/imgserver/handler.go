@@ -357,14 +357,14 @@ func (h *Handler) thumb(ctx context.Context, w http.ResponseWriter, r *http.Requ
 			}
 			return res.Body, nil
 		}
-		src, err := p.Thumb(ctx, id, index, big)
+		src, err := p.Thumb(ctx, id, index, big, false)
 		if err != nil {
 			return nil, err
 		}
 		b, err := get(src)
 		if err != nil && ctx.Err() == nil {
-			p.Invalidate()
-			if src, err = p.Thumb(ctx, id, index, big); err == nil {
+			// the site answers afresh (its URL may have expired)
+			if src, err = p.Thumb(ctx, id, index, big, true); err == nil {
 				b, err = get(src)
 			}
 		}

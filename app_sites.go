@@ -59,7 +59,7 @@ func (a *App) Sites() []model.SiteInfo {
 			ID: p.ID(), Name: p.Name(), Favorites: any, Dir: a.st.SiteDir(p.ID()),
 			Icon: pi.Icon, Browse: pi.Browse, Version: pi.Version, Hosts: pi.DisplayHosts,
 			FromURL: pi.Has("fromURL"), Status: pi.Has("status"), Login: pi.Login != nil && loginwin.Supported(),
-			OwnFavorites: pi.OwnFavorites, FavoriteNames: pi.OwnFavorites && pi.Has("favoriteNames"),
+			OwnFavorites: pi.Favorites.Own, FavoriteNames: pi.Favorites.Own && pi.Has("favoriteNames"),
 			FileNameFormat: pi.FileNameFormat,
 		}
 		if len(info.Hosts) == 0 {
@@ -191,7 +191,7 @@ func (a *App) AttachmentURL(key string, index int) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
 	defer cancel()
-	at, err := src.Attachment(ctx, id, index)
+	at, err := src.Attachment(ctx, id, index, false)
 	if err != nil {
 		return "", err
 	}

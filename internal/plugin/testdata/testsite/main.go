@@ -1,21 +1,45 @@
 //go:build wasip1
 
-// A plugin for the tests of internal/plugin: "info", "echo", and "fetch" through the host
+// A plugin for the tests of internal/plugin: a site (with a web URL) made with the SDK, and calls of its own for
+// the host's functions ("echo", "fetch", the store...)
 package main
 
 import (
 	"encoding/json"
 	"errors"
 
-	"poruneko/pluginsdk"
+	"github.com/Peranika/Poruneko/pluginsdk"
 )
+
+type site struct{}
+
+func (site) Info() pluginsdk.Info {
+	return pluginsdk.Info{ID: "testsite", Name: "Test Site", Version: "0.1", Hosts: []string{"127.0.0.1"},
+		Favorites: &pluginsdk.Favorites{Own: true, Label: pluginsdk.Text{"en": "Lists"}}}
+}
+
+func (site) List(q pluginsdk.ListQuery) (*pluginsdk.ListResult, error) {
+	return &pluginsdk.ListResult{Items: []pluginsdk.Summary{{ID: "42", Title: "Work"}}, Total: 1, Page: 1}, nil
+}
+
+func (site) Work(id string) (*pluginsdk.Work, error) {
+	return &pluginsdk.Work{Summary: pluginsdk.Summary{ID: id}, Pages: []pluginsdk.Page{{Index: 0}}}, nil
+}
+
+// Source tells what it was asked (and the UI language) in its URL
+func (site) Source(q pluginsdk.SourceQuery) (*pluginsdk.Source, error) {
+	u := "https://127.0.0.1/" + string(q.Kind) + "/" + q.ID + "?lang=" + pluginsdk.Lang()
+	if q.Retry {
+		u += "&retry"
+	}
+	return &pluginsdk.Source{URL: u, Ext: "jpg"}, nil
+}
+
+func (site) WebURL(id string) string { return "https://127.0.0.1/w/" + id }
 
 func init() {
 	pluginsdk.Serve(func(method string, params json.RawMessage) (any, error) {
 		switch method {
-		case "info":
-			return map[string]any{"abi": 1, "kind": "site", "id": "testsite", "name": "Test Site", "version": "0.1",
-				"hosts": []string{"127.0.0.1"}, "capabilities": []string{"webURL"}}, nil
 		case "storeSet":
 			var p struct{ Key, Value string }
 			_ = json.Unmarshal(params, &p)
@@ -59,16 +83,10 @@ func init() {
 				}
 			}
 			return out, nil
-		case "list":
-			return map[string]any{"items": []map[string]any{{"id": "42", "title": "Work"}}, "total": 1, "page": 1}, nil
-		case "webURL":
-			var p struct{ ID string }
-			_ = json.Unmarshal(params, &p)
-			return "https://127.0.0.1/w/" + p.ID, nil
 		case "fail":
 			return nil, errors.New("plain failure")
 		}
-		return nil, &pluginsdk.Error{Code: "plugin.unknownMethod", Message: method}
+		return pluginsdk.Handle(site{}, method, params)
 	})
 }
 

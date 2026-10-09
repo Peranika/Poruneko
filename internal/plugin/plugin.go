@@ -1,6 +1,6 @@
-// Package plugin runs plugins: WebAssembly modules (.wasm) that add sites (and later archive formats) to the app.
+// Package plugin runs plugins: WebAssembly modules (.wasm) that add sites to the app.
 //
-// The interface between the app (host) and a plugin (guest), version 1:
+// The interface between the app (host) and a plugin (guest), version 2 (the guest's side is the pluginsdk module):
 //
 // The guest is a WASI (preview 1) reactor module exporting
 //
@@ -9,9 +9,11 @@
 //	poruneko_call(ptr u32, len u32) u64   handles one call: the JSON request at ptr, len; returns the JSON
 //	                                      response as (ptr << 32 | len), which the host frees afterwards
 //
-// A request is {"method": "...", "params": {...}, "settings": {...}} and a response is {"result": ...} or
-// {"error": {"code": "...", "message": "..."}}. settings are the plugin's settings (the values the user chose for
-// the filters and settings in its info's browse spec). Every plugin answers "info" (see Info).
+// A request is {"method": "...", "params": {...}, "settings": {...}, "lang": "ja"} and a response is
+// {"result": ...} or {"error": {"code": "...", "message": "..."}}. settings are the plugin's settings (the values the
+// user chose for the filters and settings in its info's browse spec) and lang the UI language. Every plugin answers
+// "info" (see Info), "list", "work" and "source"; the optional methods it answers are its info's features (see
+// site.go).
 //
 // The host gives the guest these functions, in the import module "poruneko":
 //
@@ -40,6 +42,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,18 +58,11 @@ import (
 )
 
 // ABIVersion is the version of the interface above; plugins with another version are not loaded
-const ABIVersion = 1
-
-// Kinds of plugins
-const (
-	KindSite    = "site"    // adds a site (browse, works, pages)
-	KindArchive = "archive" // reads more archive formats (not supported yet)
-)
+const ABIVersion = 2
 
 // Info describes a plugin (its answer to "info")
 type Info struct {
 	ABI     int    `json:"abi"`
-	Kind    string `json:"kind"`
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Version string `json:"version"`
@@ -74,14 +70,26 @@ type Info struct {
 	Hosts []string `json:"hosts"`
 	// DisplayHosts are the hosts shown in the settings (Hosts if empty), e.g. the site without its content servers
 	DisplayHosts []string `json:"displayHosts,omitempty"`
-	// Capabilities are optional methods the plugin answers ("listAny", "webURL", "tagNamesJa", "invalidate",
-	// "fromURL", "status")
-	Capabilities []string `json:"capabilities"`
-	// SiteCreators: the creators are the work's own artists and groups (no lookup on DLsite / FANZA)
-	SiteCreators bool `json:"siteCreators,omitempty"`
-	// OwnFavorites: listAny lists the plugin's own choice of works (such as the user's lists on the site) instead of
-	// works by the bookmarked artists; it gets no tags and the Favorites screen shows no artists
-	OwnFavorites bool `json:"ownFavorites,omitempty"`
+	// Features are the optional methods the plugin answers ("suggest", "favorites", "favoriteNames", "webURL",
+	// "fromURL", "tagNamesJa", "status", "viewHeader", "viewAction"; the SDK makes the list)
+	Features []string `json:"features"`
+	// Creators is how the site's works name their creators
+	Creators struct {
+		// FromSite: the creators are the work's own artists and groups (no lookup on DLsite / FANZA)
+		FromSite bool `json:"fromSite,omitempty"`
+		// Labels are what the site calls circles ("group") and artists ("artist")
+		Labels map[string]model.Text `json:"labels,omitempty"`
+	} `json:"creators"`
+	// Favorites is how the site's Favorites screen works
+	Favorites struct {
+		// Own: "favorites" lists the plugin's own choice of works (such as the user's lists on the site) instead of
+		// works by the bookmarked artists; it gets the chosen name of favoriteNames only, and the screen shows no
+		// artists
+		Own    bool       `json:"own,omitempty"`
+		Label  model.Text `json:"label,omitempty"`
+		Icon   string     `json:"icon,omitempty"`
+		Scoped bool       `json:"scoped,omitempty"`
+	} `json:"favorites"`
 	// LoadMore is when the site's lists load their next page while scrolling: "near" (the default), "bottom" (when
 	// scrolling on at the bottom) or "button"; the later ones call the site less (for a site with rate limits). The
 	// user can choose another
@@ -119,13 +127,15 @@ type LoginCookie struct {
 }
 
 // Has reports whether the plugin answers an optional method
-func (i *Info) Has(capability string) bool {
-	for _, c := range i.Capabilities {
-		if c == capability {
-			return true
-		}
+func (i *Info) Has(feature string) bool { return slices.Contains(i.Features, feature) }
+
+// screens puts what the info tells about creators and Favorites into the browse spec the screens read
+func (i *Info) screens() {
+	if i.Browse == nil {
+		i.Browse = &model.BrowseSpec{Filters: []model.FilterSpec{}}
 	}
-	return false
+	i.Browse.CreatorLabels = i.Creators.Labels
+	i.Browse.FavoritesLabel, i.Browse.FavoritesIcon, i.Browse.FavoritesScoped = i.Favorites.Label, i.Favorites.Icon, i.Favorites.Scoped
 }
 
 // HTTPRequest is what a guest asks the host to fetch
@@ -260,7 +270,7 @@ func LoadDir(dir, cacheDir string) []*Plugin {
 			log.Printf("[plugin] %s: %v", e.Name(), err)
 			continue
 		}
-		log.Printf("[plugin] loaded %s %s (%s, %s)", p.Info.ID, p.Info.Version, p.Info.Kind, e.Name())
+		log.Printf("[plugin] loaded %s %s (%s)", p.Info.ID, p.Info.Version, e.Name())
 		out = append(out, p)
 	}
 	return out
@@ -292,9 +302,8 @@ func Load(path, cacheDir string) (*Plugin, error) {
 		return nil, fmt.Errorf("interface version %d is not supported (the app supports %d)", p.Info.ABI, ABIVersion)
 	case p.Info.ID == "" || strings.ContainsAny(p.Info.ID, ":/ "):
 		return nil, fmt.Errorf("invalid id %q", p.Info.ID)
-	case p.Info.Kind != KindSite:
-		return nil, fmt.Errorf("kind %q is not supported", p.Info.Kind)
 	}
+	p.Info.screens()
 	return p, nil
 }
 
@@ -308,7 +317,8 @@ func (p *Plugin) Call(ctx context.Context, method string, params, out any) error
 		Method   string            `json:"method"`
 		Params   any               `json:"params,omitempty"`
 		Settings map[string]string `json:"settings,omitempty"`
-	}{method, params, settings})
+		Lang     string            `json:"lang"`
+	}{method, params, settings, uiLang()})
 	if err != nil {
 		return err
 	}

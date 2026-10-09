@@ -161,8 +161,8 @@ internal/
   imgserver/             serves /poru/img and /poru/thumb (local files first)
   store/                 persistence of settings (JSON) and bookmarks / series / settings per owner of works (SQLite)
   update/                finding a newer release on GitHub and replacing the exe (Windows only)
-pluginsdk/               the plugin side of the plugin interface (for plugins written in Go; spec.go: the types of a
-                         site plugin's browse spec and login)
+pluginsdk/               the plugin side of the plugin interface: a module of its own that the plugins require (site.go:
+                         the methods of a site and Handle; works.go / spec.go: the types; host_wasm.go: the WebAssembly side)
 frontend/src/            React UI
   components/viewer/     viewer (spreads, page images and videos, prefetching, predecoding, moire reduction)
   state.tsx              app state and routing (history entries)
@@ -180,14 +180,16 @@ frontend/src/            React UI
 
 ## Plugins
 
-Sites (and later more archive formats) come from plugins: WebAssembly modules (`.wasm`, WASI preview 1 reactors)
-loaded at startup from a `plugins` folder next to the exe or in the data folder. The interface (exports, host
-functions, JSON calls, the methods of a site plugin) is described in `internal/plugin` (plugin.go and site.go).
-A plugin can fetch only through the host, and only from the hosts its info lists.
+Sites come from plugins: WebAssembly modules (`.wasm`, WASI preview 1 reactors) loaded at startup from a `plugins`
+folder next to the exe or in the data folder. The interface, version 2 (exports, host functions, JSON calls, the
+methods of a site plugin), is described in `internal/plugin` (plugin.go and site.go); the plugin's side is the
+`pluginsdk` module. A plugin can fetch only through the host, and only from the hosts its info lists.
 
 A site plugin's info also says what the app shows for it (its icon, filters, settings, kinds of tags, screens of
-its own...), so nothing about a site is built into the app. A plugin written in Go uses `pluginsdk`;
-`internal/plugin/testdata/testsite` is a minimal example (the plugin tests build it).
+its own...), so nothing about a site is built into the app. A plugin written in Go requires the `pluginsdk` module
+(a `replace` to this checkout); `internal/plugin/testdata/testsite` is a minimal example (the plugin tests build it).
+`PORUNEKO_PLUGIN_DIR=<folder> go test ./internal/plugin -run Installed` checks built plugins (with
+`PORUNEKO_PLUGIN_LIVE=<ids>`, against their sites).
 
 How to write one is in [PLUGINS.md](PLUGINS.md) (English and Japanese).
 

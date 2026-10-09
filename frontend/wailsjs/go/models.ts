@@ -48,15 +48,16 @@ export namespace main {
 	}
 	export class PluginInfo {
 	    abi: number;
-	    kind: string;
 	    id: string;
 	    name: string;
 	    version: string;
 	    hosts: string[];
 	    displayHosts?: string[];
-	    capabilities: string[];
-	    siteCreators?: boolean;
-	    ownFavorites?: boolean;
+	    features: string[];
+	    // Go type: struct { FromSite bool "json:\"fromSite,omitempty\""; Labels map[string]model
+	    creators: any;
+	    // Go type: struct { Own bool "json:\"own,omitempty\""; Label model
+	    favorites: any;
 	    loadMore?: string;
 	    fileNameFormat?: string;
 	    icon?: string;
@@ -64,6 +65,7 @@ export namespace main {
 	    pace?: Record<string, number>;
 	    // Go type: plugin
 	    login?: any;
+	    kind: string;
 	    file: string;
 	    formats: string[];
 	
@@ -74,21 +76,21 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.abi = source["abi"];
-	        this.kind = source["kind"];
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.version = source["version"];
 	        this.hosts = source["hosts"];
 	        this.displayHosts = source["displayHosts"];
-	        this.capabilities = source["capabilities"];
-	        this.siteCreators = source["siteCreators"];
-	        this.ownFavorites = source["ownFavorites"];
+	        this.features = source["features"];
+	        this.creators = this.convertValues(source["creators"], Object);
+	        this.favorites = this.convertValues(source["favorites"], Object);
 	        this.loadMore = source["loadMore"];
 	        this.fileNameFormat = source["fileNameFormat"];
 	        this.icon = source["icon"];
 	        this.browse = this.convertValues(source["browse"], model.BrowseSpec);
 	        this.pace = source["pace"];
 	        this.login = this.convertValues(source["login"], null);
+	        this.kind = source["kind"];
 	        this.file = source["file"];
 	        this.formats = source["formats"];
 	    }

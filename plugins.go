@@ -44,9 +44,7 @@ func loadPlugins(st *store.Store) {
 			id := p.Info.ID
 			p.Settings = func() map[string]string { return st.Settings().PluginSettings[id] }
 			loaded = append(loaded, p)
-			if p.Info.Kind == plugin.KindSite {
-				site.Register(plugin.Provider(p))
-			}
+			site.Register(plugin.Provider(p))
 		}
 		loadSusie(dir)
 	}
@@ -91,7 +89,7 @@ func (f susieFormat) Read(path string, e library.ArchiveEntry) ([]byte, error) {
 }
 
 // pluginInfoOf is the info of the loaded plugin with this id: what its site declares (empty if there is none, so
-// it has no capabilities and no choices of its own)
+// it has no optional methods and no choices of its own)
 func pluginInfoOf(id string) plugin.Info {
 	for _, p := range loaded {
 		if p.Info.ID == id {
@@ -104,6 +102,8 @@ func pluginInfoOf(id string) plugin.Info {
 // PluginInfo is a loaded plugin, for the settings screen
 type PluginInfo struct {
 	plugin.Info
+	// Kind is "site" for a site plugin, "susie" for a Susie archive plug-in
+	Kind string `json:"kind"`
 	File string `json:"file"`
 	// Formats are the archive formats a Susie plug-in reads (".rar")
 	Formats []string `json:"formats"`
@@ -113,15 +113,15 @@ type PluginInfo struct {
 func (a *App) Plugins() []PluginInfo {
 	out := []PluginInfo{}
 	for _, p := range loaded {
-		out = append(out, PluginInfo{Info: p.Info, File: p.Path, Formats: []string{}})
+		out = append(out, PluginInfo{Info: p.Info, Kind: "site", File: p.Path, Formats: []string{}})
 	}
 	for _, p := range loadedSusie {
 		name := p.Description
 		if name == "" {
 			name = filepath.Base(p.Path)
 		}
-		info := plugin.Info{Kind: "susie", ID: filepath.Base(p.Path), Name: name, Hosts: []string{}}
-		out = append(out, PluginInfo{Info: info, File: p.Path, Formats: p.Extensions})
+		info := plugin.Info{ID: filepath.Base(p.Path), Name: name, Hosts: []string{}}
+		out = append(out, PluginInfo{Info: info, Kind: "susie", File: p.Path, Formats: p.Extensions})
 	}
 	return out
 }

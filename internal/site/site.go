@@ -39,13 +39,12 @@ type Provider interface {
 	Name() string
 	List(ctx context.Context, q model.ListQuery) (*model.ListResult, error)
 	Gallery(ctx context.Context, id string) (*model.GalleryDetail, error)
-	// Image returns where a page image is fetched from
-	Image(ctx context.Context, id string, index int, format string) (*ImageSource, error)
-	// Thumb returns where a thumbnail is fetched from
-	Thumb(ctx context.Context, id string, index int, big bool) (*ImageSource, error)
+	// Image returns where a page image is fetched from. retry: fetching what it gave before failed (it may have
+	// expired), so the site answers afresh
+	Image(ctx context.Context, id string, index int, retry bool) (*ImageSource, error)
+	// Thumb returns where a thumbnail is fetched from (big: the larger cover of the work's page)
+	Thumb(ctx context.Context, id string, index int, big, retry bool) (*ImageSource, error)
 	Suggest(ctx context.Context, term string) ([]model.Suggestion, error)
-	// Invalidate is called when a source URL seems to have expired
-	Invalidate()
 }
 
 var (
@@ -152,8 +151,9 @@ func FileNameFormat(id model.SiteID) string {
 
 // AttachmentSource is a site whose works have attachments (files that are not pages)
 type AttachmentSource interface {
-	// Attachment is where an attachment of a work is fetched from (index: GalleryDetail.Attachments[].Index)
-	Attachment(ctx context.Context, id string, index int) (*ImageSource, error)
+	// Attachment is where an attachment of a work is fetched from (index: GalleryDetail.Attachments[].Index; retry
+	// as for Image)
+	Attachment(ctx context.Context, id string, index int, retry bool) (*ImageSource, error)
 }
 
 // StatusTeller is a site that tells its state (such as the API calls left), shown on its tab

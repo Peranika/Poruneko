@@ -259,6 +259,7 @@ func fetchAttachment(ctx context.Context, p site.Provider, id string, index int,
 		return errors.New("the site has no attachments")
 	}
 	var last error
+	retry := false
 	for attempt := range 3 {
 		if attempt > 0 {
 			select {
@@ -267,8 +268,8 @@ func fetchAttachment(ctx context.Context, p site.Provider, id string, index int,
 				return ctx.Err()
 			}
 		}
-		// asked each time: the site's URL may expire
-		at, err := src.Attachment(ctx, id, index)
+		// asked each time: the site's URL may expire (after a refusal it answers afresh)
+		at, err := src.Attachment(ctx, id, index, retry)
 		if err == nil {
 			err = saveURL(ctx, at.URL, at.Headers, path)
 		}
@@ -276,9 +277,8 @@ func fetchAttachment(ctx context.Context, p site.Provider, id string, index int,
 			return err
 		}
 		last = err
-		if he, ok := err.(*netx.HTTPError); ok && he.Status < 500 && he.Status != http.StatusTooManyRequests {
-			p.Invalidate()
-		}
+		he, ok := err.(*netx.HTTPError)
+		retry = ok && he.Status < 500 && he.Status != http.StatusTooManyRequests
 	}
 	return last
 }

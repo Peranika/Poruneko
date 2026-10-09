@@ -48,8 +48,12 @@ func loadTestPlugin(t *testing.T) *Plugin {
 
 func TestPluginCalls(t *testing.T) {
 	p := loadTestPlugin(t)
-	if p.Info.ID != "testsite" || p.Info.Kind != KindSite || !p.Info.Has("webURL") {
+	// the SDK tells the version and the optional methods; what the info says of Favorites reaches the screens
+	if p.Info.ABI != ABIVersion || p.Info.ID != "testsite" || !p.Info.Has("webURL") || p.Info.Has("suggest") {
 		t.Fatalf("info %+v", p.Info)
+	}
+	if !p.Info.Favorites.Own || p.Info.Browse == nil || p.Info.Browse.FavoritesLabel["en"] != "Lists" {
+		t.Fatalf("favorites %+v %+v", p.Info.Favorites, p.Info.Browse)
 	}
 	var echo map[string]any
 	if err := p.Call(context.Background(), "echo", map[string]any{"a": "日本語", "n": 3}, &echo); err != nil || echo["a"] != "日本語" {
@@ -108,7 +112,7 @@ func TestPluginConcurrent(t *testing.T) {
 	}
 }
 
-// a site plugin as a site: keys are filled in, optional methods follow the capabilities
+// a site plugin as a site: keys are filled in, optional methods follow its features
 func TestSiteAdapter(t *testing.T) {
 	p := loadTestPlugin(t)
 	s := Provider(p)
@@ -126,9 +130,22 @@ func TestSiteAdapter(t *testing.T) {
 	if u := s.(*Site).WebURL("42"); u != "https://127.0.0.1/w/42" {
 		t.Fatalf("webURL %q", u)
 	}
-	// no tagNamesJa capability: an empty map, without calling
+	// no tagNamesJa or suggest: nothing, without calling
 	if n := s.(*Site).TagNamesJa(); len(n) != 0 {
 		t.Fatalf("tag names %v", n)
+	}
+	if sg, err := s.Suggest(context.Background(), "a"); err != nil || len(sg) != 0 {
+		t.Fatalf("suggest %v %v", sg, err)
+	}
+	// pages, thumbnails and attachments are one call (source), told when to answer afresh, in the UI language
+	if src, err := s.Image(context.Background(), "42", 3, true); err != nil || src.URL != "https://127.0.0.1/page/42?lang=ja&retry" {
+		t.Fatalf("image %+v %v", src, err)
+	}
+	if src, err := s.(*Site).Attachment(context.Background(), "42", 0, false); err != nil || src.URL != "https://127.0.0.1/attachment/42?lang=ja" {
+		t.Fatalf("attachment %+v %v", src, err)
+	}
+	if d, err := s.Gallery(context.Background(), "42"); err != nil || d.Key != "testsite:42" || len(d.Pages) != 1 {
+		t.Fatalf("work %+v %v", d, err)
 	}
 }
 

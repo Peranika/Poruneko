@@ -231,7 +231,7 @@ func fetchWithRetry(ctx context.Context, pages []model.PageInfo, fetch func([]mo
 // saveSiteThumb saves the site's thumbnail (page index of gallery id) as the thumbnail of work key.
 // Failures are ignored since lists fall back to the page image.
 func (l *Library) saveSiteThumb(ctx context.Context, p site.Provider, id string, index int, key string) {
-	src, err := p.Thumb(ctx, id, index, true)
+	src, err := p.Thumb(ctx, id, index, true, false)
 	if err != nil {
 		return
 	}

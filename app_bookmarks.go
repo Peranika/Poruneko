@@ -257,7 +257,7 @@ func (a *App) resolve(key string) {
 	if tc := b.Summary.TitleCreators; tc != nil && (tc.Circle != "" || len(tc.Artists) > 0) {
 		// the title names them (a site that writes "[Circle (Artist)] Title")
 		info = meta.FromTitle(&b.Summary)
-	} else if pluginInfoOf(b.Summary.Site).SiteCreators || !lookupCreator(&b.Summary) {
+	} else if pluginInfoOf(b.Summary.Site).Creators.FromSite || !lookupCreator(&b.Summary) {
 		info = meta.FromSite(&b.Summary)
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

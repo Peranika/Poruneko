@@ -129,8 +129,6 @@ type pendingFetch struct {
 // When every caller's ctx is done the fetch itself is canceled (e.g. the gallery page was closed).
 // Congestion (503/429) is retried with backoff; expired URLs (403/404) are retried after refetching gg.js etc.
 func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, index int, pr Priority) ([]byte, string, error) {
-	// the image format is the plugin's own setting
-	format := ""
 	key := fmt.Sprintf("%s/%s/%d", p.ID(), id, index)
 
 	l.pmu.Lock()
@@ -145,7 +143,7 @@ func (l *Library) FetchPage(ctx context.Context, p site.Provider, id string, ind
 			defer cancel()
 			g := l.gateOf(string(p.ID()))
 			if g.acquire(fctx, pr, l.st.Settings().DownloadConcurrency, id) {
-				pf.body, pf.ext, pf.err = fetchImage(fctx, p, id, index, format, pr)
+				pf.body, pf.ext, pf.err = fetchImage(fctx, p, id, index, pr)
 				g.release(pr)
 			} else {
 				pf.err = fctx.Err()
@@ -194,7 +192,7 @@ func sniffExt(b []byte, def string) string {
 	return def
 }
 
-func fetchImage(ctx context.Context, p site.Provider, id string, index int, format string, pr Priority) ([]byte, string, error) {
+func fetchImage(ctx context.Context, p site.Provider, id string, index int, pr Priority) ([]byte, string, error) {
 	opts := &netx.Opts{Timeout: time.Minute, Retries: 5}
 	if pr == Foreground {
 		// while viewing, give up sooner so the user is not kept waiting and leave retries to the frontend
@@ -202,9 +200,9 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 	}
 	// asked: the site told where the page is (a failure after that is the download's)
 	asked := false
-	try := func() ([]byte, string, error) {
+	try := func(retry bool) ([]byte, string, error) {
 		asked = false
-		src, err := p.Image(ctx, id, index, format)
+		src, err := p.Image(ctx, id, index, retry)
 		if err != nil {
 			return nil, "", err
 		}
@@ -231,12 +229,11 @@ func fetchImage(ctx context.Context, p site.Provider, id string, index int, form
 		}
 		return res.Body, src.Ext, nil
 	}
-	body, ext, err := try()
-	// the URL may have expired, or its server be down: the plugin forgets what it knew and is asked once more (a
-	// site with more than one server for a page can then give another)
+	body, ext, err := try(false)
+	// the URL may have expired, or its server be down: the plugin is asked once more to answer afresh (a site with
+	// more than one server for a page can then give another)
 	if err != nil && ctx.Err() == nil && asked {
-		p.Invalidate()
-		body, ext, err = try()
+		body, ext, err = try(true)
 	}
 	return body, ext, err
 }

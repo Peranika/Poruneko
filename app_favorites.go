@@ -101,7 +101,7 @@ func (a *App) FavoriteNames(q model.FavoritesQuery) ([]model.FavoriteName, error
 	if err != nil {
 		return nil, err
 	}
-	if pluginInfoOf(p.ID()).OwnFavorites {
+	if pluginInfoOf(p.ID()).Favorites.Own {
 		return a.ownFavoriteNames(p), nil
 	}
 	return a.favoriteNames(p.ID(), q.ExcludeCollective), nil
@@ -139,7 +139,7 @@ func (a *App) Favorites(q model.FavoritesQuery) (*model.FavoritesResult, error) 
 
 	names := a.favoriteNames(p.ID(), q.ExcludeCollective)
 	var tags []string
-	if pluginInfoOf(p.ID()).OwnFavorites {
+	if pluginInfoOf(p.ID()).Favorites.Own {
 		// the plugin lists its own choice of works (no artists are searched), narrowed by one of its own names
 		names = a.ownFavoriteNames(p)
 		if q.Tag != "" {

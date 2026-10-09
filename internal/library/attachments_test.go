@@ -19,7 +19,7 @@ type attachmentProvider struct {
 	url string
 }
 
-func (a *attachmentProvider) Attachment(context.Context, string, int) (*site.ImageSource, error) {
+func (a *attachmentProvider) Attachment(context.Context, string, int, bool) (*site.ImageSource, error) {
 	return &site.ImageSource{URL: a.url}, nil
 }
 
