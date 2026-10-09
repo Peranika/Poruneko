@@ -19,6 +19,16 @@ import (
 // API for the sites from site plugins: their lists and screens, what their plugins tell, adding works from URLs,
 // and the filter values kept per owner of works
 
+// workSite is the site of a work, with the work's id on it
+func workSite(key string) (site.Provider, string, error) {
+	siteID, id, err := model.ParseKey(key)
+	if err != nil {
+		return nil, "", err
+	}
+	p, err := site.Get(siteID)
+	return p, id, err
+}
+
 // browseSite is the site with this id (the first site if empty)
 func browseSite(id model.SiteID) (site.Provider, error) {
 	if id != "" {
@@ -171,11 +181,7 @@ func (a *App) OpenAttachment(key string, index int) error {
 
 // AttachmentURL is where an attachment of a work is (for a browser of remote access to open itself)
 func (a *App) AttachmentURL(key string, index int) (string, error) {
-	siteID, id, err := model.ParseKey(key)
-	if err != nil {
-		return "", err
-	}
-	p, err := site.Get(siteID)
+	p, id, err := workSite(key)
 	if err != nil {
 		return "", err
 	}

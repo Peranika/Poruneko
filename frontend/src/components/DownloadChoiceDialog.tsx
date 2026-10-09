@@ -24,32 +24,33 @@ let show: ((ask: Ask) => void) | null = null
 const askDownloadChoice = (options: DownloadOptions, current?: DownloadChoice): Promise<DownloadChoice | null> =>
   new Promise((resolve) => (show ? show({ options, current, resolve }) : resolve(null)))
 
-/** Starts a download, asking first what of it when the work has archives among its attachments */
-export async function downloadChoosing(key: string, onError: (msg: string) => void): Promise<void> {
+/**
+ * Asks what to download of a work: the choice, 'none' when it has no archives to choose among, null when cancelled
+ * (or the work could not be read: told to onError). current: what is kept now (choosing again for a downloaded work)
+ */
+async function askFor(key: string, onError: (msg: string) => void, current?: DownloadChoice): Promise<DownloadChoice | 'none' | null> {
   let options: DownloadOptions
   try {
     options = await api.downloadOptions(key)
   } catch (e) {
-    return onError(t('downloadChoice.failed', { error: errorText(e) }))
+    onError(t('downloadChoice.failed', { error: errorText(e) }))
+    return null
   }
-  if (!options.attachments.length) return void api.startDownload(key).catch((e) => onError(errorText(e)))
-  const choice = await askDownloadChoice(options)
-  if (!choice) return
-  await api.startDownloadWith(key, choice.pages, choice.attachments ?? []).catch((e) => onError(errorText(e)))
+  return options.attachments.length ? askDownloadChoice(options, current) : 'none'
+}
+
+/** Starts a download, asking first what of it when the work has archives among its attachments */
+export async function downloadChoosing(key: string, onError: (msg: string) => void): Promise<void> {
+  const c = await askFor(key, onError)
+  const run = c === 'none' ? api.startDownload(key) : c && api.startDownloadWith(key, c.pages, c.attachments ?? [])
+  await run?.catch((e) => onError(errorText(e)))
 }
 
 /** Chooses again what to keep of a downloaded work (its cbz is built again with it) */
 export async function rechooseDownload(b: Bookmark, onError: (msg: string) => void): Promise<void> {
-  let options: DownloadOptions
-  try {
-    options = await api.downloadOptions(b.key)
-  } catch (e) {
-    return onError(t('downloadChoice.failed', { error: errorText(e) }))
-  }
-  if (!options.attachments.length) return onError(t('downloadChoice.noAttachments'))
-  const choice = await askDownloadChoice(options, b.downloadChoice ?? { pages: true })
-  if (!choice) return
-  await api.changeDownloadChoice(b.key, choice.pages, choice.attachments ?? []).catch((e) => onError(errorText(e)))
+  const c = await askFor(b.key, onError, b.downloadChoice ?? { pages: true })
+  if (c === 'none') return onError(t('downloadChoice.noAttachments'))
+  if (c) await api.changeDownloadChoice(b.key, c.pages, c.attachments ?? []).catch((e) => onError(errorText(e)))
 }
 
 /** The dialog, put once in the app */

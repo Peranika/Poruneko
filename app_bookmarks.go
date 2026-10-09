@@ -13,7 +13,6 @@ import (
 	"poruneko/internal/library"
 	"poruneko/internal/meta"
 	"poruneko/internal/model"
-	"poruneko/internal/site"
 	"poruneko/internal/store"
 )
 
@@ -503,11 +502,7 @@ func (a *App) DownloadOptions(key string) (DownloadOptions, error) {
 
 // sitePageCount is how many pages a work has on its site
 func (a *App) sitePageCount(key string) (int, error) {
-	siteID, id, err := model.ParseKey(key)
-	if err != nil {
-		return 0, err
-	}
-	p, err := site.Get(siteID)
+	p, id, err := workSite(key)
 	if err != nil {
 		return 0, err
 	}
@@ -523,27 +518,31 @@ func (a *App) sitePageCount(key string) (int, error) {
 // StartDownloadWith starts a download of what was chosen: the work's pages (pages) and archives among its
 // attachments (by Attachment.Index)
 func (a *App) StartDownloadWith(key string, pages bool, attachments []int) error {
-	if !pages && len(attachments) == 0 {
-		return apperr.New("download.nothingChosen", "nothing to download")
+	c, err := downloadChoice(pages, attachments)
+	if err != nil {
+		return err
 	}
-	b, ok := a.st.Update(key, func(b *model.Bookmark) {
-		b.DownloadChoice = nil
-		if !pages || len(attachments) > 0 {
-			b.DownloadChoice = &model.DownloadChoice{Pages: pages, Attachments: slices.Clone(attachments)}
-		}
-	})
-	if !ok {
+	if _, ok := a.st.Update(key, func(b *model.Bookmark) { b.DownloadChoice = c }); !ok {
 		return errNotBookmarked()
 	}
-	return a.StartDownload(b.Key)
+	return a.StartDownload(key)
+}
+
+// downloadChoice is what the user chose to download (something must be)
+func downloadChoice(pages bool, attachments []int) (*model.DownloadChoice, error) {
+	if !pages && len(attachments) == 0 {
+		return nil, apperr.New("download.nothingChosen", "nothing to download")
+	}
+	return model.NewDownloadChoice(pages, attachments), nil
 }
 
 // ChangeDownloadChoice chooses again what to keep of a downloaded work with attachments: its cbz is built again
 // with the pages and archives now chosen. What it keeps is taken from the saved work; only what was added is
 // downloaded
 func (a *App) ChangeDownloadChoice(key string, pages bool, attachments []int) error {
-	if !pages && len(attachments) == 0 {
-		return apperr.New("download.nothingChosen", "nothing to download")
+	next, err := downloadChoice(pages, attachments)
+	if err != nil {
+		return err
 	}
 	b, ok := a.st.Bookmark(key)
 	if !ok {
@@ -552,21 +551,10 @@ func (a *App) ChangeDownloadChoice(key string, pages bool, attachments []int) er
 	if b.Download.Status != model.DownloadDone || model.IsFileKey(key) || model.IsLocalKey(key) {
 		return apperr.New("download.notDownloaded", "not downloaded yet")
 	}
-	var next *model.DownloadChoice
-	if !pages || len(attachments) > 0 {
-		next = &model.DownloadChoice{Pages: pages, Attachments: slices.Clone(attachments)}
-	}
-	// the same as now: nothing to do
-	old := b.DownloadChoice
-	if same := (old == nil && next == nil) ||
-		(old != nil && next != nil && old.Pages == next.Pages && slices.Equal(old.Attachments, next.Attachments)); same {
+	if b.DownloadChoice.Same(next) {
 		return nil
 	}
-	cur := next
-	if cur == nil {
-		cur = &model.DownloadChoice{Pages: true}
-	}
-	if err := a.lib.Rechoose(key, old, cur); err != nil {
+	if err := a.lib.Rechoose(key, b.DownloadChoice, next); err != nil {
 		return err
 	}
 	a.st.Update(key, func(b *model.Bookmark) {

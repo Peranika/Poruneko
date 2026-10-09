@@ -42,22 +42,34 @@ func (l *Library) attachmentPath(key string, a model.Attachment) string {
 	return filepath.Join(l.WorkDir(key), attachmentsDir, strconv.Itoa(a.Index)+strings.ToLower(filepath.Ext(a.Name)))
 }
 
-// archiveMedia lists the images and videos in an archive in reading order, with a reader of each
-func archiveMedia(path string) (names []string, read func(i int) ([]byte, error), done func(), err error) {
+// media are the images and videos of an attachment, in reading order: their names, a reader of each, and what to
+// do once they are read (close the archive)
+type media struct {
+	names []string
+	read  func(i int) ([]byte, error)
+	done  func()
+}
+
+// archiveMedia lists the images and videos in an archive
+func archiveMedia(path string) (media, error) {
 	if f := formatFor(path); f != nil {
 		a, err := openPlugin(path, f)
 		if err != nil {
-			return nil, nil, nil, err
+			return media{}, err
+		}
+		m := media{
+			read: func(i int) ([]byte, error) { return f.Read(path, a.pages[i]) },
+			// closed after (the work dir is removed once the cbz is built)
+			done: func() { closeHeld(path) },
 		}
 		for _, e := range a.pages {
-			names = append(names, e.Name)
+			m.names = append(m.names, e.Name)
 		}
-		// closed after (the work dir is removed once the cbz is built)
-		return names, func(i int) ([]byte, error) { return f.Read(path, a.pages[i]) }, func() { closeHeld(path) }, nil
+		return m, nil
 	}
 	rc, err := zip.OpenReader(path)
 	if err != nil {
-		return nil, nil, nil, err
+		return media{}, err
 	}
 	var files []*zip.File
 	for _, f := range rc.File {
@@ -66,10 +78,11 @@ func archiveMedia(path string) (names []string, read func(i int) ([]byte, error)
 		}
 	}
 	slices.SortStableFunc(files, func(a, b *zip.File) int { return naturalCompare(a.Name, b.Name) })
+	m := media{read: func(i int) ([]byte, error) { return readFile(files[i]) }, done: func() { rc.Close() }}
 	for _, f := range files {
-		names = append(names, f.Name)
+		m.names = append(m.names, f.Name)
 	}
-	return names, func(i int) ([]byte, error) { return readFile(files[i]) }, func() { rc.Close() }, nil
+	return m, nil
 }
 
 // keptDir is where the pages an attachment gave a saved work wait while the work is rebuilt with another choice
@@ -78,11 +91,11 @@ func (l *Library) keptDir(key string, index int) string {
 	return filepath.Join(l.WorkDir(key), attachmentsDir, strconv.Itoa(index)+".pages")
 }
 
-// keptMedia lists the pages kept for an attachment (keptDir) like archiveMedia; ok is false when there are none
-func keptMedia(dir string) (names []string, read func(i int) ([]byte, error), ok bool) {
+// keptMedia lists the pages kept for an attachment (keptDir); ok is false when there are none
+func keptMedia(dir string) (m media, ok bool) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, nil, false
+		return media{}, false
 	}
 	var files []string
 	for _, e := range entries {
@@ -91,71 +104,85 @@ func keptMedia(dir string) (names []string, read func(i int) ([]byte, error), ok
 		}
 	}
 	slices.Sort(files)
+	m = media{read: func(i int) ([]byte, error) { return os.ReadFile(filepath.Join(dir, files[i])) }, done: func() {}}
 	for _, f := range files {
 		_, name, _ := strings.Cut(f, "_")
-		names = append(names, name)
+		m.names = append(m.names, name)
 	}
-	return names, func(i int) ([]byte, error) { return os.ReadFile(filepath.Join(dir, files[i])) }, true
+	return m, true
+}
+
+// attachmentMedia are the images and videos of an attachment of a work: the pages it gave the work before it was
+// chosen again, else those in the archive (downloaded if it is not there yet)
+func (l *Library) attachmentMedia(ctx context.Context, p site.Provider, id, key string, a model.Attachment) (media, error) {
+	if m, ok := keptMedia(l.keptDir(key, a.Index)); ok {
+		return m, nil
+	}
+	path := l.attachmentPath(key, a)
+	if err := fetchAttachment(ctx, p, id, a.Index, path); err != nil {
+		return media{}, apperr.Wrap(err, "download.attachmentFailed", fmt.Sprintf("failed to download %s", a.Name), "name", a.Name)
+	}
+	m, err := archiveMedia(path)
+	if err != nil {
+		return media{}, unreadable(a, err)
+	}
+	return m, nil
+}
+
+func unreadable(a model.Attachment, err error) error {
+	return apperr.Wrap(err, "download.attachmentUnreadable", fmt.Sprintf("cannot read %s", a.Name), "name", a.Name)
 }
 
 // addAttachments lays out the pages of a work downloaded with attachments: its own pages (when chosen), then the
 // images and videos of each chosen archive, which are saved in the work dir as pages. Returns the work with those
-// pages, how many at its head are the site's, and how many each chosen attachment gave (in c.Attachments' order)
-func (l *Library) addAttachments(ctx context.Context, p site.Provider, id, key string, d *model.GalleryDetail, c *model.DownloadChoice) (*model.GalleryDetail, int, []int, error) {
+// pages, and the choice with where they are (Planned: how many at its head are the site's, how many each attachment
+// gave)
+func (l *Library) addAttachments(ctx context.Context, p site.Provider, id, key string, d *model.GalleryDetail, c model.DownloadChoice) (*model.GalleryDetail, *model.DownloadChoice, error) {
 	out := *d
 	out.Pages = nil
 	if c.Pages {
 		out.Pages = slices.Clone(d.Pages)
 	}
-	sitePages := len(out.Pages)
-	counts := make([]int, len(c.Attachments))
+	c.Planned, c.SitePages, c.Counts = true, len(out.Pages), make([]int, len(c.Attachments))
 	for k, index := range c.Attachments {
 		i := slices.IndexFunc(d.Attachments, func(a model.Attachment) bool { return a.Index == index })
 		if i < 0 {
 			continue // no longer on the site
 		}
 		a := d.Attachments[i]
-		// the pages it gave the work before it was chosen again, else the archive itself
-		names, read, kept := keptMedia(l.keptDir(key, a.Index))
-		done := func() {}
-		if !kept {
-			path := l.attachmentPath(key, a)
-			if err := fetchAttachment(ctx, p, id, a.Index, path); err != nil {
-				return nil, 0, nil, apperr.Wrap(err, "download.attachmentFailed", fmt.Sprintf("failed to download %s", a.Name), "name", a.Name)
-			}
-			var err error
-			if names, read, done, err = archiveMedia(path); err != nil {
-				return nil, 0, nil, apperr.Wrap(err, "download.attachmentUnreadable", fmt.Sprintf("cannot read %s", a.Name), "name", a.Name)
-			}
+		m, err := l.attachmentMedia(ctx, p, id, key, a)
+		if err != nil {
+			return nil, nil, err
 		}
-		counts[k] = len(names)
-		for j, name := range names {
+		c.Counts[k] = len(m.names)
+		for j, name := range m.names {
 			at := len(out.Pages)
 			ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
 			// written every time: a page saved while viewing the site's pages may be in this place (in any format)
-			b, err := read(j)
+			b, err := m.read(j)
 			if err == nil {
 				l.removeWorkPage(key, at)
 				err = l.SavePage(key, at, ext, b)
 			}
 			if err != nil {
-				done()
-				return nil, 0, nil, apperr.Wrap(err, "download.attachmentUnreadable", fmt.Sprintf("cannot read %s", a.Name), "name", a.Name)
+				m.done()
+				return nil, nil, unreadable(a, err)
 			}
 			out.Pages = append(out.Pages, model.PageInfo{Index: at, Name: filepath.Base(name), Video: IsVideoExt(ext)})
 		}
-		done()
+		m.done()
 	}
 	if len(out.Pages) == 0 {
-		return nil, 0, nil, apperr.New("download.nothingChosen", "nothing to download")
+		return nil, nil, apperr.New("download.nothingChosen", "nothing to download")
 	}
 	out.PageCount = len(out.Pages)
-	return &out, sitePages, counts, nil
+	return &out, &c, nil
 }
 
 // Rechoose prepares a saved work to be built again with another choice of what to keep: the pages the new choice
 // keeps are taken out of its cbz into the work dir (the site's pages to their places, an attachment's to keptDir),
-// then the cbz is removed. The download that follows builds the new cbz, fetching only what was not kept
+// then the cbz is removed. The download that follows builds the new cbz, fetching only what was not kept. A nil
+// choice is the work's pages alone
 func (l *Library) Rechoose(key string, old, next *model.DownloadChoice) error {
 	if l.ArchivePath(key) == "" || !Owned(key) {
 		return apperr.New("download.notDownloaded", "not downloaded yet")
@@ -167,21 +194,18 @@ func (l *Library) Rechoose(key string, old, next *model.DownloadChoice) error {
 	if old == nil || !old.Planned {
 		old = &model.DownloadChoice{Pages: true, SitePages: len(info.Pages)}
 	}
-	read := func(i int) ([]byte, string, error) {
+	// takeOut copies page i of the saved work to the file named by path (given the page's format)
+	takeOut := func(i int, path func(ext string) string) error {
 		b, ext, ok := l.ReadPage(key, i)
 		if !ok {
-			return nil, "", fmt.Errorf("page %d is missing", i+1)
+			return fmt.Errorf("page %d is missing", i+1)
 		}
-		return b, ext, nil
+		return writeAtomic(path(ext), b)
 	}
 	work := l.WorkDir(key)
-	if next.Pages && old.Pages {
+	if next.WithPages() && old.Pages {
 		for i := range old.SitePages {
-			b, ext, err := read(i)
-			if err == nil {
-				err = writeAtomic(filepath.Join(work, pageBase(i)+"."+ext), b)
-			}
-			if err != nil {
+			if err := takeOut(i, func(ext string) string { return filepath.Join(work, pageBase(i)+"."+ext) }); err != nil {
 				return err
 			}
 		}
@@ -191,20 +215,19 @@ func (l *Library) Rechoose(key string, old, next *model.DownloadChoice) error {
 		at := old.SitePages
 		for k, index := range old.Attachments {
 			n := old.Counts[k]
-			if slices.Contains(next.Attachments, index) {
+			if next.Takes(index) {
 				dir := l.keptDir(key, index)
 				for j := range n {
-					b, ext, err := read(at + j)
 					name := ""
 					if at+j < len(info.Pages) {
 						name = info.Pages[at+j].Name
 					}
-					if !strings.EqualFold(strings.TrimPrefix(filepath.Ext(name), "."), ext) {
-						name += "." + ext
-					}
-					if err == nil {
-						err = writeAtomic(filepath.Join(dir, pageBase(j)+"_"+name), b)
-					}
+					err := takeOut(at+j, func(ext string) string {
+						if !strings.EqualFold(strings.TrimPrefix(filepath.Ext(name), "."), ext) {
+							name += "." + ext
+						}
+						return filepath.Join(dir, pageBase(j)+"_"+name)
+					})
 					if err != nil {
 						return err
 					}

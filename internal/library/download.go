@@ -133,16 +133,12 @@ func (d *Downloader) run(ctx context.Context, key string) error {
 	sitePages := len(detail.Pages)
 	if b, ok := d.st.Bookmark(key); ok && b.DownloadChoice != nil {
 		d.setState(key, func(s *model.DownloadState) { s.Status = model.DownloadDownloading })
-		c := *b.DownloadChoice
-		var counts []int
-		if detail, sitePages, counts, err = d.lib.addAttachments(ctx, p, id, key, detail, &c); err != nil {
+		var planned *model.DownloadChoice
+		if detail, planned, err = d.lib.addAttachments(ctx, p, id, key, detail, *b.DownloadChoice); err != nil {
 			return err
 		}
-		d.st.Update(key, func(b *model.Bookmark) {
-			if b.DownloadChoice != nil {
-				b.DownloadChoice.Planned, b.DownloadChoice.SitePages, b.DownloadChoice.Counts = true, sitePages, counts
-			}
-		})
+		sitePages = planned.SitePages
+		d.st.Update(key, func(b *model.Bookmark) { b.DownloadChoice = planned })
 	}
 	total := len(detail.Pages)
 	if err := d.lib.SaveInfo(key, detail); err != nil {

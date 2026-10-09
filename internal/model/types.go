@@ -5,6 +5,7 @@ package model
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -396,6 +397,31 @@ type DownloadChoice struct {
 	SitePages int  `json:"sitePages,omitempty"`
 	// Counts are how many pages each of Attachments gave (in its order), so they can be found again in the saved work
 	Counts []int `json:"counts,omitempty"`
+}
+
+// NewDownloadChoice is the choice of a work's pages and archives among its attachments (by Attachment.Index); nil
+// for its pages alone, which is what a work without a choice downloads
+func NewDownloadChoice(pages bool, attachments []int) *DownloadChoice {
+	if pages && len(attachments) == 0 {
+		return nil
+	}
+	return &DownloadChoice{Pages: pages, Attachments: slices.Clone(attachments)}
+}
+
+// WithPages reports whether the work's own pages are chosen (nil: its pages alone)
+func (c *DownloadChoice) WithPages() bool { return c == nil || c.Pages }
+
+// Takes reports whether an attachment (by Attachment.Index) is chosen
+func (c *DownloadChoice) Takes(index int) bool {
+	return c != nil && slices.Contains(c.Attachments, index)
+}
+
+// Same reports whether two choices choose the same (nil: the pages alone)
+func (c *DownloadChoice) Same(o *DownloadChoice) bool {
+	if c == nil || o == nil {
+		return c == o
+	}
+	return c.Pages == o.Pages && slices.Equal(c.Attachments, o.Attachments)
 }
 
 // IsSitePage reports whether a page of a work is the site's own page of that index (fetched from it when not saved)

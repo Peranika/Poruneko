@@ -2,12 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { imageUrl, isFileKey, thumbUrl } from '../../api'
 import { useBackdropClose } from '../../backdrop'
 import { comboFromKey, comboFromMouse, isTyping, type ActionId } from '../../keybindings'
-import type { GallerySummary, PageInfo, ViewerSettings } from '../../types'
+import type { PageInfo, ViewerSettings } from '../../types'
 import { t } from '../../i18n'
 import { useAutoReveal } from '../../useAutoReveal'
 import { useTouch } from '../../useCompact'
 import { setViewerGestures, type GestureAction } from '../../gestures'
-import { Icon } from '../Icon'
 import { PageAnimation, PageImage, PageVideo } from './PageImage'
 import { isAnimation, type MediaLike } from './animation'
 import { buildSpreads, layoutSpread, loadSingles, pageAtOffset, ratioOf, saveSingles, scrollLayout } from './spreads'
@@ -15,6 +14,7 @@ import { PREDECODE_BEHIND, estimatePredecodeBytes, formatBytes, usePredecode } f
 import { usePrefetchAll } from './usePrefetchAll'
 import { useSize } from './useSize'
 import { useWheelPaging } from './useWheelPaging'
+import { EdgeWorkCard, useEdgeWork, type EdgeWorkSource } from './EdgeWork'
 import { SlideProgress, SlideTimer, type SlideTimerState } from './Slideshow'
 import { ViewerBar } from './ViewerBar'
 import { pageFactor, viewFactor } from './pageComplexity'
@@ -43,22 +43,11 @@ interface Props {
   onClose?(): void
   /** Page range bookmark (the gallery page holds the state; the viewer only selects pages and shows marks) */
   range?: RangeControl
-  /**
-   * Turning past the last (or before the first) page shows the next (previous) work; turning once more opens it.
-   * find gives the work, or why there is none
-   */
-  edgeWork?: { find(dir: 1 | -1): Promise<EdgeWork | string>; open(work: GallerySummary, byButton?: boolean): void }
+  /** Turning past the last (or before the first) page shows the next (previous) work; turning once more opens it */
+  edgeWork?: EdgeWorkSource
   /** The bars start hidden (arrived from the previous work by a key or the slideshow, with no cursor to show them) */
   startHidden?: boolean
 }
-
-export interface EdgeWork {
-  work: GallerySummary
-  title: string
-}
-
-/** A press past the edge within this long after the work is shown does not open it yet (the rest of a wheel spin) */
-const EDGE_CONFIRM_DELAY = 400
 
 export interface RangeControl {
   /** Whether the input panel is open */
@@ -189,38 +178,8 @@ export function Viewer(props: Props) {
 
   useEffect(() => onPageChange(page), [page, onPageChange])
 
-  // ---------------------------------------------------------------- Past the last / before the first page
-  // the neighboring work shown on turning past the edge (found: the work, or why there is none; absent while looking)
-  const [edge, setEdge] = useState<{ dir: 1 | -1; found?: EdgeWork | string; at: number } | null>(null)
-  const edgeRef = useRef(edge)
-  edgeRef.current = edge
-  const pastEdge = useCallback(
-    (dir: 1 | -1) => {
-      if (!edgeWork) return
-      const e = edgeRef.current
-      if (e?.dir === dir) {
-        // turning once more opens the work shown
-        if (typeof e.found === 'object' && performance.now() - e.at >= EDGE_CONFIRM_DELAY) edgeWork.open(e.found.work)
-        return
-      }
-      const shown = { dir, at: performance.now() }
-      edgeRef.current = shown
-      setEdge(shown)
-      void edgeWork.find(dir).then((found) => {
-        if (edgeRef.current !== shown) return
-        const next = { dir, found, at: performance.now() }
-        edgeRef.current = next
-        setEdge(next)
-      })
-    },
-    [edgeWork]
-  )
-  const closeEdge = useCallback(() => {
-    edgeRef.current = null
-    setEdge(null)
-  }, [])
-  // turning to another page puts it away
-  useEffect(closeEdge, [page, closeEdge])
+  // the neighboring work, shown on turning past the last (or before the first) page
+  const { edge, pastEdge, closeEdge, edgeShown } = useEdgeWork(edgeWork, page)
 
   // count from the latest page so quick repeated presses are not lost before re-rendering
   const pageRef = useRef(page)
@@ -369,7 +328,7 @@ export function Viewer(props: Props) {
       return
     }
     // scrolling back from the end puts the neighboring work away
-    if (edgeRef.current) closeEdge()
+    if (edgeShown()) closeEdge()
     const p = pageAtOffset(scroll.offsets, stageRef.current.scrollTop + stageRef.current.clientHeight / 3)
     if (p !== page) setPage(p)
   }
@@ -385,7 +344,7 @@ export function Viewer(props: Props) {
       // Esc is fixed (closes the page list or full screen)
       if (e.key === 'Escape') {
         if (picking) range?.onCancelPick()
-        else if (edgeRef.current) closeEdge()
+        else if (edgeShown()) closeEdge()
         else if (showThumbs) setShowThumbs(false)
         else if (immersive) onToggleImmersive()
         return
@@ -512,7 +471,8 @@ export function Viewer(props: Props) {
     changeSlideSeconds,
     toggleSlideshow,
     pastEdge,
-    closeEdge
+    closeEdge,
+    edgeShown
   ])
 
   // in fit-to-screen views the wheel turns pages
@@ -804,31 +764,7 @@ export function Viewer(props: Props) {
         {range?.active && range.panel}
       </div>
 
-      {/* the neighboring work, on the side the pages turn towards */}
-      {edge && (
-        <div className={`edge-work at-${edge.dir > 0 === rtl ? 'left' : 'right'}`}>
-          <div className="edge-head">
-            <span>{edge.dir > 0 ? t('viewer.edgeNext') : t('viewer.edgePrev')}</span>
-            <button className="icon-btn" onClick={closeEdge} title={t('viewer.edgeClose')}>
-              <Icon name="close" size={14} />
-            </button>
-          </div>
-          {edge.found === undefined ? (
-            <div className="spinner" />
-          ) : typeof edge.found === 'string' ? (
-            <p className="muted">{edge.found}</p>
-          ) : (
-            <>
-              <img src={thumbUrl(edge.found.work.key)} alt="" />
-              <div className="edge-title">{edge.found.title}</div>
-              <div className="muted small">{edge.dir > 0 ? t('viewer.edgeHintNext') : t('viewer.edgeHintPrev')}</div>
-              <button className="btn primary small" onClick={() => typeof edge.found === 'object' && edgeWork?.open(edge.found.work, true)}>
-                {edge.dir > 0 ? t('viewer.edgeGoNext') : t('viewer.edgeGoPrev')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {edge && <EdgeWorkCard edge={edge} rtl={rtl} source={edgeWork} onClose={closeEdge} />}
 
       {picking && (
         <div className="range-banner">

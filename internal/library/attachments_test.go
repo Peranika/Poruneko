@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"poruneko/internal/model"
@@ -48,12 +49,12 @@ func TestAddAttachmentsAppendsArchiveMedia(t *testing.T) {
 	p := &attachmentProvider{url: srv.URL}
 	d.Attachments = []model.Attachment{{Index: 0, Name: "extra.zip", Kind: "archive"}}
 
-	out, sitePages, counts, err := lib.addAttachments(context.Background(), p, "123", d.Key, d, &model.DownloadChoice{Pages: true, Attachments: []int{0}})
+	out, c, err := lib.addAttachments(context.Background(), p, "123", d.Key, d, model.DownloadChoice{Pages: true, Attachments: []int{0}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sitePages != 3 || len(out.Pages) != 6 || out.PageCount != 6 || len(counts) != 1 || counts[0] != 3 {
-		t.Fatalf("site pages %d, pages %d (count %d); want 3, 6", sitePages, len(out.Pages), out.PageCount)
+	if c.SitePages != 3 || len(out.Pages) != 6 || out.PageCount != 6 || !slices.Equal(c.Counts, []int{3}) || !c.Planned {
+		t.Fatalf("choice %+v, pages %d (count %d); want 3 site pages of 6", c, len(out.Pages), out.PageCount)
 	}
 	// natural order, images and videos only, after the site's pages
 	want := []struct {
@@ -72,12 +73,12 @@ func TestAddAttachmentsAppendsArchiveMedia(t *testing.T) {
 	}
 
 	// without the site's pages, the archive's come first
-	out, sitePages, _, err = lib.addAttachments(context.Background(), p, "123", d.Key, d, &model.DownloadChoice{Attachments: []int{0}})
+	out, c, err = lib.addAttachments(context.Background(), p, "123", d.Key, d, model.DownloadChoice{Attachments: []int{0}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sitePages != 0 || len(out.Pages) != 3 || out.Pages[0].Name != "clip.mp4" {
-		t.Fatalf("site pages %d, pages %+v", sitePages, out.Pages)
+	if c.SitePages != 0 || len(out.Pages) != 3 || out.Pages[0].Name != "clip.mp4" {
+		t.Fatalf("site pages %d, pages %+v", c.SitePages, out.Pages)
 	}
 	if b, _, _ := lib.ReadPage(d.Key, 1); string(b) != "two" {
 		t.Fatalf("page 1 = %q", b)
@@ -94,7 +95,7 @@ func TestAddAttachmentsReplacesPageSavedWhileViewing(t *testing.T) {
 	if err := lib.SavePage(d.Key, 0, "webp", []byte("site")); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := lib.addAttachments(context.Background(), &attachmentProvider{url: srv.URL}, "123", d.Key, d, &model.DownloadChoice{Attachments: []int{0}}); err != nil {
+	if _, _, err := lib.addAttachments(context.Background(), &attachmentProvider{url: srv.URL}, "123", d.Key, d, model.DownloadChoice{Attachments: []int{0}}); err != nil {
 		t.Fatal(err)
 	}
 	if b, ext, _ := lib.ReadPage(d.Key, 0); string(b) != "archive" || ext != "png" {
@@ -127,12 +128,10 @@ func TestRechooseKeepsWhatIsChosenWithoutFetchingIt(t *testing.T) {
 		}
 	}
 	// saved with the site's pages and the archive's
-	old := &model.DownloadChoice{Pages: true, Attachments: []int{0}}
-	out, sitePages, counts, err := lib.addAttachments(context.Background(), p, "123", d.Key, d, old)
+	out, old, err := lib.addAttachments(context.Background(), p, "123", d.Key, d, model.DownloadChoice{Pages: true, Attachments: []int{0}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	old.Planned, old.SitePages, old.Counts = true, sitePages, counts
 	if err := lib.SaveInfo(d.Key, out); err != nil {
 		t.Fatal(err)
 	}
@@ -148,15 +147,15 @@ func TestRechooseKeepsWhatIsChosenWithoutFetchingIt(t *testing.T) {
 	if lib.ArchivePath(d.Key) != "" {
 		t.Fatal("the cbz should be gone until it is built again")
 	}
-	out, sitePages, _, err = lib.addAttachments(context.Background(), p, "123", d.Key, d, next)
+	out, planned, err := lib.addAttachments(context.Background(), p, "123", d.Key, d, *next)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if hits != 1 {
 		t.Fatalf("the kept archive was fetched again (%d fetches)", hits)
 	}
-	if sitePages != 0 || len(out.Pages) != 2 || out.Pages[0].Name != "a.png" || out.Pages[1].Name != "b.png" {
-		t.Fatalf("site pages %d, pages %+v", sitePages, out.Pages)
+	if planned.SitePages != 0 || len(out.Pages) != 2 || out.Pages[0].Name != "a.png" || out.Pages[1].Name != "b.png" {
+		t.Fatalf("site pages %d, pages %+v", planned.SitePages, out.Pages)
 	}
 	if _, err := lib.Pack(d.Key, out); err != nil {
 		t.Fatal(err)
