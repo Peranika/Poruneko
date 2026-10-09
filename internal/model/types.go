@@ -495,6 +495,8 @@ type ViewerSettings struct {
 	BarLocked bool `json:"barLocked"`
 	// Moire is how strongly pages shown smaller than their size are smoothed against moire ("" off | weak | strong)
 	Moire string `json:"moire"`
+	// Sharpen is how strongly the pages' edges are sharpened at the size they are shown ("" off | weak | strong)
+	Sharpen string `json:"sharpen"`
 }
 
 type Settings struct {

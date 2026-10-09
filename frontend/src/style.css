@@ -913,6 +913,7 @@ button.chip.usertag:hover { background: rgba(90, 169, 255, 0.24); }
 .bar-pop-row > .muted { min-width: 4.5em; }
 /* slideshow popup: everything as wide as the popup */
 .bar-pop.slide-pop { width: 316px; }
+.bar-pop.look-pop { width: 240px; }
 /* the round play / stop button sits on the left end of the interval bar, with a ring of the popup's color around it */
 .slide-main { position: relative; display: flex; align-items: center; height: 44px; }
 .slide-play {

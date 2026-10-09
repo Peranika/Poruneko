@@ -598,6 +598,9 @@ export const en: Dict = {
     moireOff: 'Off',
     moireWeak: 'Weak',
     moireStrong: 'Strong',
+    sharpen: 'Sharpening',
+    sharpenHint:
+      'Brings out the edges of the pages at the size they are shown, tightening lines softened by scaling or scanning. "Strong" is crisper but shows noise and screentone more. With moire reduction, the moire is reduced first',
     autoFullscreen: 'Open works in full screen',
     autoFullscreenHint: 'Press Esc or the full screen button to return. Moving to the next/previous work keeps the current mode',
     downloads: 'Bookmarks & downloads',
@@ -696,6 +699,7 @@ export const en: Dict = {
   },
 
   viewer: {
+    look: 'Picture quality (moire reduction, sharpening)',
     videoPlay: 'Play',
     videoPause: 'Pause',
     videoMute: 'Mute',

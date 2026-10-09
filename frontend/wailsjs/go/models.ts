@@ -1030,6 +1030,7 @@ export namespace model {
 	    slideTimeLeft?: boolean;
 	    barLocked: boolean;
 	    moire: string;
+	    sharpen: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ViewerSettings(source);
@@ -1054,6 +1055,7 @@ export namespace model {
 	        this.slideTimeLeft = source["slideTimeLeft"];
 	        this.barLocked = source["barLocked"];
 	        this.moire = source["moire"];
+	        this.sharpen = source["sharpen"];
 	    }
 	}
 	export class Settings {

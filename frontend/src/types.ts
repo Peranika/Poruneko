@@ -434,9 +434,12 @@ export interface ViewerSettings {
   barLocked: boolean
   /** How strongly pages shown smaller than their size are smoothed against moire ("" off) */
   moire: '' | MoireLevel
+  /** How strongly the pages' edges are sharpened at the size they are shown ("" off) */
+  sharpen: '' | SharpenLevel
 }
 
 export type MoireLevel = 'weak' | 'strong'
+export type SharpenLevel = 'weak' | 'strong'
 
 /** A folder of the user's own archives, shown as a tab of its own */
 export interface LocalDir {

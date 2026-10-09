@@ -18,9 +18,9 @@ import { EdgeWorkCard, useEdgeWork, type EdgeWorkSource } from './EdgeWork'
 import { SlideProgress, SlideTimer, type SlideTimerState } from './Slideshow'
 import { ViewerBar } from './ViewerBar'
 import { pageFactor, viewFactor } from './pageComplexity'
-import { prepareMoire } from './moire'
+import { pageFiltersOf, preparePage } from './pageFilters'
 
-/** Spreads around the shown one whose moire reduction is prepared in advance (nearest first) */
+/** Spreads around the shown one whose filtered pages (moire reduction, sharpening) are prepared in advance (nearest first) */
 const MOIRE_AROUND = [1, 2, -1]
 
 interface Props {
@@ -105,7 +105,8 @@ export function Viewer(props: Props) {
     })
   }, [animation, allPages, measured])
   const { direction, coverSingle, fit } = settings
-  const moire = settings.moire || undefined
+  // moire reduction and sharpening (undefined: none)
+  const filters = useMemo(() => pageFiltersOf(settings), [settings.moire, settings.sharpen]) // eslint-disable-line react-hooks/exhaustive-deps
   const rtl = direction === 'rtl'
   const stageRef = useRef<HTMLDivElement>(null)
   const size = useSize(stageRef)
@@ -587,11 +588,11 @@ export function Viewer(props: Props) {
         im.src = imageUrl(galleryKey, i)
         return { i, im }
       })
-    // with the moire reduction, also wait for the reduced pages so they do not show unreduced first
-    const reduced = moire
+    // with moire reduction or sharpening, also wait for the filtered pages so they do not show unfiltered first
+    const reduced = filters
       ? layoutSpread(pages, target, fit, size, rtl)
           .filter((it) => !videos.has(it.index))
-          .map((it) => prepareMoire(imageUrl(galleryKey, it.index), it, moire).catch(() => {}))
+          .map((it) => preparePage(imageUrl(galleryKey, it.index), it, filters).catch(() => {}))
       : []
     // the pages are measured as they decode, so they are shown in their own shape at once
     const decoded = imgs.map(({ i, im }) =>
@@ -609,9 +610,9 @@ export function Viewer(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentKey, galleryKey, mode])
 
-  // prepare the moire reduction of the spreads around the shown one, so turning to them shows them reduced at once
+  // prepare the filtered pages of the spreads around the shown one, so turning to them shows them filtered at once
   useEffect(() => {
-    if (!moire || mode === 'scroll' || size.w <= 0) return
+    if (!filters || mode === 'scroll' || size.w <= 0) return
     const at = spreads.findIndex((sp) => sp.includes(shown[0]))
     if (at < 0) return
     const timer = window.setTimeout(() => {
@@ -619,12 +620,12 @@ export function Viewer(props: Props) {
         const sp = spreads[at + d]
         if (!sp) continue
         for (const it of layoutSpread(pages, sp, fit, size, rtl))
-          if (!videos.has(it.index)) void prepareMoire(imageUrl(galleryKey, it.index), it, moire, true).catch(() => {})
+          if (!videos.has(it.index)) void preparePage(imageUrl(galleryKey, it.index), it, filters, true).catch(() => {})
       }
     }, 0)
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moire, mode, shown.join(','), spreads, pages, fit, size.w, size.h, rtl, galleryKey])
+  }, [filters, mode, shown.join(','), spreads, pages, fit, size.w, size.h, rtl, galleryKey])
 
   // decode the nearby pages in advance (not used in vertical scroll view)
   const predecode = mode === 'scroll' ? 0 : (settings.predecode ?? 0)
@@ -685,7 +686,7 @@ export function Viewer(props: Props) {
         src={imageUrl(galleryKey, i)}
         w={w}
         h={h}
-        moire={moire}
+        filters={filters}
         // a site's work shows the page's thumbnail while the page loads (the user's own archives load at once)
         placeholder={isFileKey(galleryKey) ? undefined : thumbUrl(galleryKey, i, false)}
       />

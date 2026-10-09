@@ -514,6 +514,20 @@ export function SettingsView() {
                   <option value="strong">{t('settings.moireStrong')}</option>
                 </select>
               </label>
+              <label className="row-setting">
+                <span>
+                  {t('settings.sharpen')}
+                  <small className="muted">{t('settings.sharpenHint')}</small>
+                </span>
+                <select
+                  value={s.viewer.sharpen ?? ''}
+                  onChange={(e) => updateSettings({ viewer: { sharpen: e.target.value } as ViewerSettings })}
+                >
+                  <option value="">{t('settings.moireOff')}</option>
+                  <option value="weak">{t('settings.moireWeak')}</option>
+                  <option value="strong">{t('settings.moireStrong')}</option>
+                </select>
+              </label>
               <PredecodeSetting />
               <SlideCurveSetting />
             </section>

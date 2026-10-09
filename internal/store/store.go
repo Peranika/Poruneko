@@ -351,6 +351,9 @@ func normalizeSettings(v *model.Settings, libraryDir string) {
 	if !slices.Contains([]string{"weak", "strong"}, v.Viewer.Moire) {
 		v.Viewer.Moire = ""
 	}
+	if !slices.Contains([]string{"weak", "strong"}, v.Viewer.Sharpen) {
+		v.Viewer.Sharpen = ""
+	}
 	v.DownloadConcurrency = max(v.DownloadConcurrency, 1)
 	if v.LibraryDir == "" {
 		v.LibraryDir = libraryDir

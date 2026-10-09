@@ -110,6 +110,7 @@ export function ViewerBar(props: Props) {
         shifted={props.shifted}
         onResetShift={props.onResetShift}
       />
+      <LookControl settings={settings} onSettings={onSettings} />
       <span className="bar-sep" />
       {props.extra}
       {range && (
@@ -133,6 +134,50 @@ export function ViewerBar(props: Props) {
       >
         <Icon name={immersive ? 'exitFullscreen' : 'fullscreen'} />
       </button>
+    </div>
+  )
+}
+
+/**
+ * What is done to how the pages look, each off / weak / strong: shown together in the bar's picture-quality pop-up
+ * (and in the settings). More such filters (upscaling...) go here
+ */
+const LOOK_FILTERS: { key: 'moire' | 'sharpen'; label: () => string; hint: () => string }[] = [
+  { key: 'moire', label: () => t('settings.moire'), hint: () => t('settings.moireHint') },
+  { key: 'sharpen', label: () => t('settings.sharpen'), hint: () => t('settings.sharpenHint') }
+]
+const LEVELS = [
+  ['', () => t('settings.moireOff')],
+  ['weak', () => t('settings.moireWeak')],
+  ['strong', () => t('settings.moireStrong')]
+] as const
+
+/** The picture quality: moire reduction, sharpening (on while any is on) */
+function LookControl({ settings, onSettings }: { settings: ViewerSettings; onSettings(p: Partial<ViewerSettings>): void }) {
+  const on = LOOK_FILTERS.some((f) => settings[f.key])
+  return (
+    <div className="bar-pop-ctl">
+      <button className={`icon-btn ${on ? 'active' : ''}`} title={t('viewer.look')}>
+        <Icon name="image" />
+      </button>
+      <div className="bar-pop look-pop pop-right">
+        {LOOK_FILTERS.map((f) => (
+          <div key={f.key} className="pop-group" title={f.hint()}>
+            <span className="pop-label">{f.label()}</span>
+            <div className="seg full">
+              {LEVELS.map(([level, label]) => (
+                <button
+                  key={level}
+                  className={(settings[f.key] ?? '') === level ? 'active' : ''}
+                  onClick={() => onSettings({ [f.key]: level } as Partial<ViewerSettings>)}
+                >
+                  {label()}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -599,6 +599,9 @@ export const ja = {
     moireOff: 'オフ',
     moireWeak: '弱',
     moireStrong: '強',
+    sharpen: 'シャープ化',
+    sharpenHint:
+      '表示する大きさに合わせたあとでページの輪郭をくっきりさせ、縮小や拡大、スキャンでぼやけた線を引き締めます。「強」はよりくっきりしますが、ノイズやトーンも目立ちやすくなります。モアレ軽減と一緒に使うと、モアレを抑えてからシャープにします',
     autoFullscreen: '作品を開いたら自動で全画面にする',
     autoFullscreenHint: 'Esc や全画面ボタンで通常表示に戻せます。次/前のブックマークへの移動では今の表示を引き継ぎます',
     downloads: 'ブックマーク・ダウンロード',
@@ -697,6 +700,7 @@ export const ja = {
   },
 
   viewer: {
+    look: '画質（モアレ軽減・シャープ化）',
     videoPlay: '再生',
     videoPause: '一時停止',
     videoMute: '音を消す',

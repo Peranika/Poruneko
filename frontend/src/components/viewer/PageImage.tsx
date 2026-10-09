@@ -1,14 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { t } from '../../i18n'
-import type { MoireLevel } from '../../types'
 import { loadJSON, saveJSON } from '../../storage'
 import { Icon } from '../Icon'
-import { prepareMoire, preparedMoire } from './moire'
+import { preparePage, preparedPage, type PageFilters } from './pageFilters'
 import { AnimationPlayer } from './animation'
 
 const AUTO_RETRIES = 3
 
-/** Wait this long after a size change before redrawing with the moire reduction (ms) */
+/** Wait this long after a size change before redrawing the filtered page (moire reduction, sharpening) (ms) */
 const MOIRE_DELAY = 120
 
 /** A page not loaded this long after it is shown gets its thumbnail in its place meanwhile (ms) */
@@ -27,7 +26,7 @@ export function PageImage({
   h,
   index,
   marker,
-  moire,
+  filters,
   placeholder
 }: {
   src: string
@@ -35,7 +34,8 @@ export function PageImage({
   h: number
   index: number
   marker?: string
-  moire?: MoireLevel
+  /** Moire reduction and sharpening (undefined: none) */
+  filters?: PageFilters
   placeholder?: string
 }) {
   const [state, setState] = useState<'loading' | 'ok' | 'err'>('loading')
@@ -55,12 +55,14 @@ export function PageImage({
     if (el?.complete && el.naturalWidth > 0 && state === 'loading') setState('ok')
   }
 
-  // moire reduction: a smoothed copy drawn over the image (the image stays as the fallback). A page prepared ahead
+  // moire reduction and sharpening: a filtered copy drawn over the image (the image stays as the fallback). A page prepared ahead
   // is drawn before the first paint; otherwise it is made once the image has loaded. On a size change the old copy
   // stays, stretched, until the new one is drawn
   const canvas = useRef<HTMLCanvasElement>(null)
   const [smoothed, setSmoothed] = useState(false)
   const box = { w, h }
+  // the filters as a value (a new object of the same filters does not redraw)
+  const filtersKey = filters ? `${filters.moire ?? ''}/${filters.sharpen ?? ''}` : ''
   const draw = (bitmap: ImageBitmap | null): boolean => {
     const c = canvas.current
     if (!c || !bitmap) return false
@@ -74,20 +76,20 @@ export function PageImage({
     }
   }
   useLayoutEffect(() => {
-    if (!moire) return
-    const ready = preparedMoire(src, box, moire)
+    if (!filters) return
+    const ready = preparedPage(src, box, filters)
     if (ready !== undefined) setSmoothed(draw(ready))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moire, src, w, h])
+  }, [filtersKey, src, w, h])
   useEffect(() => {
-    if (!moire || state !== 'ok') {
-      if (!moire) setSmoothed(false)
+    if (!filters || state !== 'ok') {
+      if (!filters) setSmoothed(false)
       return
     }
-    if (preparedMoire(src, box, moire) !== undefined) return // drawn above
+    if (preparedPage(src, box, filters) !== undefined) return // drawn above
     let cancelled = false
     const run = () =>
-      prepareMoire(src, box, moire)
+      preparePage(src, box, filters)
         .then((bitmap) => !cancelled && setSmoothed(draw(bitmap)))
         .catch(() => !cancelled && setSmoothed(false))
     // the first drawing right away; later size changes wait until resizing settles
@@ -97,7 +99,7 @@ export function PageImage({
       window.clearTimeout(delay)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moire, state, src, w, h])
+  }, [filtersKey, state, src, w, h])
 
   // it can fail under congestion, so refetch a few times automatically before showing the button
   const onError = () => {
@@ -122,7 +124,7 @@ export function PageImage({
         // hidden while the thumbnail stands in for it (a half-loaded page would show over it)
         style={smoothed || showPlaceholder ? { opacity: 0 } : undefined}
       />
-      {moire && <canvas ref={canvas} className="page-smooth" style={smoothed ? undefined : { display: 'none' }} />}
+      {filters && <canvas ref={canvas} className="page-smooth" style={smoothed ? undefined : { display: 'none' }} />}
       {state === 'loading' && <div className="spinner" />}
       {state === 'err' && (
         <button
