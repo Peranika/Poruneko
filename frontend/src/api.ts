@@ -48,6 +48,7 @@ import type {
   ThumbSpec,
   UpdateRelease,
   PluginInfo,
+  ReadState,
   RemoteStatus,
   SiteInfo,
   StatusLine,
@@ -158,6 +159,12 @@ export const api = {
   reorderSeries: (id: string, keys: string[]): Promise<Series> => go.ReorderSeries(id, keys),
 
   startDownload: (key: string): Promise<void> => go.StartDownload(key),
+  /** How far every work opened was read (key -> state) */
+  readStates: (): Promise<Record<string, ReadState>> => go.ReadStates(),
+  /** Keep the page a work is at in the viewer; atEnd (its last page is shown) makes it read */
+  setReadPage: (key: string, page: number, pages: number, atEnd: boolean): Promise<void> => go.SetReadPage(key, page, pages, atEnd),
+  /** Mark works read or unread */
+  setRead: (keys: string[], read: boolean): Promise<void> => go.SetRead(keys, read),
   /** What can be chosen to download of a work (its pages and its attachments that are archives) */
   downloadOptions: (key: string): Promise<DownloadOptions> => go.DownloadOptions(key),
   /** Download what was chosen: the pages and archives among the attachments (by index) */
@@ -228,7 +235,8 @@ export const api = {
   remoteSignOutAll: (): Promise<void> => go.RemoteSignOutAll(),
   onDownloadProgress: (cb: (p: DownloadProgress) => void): (() => void) => EventsOn('download:progress', cb),
   onBookmarksChanged: (cb: () => void): (() => void) => EventsOn('bookmarks:changed', cb),
-  onSeriesChanged: (cb: () => void): (() => void) => EventsOn('series:changed', cb)
+  onSeriesChanged: (cb: () => void): (() => void) => EventsOn('series:changed', cb),
+  onReadChanged: (cb: (r: ReadState) => void): (() => void) => EventsOn('read:changed', cb)
 }
 
 const parseKey = (key: string): [string, string] => {

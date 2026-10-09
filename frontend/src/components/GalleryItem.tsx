@@ -6,6 +6,7 @@ import { altTitle, artistsBesideCircle, bookmarkTitle, displayTitle, sourceClass
 import { nameRoute, tagToken, useApp } from '../state'
 import type { Bookmark, GallerySummary } from '../types'
 import { Icon } from './Icon'
+import { ReadBar, ReadLabel, useIsRead } from './ReadMark'
 
 export function BookmarkButton({ s, large = false }: { s: GallerySummary; large?: boolean }) {
   const { bookmarks, toggleBookmark } = useApp()
@@ -92,6 +93,7 @@ interface Props {
 /** One work in a list (list view / grid view) */
 export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSearch, badge }: Props) {
   const { bookmarks, nav } = useApp()
+  const read = useIsRead(s.key)
   const b = bookmarks.get(s.key)
   // a name opens the plugin's screen for it if there is one (a user's posts...), otherwise a search
   const link = (ns: string, name: string, cls = '') => (
@@ -117,10 +119,13 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
 
   if (layout === 'grid') {
     return (
-      <div className="card" onClick={onOpen} data-card={s.key} tabIndex={-1}>
+      <div className={`card ${read ? 'is-read' : ''}`} onClick={onOpen} data-card={s.key} tabIndex={-1}>
         <div className="thumb">
           <img src={thumbUrl(s.key)} loading="lazy" alt="" />
-          <span className="pages">{s.pageCount}P</span>
+          <span className="pages">
+            {s.pageCount}P<ReadLabel k={s.key} />
+          </span>
+          <ReadBar k={s.key} />
           <BookmarkButton s={s} />
           {badge && <div className="thumb-tl">{badge}</div>}
         </div>
@@ -155,9 +160,10 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
   const femaleMale = s.tags.filter((t) => t.ns !== 'tag')
   const plain = s.tags.filter((t) => t.ns === 'tag')
   return (
-    <div className="row" onClick={onOpen} data-card={s.key} tabIndex={-1}>
+    <div className={`row ${read ? 'is-read' : ''}`} onClick={onOpen} data-card={s.key} tabIndex={-1}>
       <div className="thumb">
         <img src={thumbUrl(s.key)} loading="lazy" alt="" />
+        <ReadBar k={s.key} />
       </div>
       <div className="row-body">
         <div className="row-head">
@@ -166,6 +172,7 @@ export const GalleryItem = memo(function GalleryItem({ s, layout, onOpen, onSear
             {optionLabel('type', s.type)}
           </span>
           <h3 className="title">{b ? bookmarkTitle(b) : displayTitle(s)}</h3>
+          <ReadLabel k={s.key} pill />
           <BookmarkButton s={s} />
         </div>
         {altTitle(s) && <div className="alt-title">{altTitle(s)}</div>}

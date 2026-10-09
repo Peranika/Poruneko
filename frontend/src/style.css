@@ -634,6 +634,17 @@ select { cursor: pointer; }
 .edge-work .edge-title { font-weight: 700; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
 .edge-work p { margin: 4px 0; }
 
+/* ---------------------------------------------------------------- How far works were read (ReadMark) */
+.card.is-read .thumb img, .row.is-read .thumb img { opacity: 0.5; }
+.row .thumb { position: relative; }
+.read-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0, 0, 0, 0.45); z-index: 2; pointer-events: none; }
+.read-bar > span { display: block; height: 100%; background: var(--accent); }
+.read-bar.done > span { background: var(--ok); }
+.card .pages .read-label::before { content: ' · '; }
+.card .pages .read-label.done { color: var(--ok); }
+.read-label.pill { flex-shrink: 0; font-size: 0.7143rem; padding: 0 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-3); }
+.read-label.pill.done { color: var(--ok); border-color: currentColor; }
+
 /* ---------------------------------------------------------------- Choosing what to download */
 .download-choice { width: min(520px, calc(100vw - 32px)); }
 .download-choice .choice-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }

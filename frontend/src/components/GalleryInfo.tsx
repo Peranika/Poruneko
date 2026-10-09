@@ -8,6 +8,8 @@ import { nameRoute, searchQuery, tagToken, useApp } from '../state'
 import { loadPagePos, savePagePos } from '../storage'
 import type { Attachment, Bookmark, GallerySummary } from '../types'
 import { rechooseDownload } from './DownloadChoiceDialog'
+import { useIsRead } from './ReadMark'
+import { setRead } from '../reads'
 import { BookmarkButton, RangeChip } from './GalleryItem'
 import { SiteNamePicker, type SiteNames } from './SiteNamePicker'
 import { Icon } from './Icon'
@@ -144,6 +146,7 @@ export function GalleryInfo({ galleryKey, s, summary, attachments, onRead }: Pro
               <Icon name="book" size={16} /> {t('gallery.read')}
             </button>
           )}
+          <ReadToggle k={galleryKey} />
           {webURL && (
             <button className="icon-btn" title={t('gallery.openSite')} onClick={() => api.openExternal(webURL)}>
               <Icon name="external" />
@@ -357,6 +360,20 @@ function downloadStateText(b: Bookmark): string {
       return downloadErrorText(d)
   }
   return ''
+}
+
+/** Marks the work read or unread (on while it is read) */
+function ReadToggle({ k }: { k: string }) {
+  const read = useIsRead(k)
+  return (
+    <button
+      className={`icon-btn ${read ? 'active' : ''}`}
+      title={read ? t('read.markUnread') : t('read.markRead')}
+      onClick={() => void setRead([k], !read)}
+    >
+      <Icon name="check" />
+    </button>
+  )
 }
 
 /** Whether a site's work is downloaded (its cbz is there) */

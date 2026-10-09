@@ -46,7 +46,8 @@ import { usePaneScroll } from '../usePaneScroll'
 import type { WorkSource } from '../workSequence'
 import { BookmarkCard, SelectionBar } from './BookmarkCard'
 import { Icon } from './Icon'
-import { ThumbSizeSlider, thumbSizeStyle, useThumbSize } from './ListControls'
+import { HideReadToggle, ThumbSizeSlider, thumbSizeStyle, useHideRead, useThumbSize } from './ListControls'
+import { isRead, useReadStates } from '../reads'
 import { ResizablePanel, useLabelsOverflow } from './ResizablePanel'
 import { SeriesCard, SeriesList, SeriesMain } from './SeriesPanel'
 import { WorkTagList, TagList } from './TagEditor'
@@ -212,9 +213,13 @@ export function BookmarksView({
   // a different list clears the selection
   const { setSelected } = useApp()
   useEffect(() => setSelected([]), [viewKey, showSeries, setSelected])
+  // works read to their end can be left out (remembered per tab)
+  const [hideRead, setHideRead] = useHideRead(scope === 'local' ? 'local' : 'bookmarks')
+  const reads = useReadStates()
+  const listed = useMemo(() => (hideRead ? selected.filter((b) => !isRead(reads, b.key)) : selected), [hideRead, selected, reads])
   const items = useMemo(
-    () => (collapse ? collapseSeries(selected, seriesOf) : selected.map((b): GridItem => ({ kind: 'work', b }))),
-    [collapse, selected, seriesOf]
+    () => (collapse ? collapseSeries(listed, seriesOf) : listed.map((b): GridItem => ({ kind: 'work', b }))),
+    [collapse, listed, seriesOf]
   )
 
   // works of a site that reads URLs can be added from a URL copied in the browser (the button, or pasting on this
@@ -448,6 +453,7 @@ export function BookmarksView({
                     </label>
                   </div>
                 </div>
+                <HideReadToggle value={hideRead} onChange={setHideRead} />
                 {thumbSlider}
                 <select
                   value={sort}

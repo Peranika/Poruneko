@@ -170,6 +170,10 @@ export function PreviewFileName(arg1, arg2, arg3) {
   return window['go']['main']['App']['PreviewFileName'](arg1, arg2, arg3);
 }
 
+export function ReadStates() {
+  return window['go']['main']['App']['ReadStates']();
+}
+
 export function RemoteSignOutAll() {
   return window['go']['main']['App']['RemoteSignOutAll']();
 }
@@ -268,6 +272,14 @@ export function SetOwnerSetting(arg1, arg2, arg3, arg4, arg5) {
 
 export function SetRangeTags(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetRangeTags'](arg1, arg2, arg3);
+}
+
+export function SetRead(arg1, arg2) {
+  return window['go']['main']['App']['SetRead'](arg1, arg2);
+}
+
+export function SetReadPage(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetReadPage'](arg1, arg2, arg3, arg4);
 }
 
 export function SetRemoteEnabled(arg1) {

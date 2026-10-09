@@ -89,6 +89,8 @@ export function Plugins():Promise<Array<main.PluginInfo>>;
 
 export function PreviewFileName(arg1:string,arg2:string,arg3:string):Promise<string>;
 
+export function ReadStates():Promise<Record<string, model.ReadState>>;
+
 export function RemoteSignOutAll():Promise<void>;
 
 export function RemoteStatus():Promise<remote.Status>;
@@ -138,6 +140,10 @@ export function SetLocalDir(arg1:number,arg2:string,arg3:string):Promise<void>;
 export function SetOwnerSetting(arg1:string,arg2:string,arg3:string,arg4:string,arg5:Record<string, string>):Promise<Record<string, string>>;
 
 export function SetRangeTags(arg1:string,arg2:Array<string>,arg3:Array<string>):Promise<model.Bookmark>;
+
+export function SetRead(arg1:Array<string>,arg2:boolean):Promise<void>;
+
+export function SetReadPage(arg1:string,arg2:number,arg3:number,arg4:boolean):Promise<void>;
 
 export function SetRemoteEnabled(arg1:boolean):Promise<void>;
 

@@ -25,7 +25,9 @@ async function start() {
   // so it is loaded only now that the language is set
   const [{ setTagNamesJa }, tagNames] = await Promise.all([import('./labels'), Go.TagNamesJa().catch(() => ({}))])
   setTagNamesJa(tagNames)
-  const [{ default: App }, { AppProvider }] = await Promise.all([import('./App'), import('./state')])
+  const [{ default: App }, { AppProvider }, { startReads }] = await Promise.all([import('./App'), import('./state'), import('./reads')])
+  // how far works were read, there before a work is opened (to open it where it was left)
+  await startReads()
   createRoot(document.getElementById('root')!).render(
     <AppProvider>
       <App />

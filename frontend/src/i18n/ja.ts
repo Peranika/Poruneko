@@ -281,6 +281,16 @@ export const ja = {
     empty: '該当する作品がありません'
   },
 
+  read: {
+    read: '既読',
+    readTitle: '最後まで読みました',
+    progressTitle: '{page} / {pages} ページまで読みました（開くと続きから）',
+    hideRead: '既読を隠す',
+    showRead: '既読も表示する',
+    markRead: '既読にする',
+    markUnread: '未読に戻す'
+  },
+
   downloadChoice: {
     title: 'ダウンロードするもの',
     pages: '画像と動画（{n} 件）',

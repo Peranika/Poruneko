@@ -19,6 +19,7 @@ import { actionTargets, nameRoute, useApp } from '../state'
 import type { Bookmark, GallerySummary } from '../types'
 import type { WorkSource } from '../workSequence'
 import { Icon } from './Icon'
+import { ReadBar, ReadLabel, useIsRead } from './ReadMark'
 import { SeriesTagPopover, TagPopover } from './TagEditor'
 
 // A bookmark card (a work on the Bookmarks screen, a local folder's tab or in a series), and selecting cards
@@ -66,6 +67,7 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
   const source: WorkSource =
     from ?? (isFile ? { kind: 'local', dir: localDirOfKey(b.key) ?? 0 } : { kind: 'bookmarks', site: siteOfBookmark(b) })
   const [tagOpen, setTagOpen] = useState(false)
+  const read = useIsRead(b.key)
   const closeTags = useCallback(() => setTagOpen(false), [])
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -73,7 +75,7 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
   }
   return (
     <div
-      className={`card bm-card ${tagOpen ? 'tags-open' : ''} ${isSelected ? 'selected' : ''} ${className}`}
+      className={`card bm-card ${tagOpen ? 'tags-open' : ''} ${isSelected ? 'selected' : ''} ${read ? 'is-read' : ''} ${className}`}
       data-card={b.key}
       tabIndex={-1}
       // Shift+click selects a range of cards, so it must not start selecting the text on the page
@@ -87,7 +89,10 @@ export function BookmarkCard({ b, from, seriesNo, className = '', drag, onShowGr
     >
       <div className="thumb">
         <img src={thumbUrl(b.key)} loading="lazy" alt="" draggable={false} />
-        <span className="pages">{b.summary.pageCount}P</span>
+        <span className="pages">
+          {b.summary.pageCount}P<ReadLabel k={b.key} />
+        </span>
+        <ReadBar k={b.key} />
         {/* selection at the top left like common file and photo apps, the tag button at the top right,
             status icons at the bottom right (hidden on hover, where the actions take their place) */}
         <div className="thumb-tr">

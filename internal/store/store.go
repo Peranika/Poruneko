@@ -61,6 +61,9 @@ type Store struct {
 	// owners are the settings kept per owner of works (owners.go)
 	owners   map[string]*model.OwnerSettings
 	changedO map[string]bool // keys of owners' settings to write (deleted if gone)
+	// reads are how far each work was read (reads.go)
+	reads    map[string]*model.ReadState
+	changedR map[string]bool // keys of read states to write
 
 	history      []model.HistoryEntry // works opened in the viewer, newest first (history.go)
 	hf           *jsonFile
@@ -108,12 +111,15 @@ func Open() *Store {
 		changedS:  map[string]bool{},
 		owners:    map[string]*model.OwnerSettings{},
 		changedO:  map[string]bool{},
+		reads:     map[string]*model.ReadState{},
+		changedR:  map[string]bool{},
 	}
 	s.sf.load(&s.settings)
 	s.hf.load(&s.history)
 	s.loadBookmarks(dir)
 	s.loadSeries()
 	s.loadOwners()
+	s.loadReads()
 	normalizeSettings(&s.settings, filepath.Join(dir, "library"))
 	if migrateSources(&s.settings) {
 		s.dirty = true
@@ -195,13 +201,14 @@ func (s *Store) Flush() {
 
 // flushBookmarks writes changed bookmarks and series (call with the lock held; on failure retries next time)
 func (s *Store) flushBookmarks() error {
-	if len(s.changed) == 0 && len(s.changedS) == 0 && len(s.changedO) == 0 {
+	if len(s.changed) == 0 && len(s.changedS) == 0 && len(s.changedO) == 0 && len(s.changedR) == 0 {
 		return nil
 	}
 	err := s.db.write(map[table]changes{
 		bookmarksTable: collect(s.changed, s.bookmarks, func(b *model.Bookmark) int64 { return b.AddedAt }),
 		seriesTable:    collect(s.changedS, s.series, func(x *model.Series) int64 { return x.CreatedAt }),
 		ownersTable:    collect(s.changedO, s.owners, func(o *model.OwnerSettings) int64 { return o.UpdatedAt }),
+		readsTable:     collect(s.changedR, s.reads, func(r *model.ReadState) int64 { return r.UpdatedAt }),
 	})
 	if err != nil {
 		return err
@@ -209,6 +216,7 @@ func (s *Store) flushBookmarks() error {
 	clear(s.changed)
 	clear(s.changedS)
 	clear(s.changedO)
+	clear(s.changedR)
 	return nil
 }
 

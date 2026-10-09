@@ -28,6 +28,11 @@ CREATE TABLE IF NOT EXISTS series (
 	created_at INTEGER NOT NULL,
 	data       TEXT NOT NULL -- JSON of model.Series
 );
+CREATE TABLE IF NOT EXISTS reads (
+	key        TEXT PRIMARY KEY,
+	updated_at INTEGER NOT NULL,
+	data       TEXT NOT NULL -- JSON of model.ReadState
+);
 CREATE TABLE IF NOT EXISTS owner_settings (
 	key        TEXT PRIMARY KEY, -- site, U+001F, owner
 	updated_at INTEGER NOT NULL,
@@ -42,6 +47,7 @@ var (
 	bookmarksTable = table{"bookmarks", "key", "added_at"}
 	seriesTable    = table{"series", "id", "created_at"}
 	ownersTable    = table{"owner_settings", "key", "updated_at"}
+	readsTable     = table{"reads", "key", "updated_at"}
 )
 
 // row is one row to write (v is the value made into JSON)

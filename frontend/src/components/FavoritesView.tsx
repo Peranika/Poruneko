@@ -11,7 +11,8 @@ import { Icon } from './Icon'
 import { MultiFilter } from './MultiFilter'
 import { PageRangeFilter } from './PageRangeFilter'
 import { listSource } from '../workSequence'
-import { LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useListLayout, useThumbSize } from './ListControls'
+import { HideReadToggle, LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useHideRead, useListLayout, useThumbSize } from './ListControls'
+import { isRead, useReadStates } from '../reads'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { PagedResults } from './PagedResults'
 import { ResizablePanel } from './ResizablePanel'
@@ -32,6 +33,8 @@ export function FavoritesView({
 }) {
   const { nav, settings, bookmarks } = useApp()
   const [includeGroups, setIncludeGroups] = useState(() => loadString('fav.groups', '0') === '1')
+  const [hideRead, setHideRead] = useHideRead('favorites')
+  const reads = useReadStates()
   // the order of the artists from the bookmarks: most bookmarked first, or by name (kept on the device)
   const [nameSort, setNameSort] = useState<'count' | 'name'>(() => (loadString('fav.nameSort', 'count') === 'name' ? 'name' : 'count'))
   // the site plugin's filters for Favorites (kept separately from Browse's; Browse's defaults to start with)
@@ -306,6 +309,7 @@ export function FavoritesView({
                 <Icon name="search" size={13} /> {t('favorites.openInBrowse')}
               </button>
             )}
+            <HideReadToggle value={hideRead} onChange={setHideRead} />
             <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
             <LayoutToggle value={layout} onChange={setLayout} />
           </div>
@@ -321,15 +325,17 @@ export function FavoritesView({
             infinite={settings?.infiniteScroll ?? true}
             loadMore={loadMoreOf(site, settings?.siteLoadMore)}
             layout={layout}
-            renderItem={(s, page, r) => (
-              <GalleryItem
-                key={s.key}
-                s={s}
-                layout={layout}
-                onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'favorites') })}
-                onSearch={(token) => nav.go({ name: 'browse', q: searchQuery(token, filters, site) })}
-              />
-            )}
+            renderItem={(s, page, r) =>
+              hideRead && isRead(reads, s.key) ? null : (
+                <GalleryItem
+                  key={s.key}
+                  s={s}
+                  layout={layout}
+                  onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'favorites') })}
+                  onSearch={(token) => nav.go({ name: 'browse', q: searchQuery(token, filters, site) })}
+                />
+              )
+            }
             onJump={(p) => go({ page: p })}
             scroller={scroller}
             entryState={nav.entryState}

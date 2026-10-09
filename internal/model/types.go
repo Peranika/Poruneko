@@ -597,6 +597,17 @@ type HistoryEntry struct {
 	Origin string `json:"origin"`
 }
 
+// ReadState is how far a work was read in the viewer
+type ReadState struct {
+	Key string `json:"key"`
+	// Page is the page it was left at (0-based), of Pages
+	Page  int `json:"page"`
+	Pages int `json:"pages"`
+	// Read: read to its last page, or marked read by the user
+	Read      bool  `json:"read,omitempty"`
+	UpdatedAt int64 `json:"updatedAt"`
+}
+
 // ---------------------------------------------------------------- Favorites
 
 // FavoritesQuery is the query for listing works by the artists (and groups) of bookmarked works

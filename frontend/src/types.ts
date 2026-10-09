@@ -441,6 +441,17 @@ export interface ViewerSettings {
 export type MoireLevel = 'weak' | 'strong'
 export type SharpenLevel = 'weak' | 'strong'
 
+/** How far a work was read in the viewer */
+export interface ReadState {
+  key: string
+  /** The page it was left at (0-based), of pages */
+  page: number
+  pages: number
+  /** Read to its last page, or marked read by the user */
+  read?: boolean
+  updatedAt: number
+}
+
 /** A folder of the user's own archives, shown as a tab of its own */
 export interface LocalDir {
   id: number

@@ -16,6 +16,7 @@ import { ResizablePanel } from './ResizablePanel'
 import { Viewer } from './viewer/Viewer'
 import type { EdgeWork } from './viewer/EdgeWork'
 import { useCompact } from '../useCompact'
+import { resumePage } from '../reads'
 import { hideRevealed } from '../useAutoReveal'
 
 /** Default width of the info panel on the left */
@@ -175,7 +176,15 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
   // so they do not slow down the next gallery (bookmark downloads continue)
   useEffect(() => () => void api.cancelViewerLoads(galleryKey), [galleryKey])
 
-  const onPageChange = useCallback((p: number) => savePagePos(galleryKey, p), [galleryKey])
+  // where the work is being read: kept by the backend (any device opens it there; its end makes it read), and on
+  // this device as before
+  const onPageChange = useCallback(
+    (p: number, atEnd: boolean, total: number) => {
+      savePagePos(galleryKey, p)
+      void api.setReadPage(galleryKey, p, total, atEnd).catch(() => {})
+    },
+    [galleryKey]
+  )
   // a mode chosen by the user (toolbar or keys) is remembered for this work
   const onViewerSettings = useCallback(
     (p: Partial<ViewerSettings>) => {
@@ -235,7 +244,7 @@ export function GalleryView({ galleryKey, summary, from, onImmersive }: Props) {
             onToggleImmersive={toggleImmersive}
             onClose={nav.back}
             // shuffle play starts every work from its first page; otherwise from where it was left
-            initialPage={from?.kind === 'playlist' ? 0 : loadPagePos(galleryKey)}
+            initialPage={from?.kind === 'playlist' ? 0 : resumePage(galleryKey, () => loadPagePos(galleryKey))}
             onPageChange={onPageChange}
             extra={
               <>

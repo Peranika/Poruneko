@@ -294,6 +294,16 @@ export const en: Dict = {
     openedAt: 'Opened {date}'
   },
 
+  read: {
+    read: 'Read',
+    readTitle: 'Read to the end',
+    progressTitle: 'Read to page {page} of {pages} (opens there)',
+    hideRead: 'Hide read works',
+    showRead: 'Show read works too',
+    markRead: 'Mark as read',
+    markUnread: 'Mark as unread'
+  },
+
   downloadChoice: {
     title: 'What to download',
     pages: 'Images and videos ({n})',

@@ -31,7 +31,8 @@ interface Props {
   immersive: boolean
   onToggleImmersive(): void
   initialPage: number
-  onPageChange(page: number): void
+  /** The page shown changed; atEnd: the work's last page (or spread) was turned to; total: how many pages it has */
+  onPageChange(page: number, atEnd: boolean, total: number): void
   /** Buttons added at the right end of the toolbar */
   extra?: ReactNode
   /** Key -> action map (the key bindings from the settings) */
@@ -177,7 +178,16 @@ export function Viewer(props: Props) {
   }, [mode, singles, current, pages.length, updateSingles])
   const resetShift = useCallback(() => updateSingles(new Set()), [updateSingles])
 
-  useEffect(() => onPageChange(page), [page, onPageChange])
+  // the last page (or the last spread) is shown
+  const atEnd = mode === 'scroll' ? page >= pages.length - 1 : !!spreads[spreads.length - 1]?.includes(page)
+  // the page a work was left at does not make it read by its being opened there again: only turning to the end does
+  // (a work with one spread is read once opened)
+  const resumedAt = useRef(props.initialPage > 0 ? props.initialPage : -1)
+  useEffect(() => {
+    const turned = page !== resumedAt.current
+    if (turned) resumedAt.current = -1
+    onPageChange(page, atEnd && turned, pages.length)
+  }, [page, atEnd, pages.length, onPageChange])
 
   // the neighboring work, shown on turning past the last (or before the first) page
   const { edge, pastEdge, closeEdge, edgeShown } = useEdgeWork(edgeWork, page)

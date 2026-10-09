@@ -83,3 +83,31 @@ export function ThumbSizeSlider({ value, onChange }: { value: number; onChange(n
     </label>
   )
 }
+
+// ---------------------------------------------------------------- Leaving read works out (remembered per tab)
+
+export function useHideRead(tab: ThumbTab): [boolean, (v: boolean) => void] {
+  const key = `hideRead.${tab}`
+  const [hide, setHide] = useState(() => loadString(key, '') === '1')
+  const set = useCallback(
+    (v: boolean) => {
+      setHide(v)
+      saveString(key, v ? '1' : '')
+    },
+    [key]
+  )
+  return [hide, set]
+}
+
+/** The button that leaves the works read to their end out of a list */
+export function HideReadToggle({ value, onChange }: { value: boolean; onChange(v: boolean): void }) {
+  return (
+    <button
+      className={`icon-btn ${value ? 'active' : ''}`}
+      onClick={() => onChange(!value)}
+      title={value ? t('read.showRead') : t('read.hideRead')}
+    >
+      <Icon name={value ? 'eye' : 'check'} />
+    </button>
+  )
+}

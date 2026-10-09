@@ -6,7 +6,8 @@ import { pageRangeKey, searchQuery, useApp, viewInputKey, type PageRange } from 
 import { saveJSON, saveString } from '../storage'
 import type { GallerySummary, ListResult, ListQuery } from '../types'
 import { GalleryItem } from './GalleryItem'
-import { LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useListLayout, useThumbSize } from './ListControls'
+import { HideReadToggle, LayoutToggle, ThumbSizeSlider, thumbSizeStyle, useHideRead, useListLayout, useThumbSize } from './ListControls'
+import { isRead, useReadStates } from '../reads'
 import { listSource } from '../workSequence'
 import { useCardKeyNav } from '../useCardKeyNav'
 import { PagedResults } from './PagedResults'
@@ -66,15 +67,18 @@ export function BrowseView({ q }: { q: ListQuery }) {
   const [ownerRev, setOwnerRev] = useState(0)
   const resetKey = JSON.stringify(cond) + (ownerRev ? `#${ownerRev}` : '')
   const load = useCallback((page: number) => api.list({ ...q, page }), [resetKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  const renderItem = (s: GallerySummary, page: number, r: ListResult) => (
-    <GalleryItem
-      key={s.key}
-      s={s}
-      layout={layout}
-      onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'browse') })}
-      onSearch={search}
-    />
-  )
+  const [hideRead, setHideRead] = useHideRead('browse')
+  const reads = useReadStates()
+  const renderItem = (s: GallerySummary, page: number, r: ListResult) =>
+    hideRead && isRead(reads, s.key) ? null : (
+      <GalleryItem
+        key={s.key}
+        s={s}
+        layout={layout}
+        onOpen={() => nav.go({ name: 'gallery', key: s.key, summary: s, from: listSource(resetKey, load, page, r, 'browse') })}
+        onSearch={search}
+      />
+    )
 
   return (
     <div className="view browse" style={thumbSizeStyle(thumbSize)}>
@@ -115,6 +119,7 @@ export function BrowseView({ q }: { q: ListQuery }) {
               }}
             />
           )}
+          <HideReadToggle value={hideRead} onChange={setHideRead} />
           <ThumbSizeSlider value={thumbSize} onChange={setThumbSize} />
           <LayoutToggle value={layout} onChange={setLayout} />
         </div>
