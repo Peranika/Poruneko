@@ -54,6 +54,10 @@ export function CandidateFromURL(arg1) {
   return window['go']['main']['App']['CandidateFromURL'](arg1);
 }
 
+export function ChangeDownloadChoice(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ChangeDownloadChoice'](arg1, arg2, arg3);
+}
+
 export function CheckUpdate() {
   return window['go']['main']['App']['CheckUpdate']();
 }
@@ -84,6 +88,10 @@ export function DeleteDownload(arg1) {
 
 export function DeleteSeries(arg1) {
   return window['go']['main']['App']['DeleteSeries'](arg1);
+}
+
+export function DownloadOptions(arg1) {
+  return window['go']['main']['App']['DownloadOptions'](arg1);
 }
 
 export function FavoriteNames(arg1) {
@@ -210,6 +218,10 @@ export function RestartApp() {
   return window['go']['main']['App']['RestartApp']();
 }
 
+export function RestartHost() {
+  return window['go']['main']['App']['RestartHost']();
+}
+
 export function RestoreIgnoredArchives() {
   return window['go']['main']['App']['RestoreIgnoredArchives']();
 }
@@ -284,6 +296,10 @@ export function Sites() {
 
 export function StartDownload(arg1) {
   return window['go']['main']['App']['StartDownload'](arg1);
+}
+
+export function StartDownloadWith(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StartDownloadWith'](arg1, arg2, arg3);
 }
 
 export function Suggest(arg1, arg2) {

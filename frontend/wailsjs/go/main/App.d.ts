@@ -31,6 +31,8 @@ export function CancelViewerLoads(arg1:string):Promise<void>;
 
 export function CandidateFromURL(arg1:string):Promise<model.CreatorCandidate>;
 
+export function ChangeDownloadChoice(arg1:string,arg2:boolean,arg3:Array<number>):Promise<void>;
+
 export function CheckUpdate():Promise<update.Release>;
 
 export function ChooseSiteDir(arg1:string,arg2:string):Promise<string>;
@@ -46,6 +48,8 @@ export function CreateSeries(arg1:string,arg2:Array<string>):Promise<model.Serie
 export function DeleteDownload(arg1:string):Promise<void>;
 
 export function DeleteSeries(arg1:string):Promise<void>;
+
+export function DownloadOptions(arg1:string):Promise<main.DownloadOptions>;
 
 export function FavoriteNames(arg1:model.FavoritesQuery):Promise<Array<model.FavoriteName>>;
 
@@ -109,6 +113,8 @@ export function ResolveCreator(arg1:string):Promise<model.Bookmark>;
 
 export function RestartApp():Promise<void>;
 
+export function RestartHost():Promise<void>;
+
 export function RestoreIgnoredArchives():Promise<number>;
 
 export function ScanLibrary():Promise<number>;
@@ -146,6 +152,8 @@ export function SiteStatus(arg1:string):Promise<Array<model.StatusLine>>;
 export function Sites():Promise<Array<model.SiteInfo>>;
 
 export function StartDownload(arg1:string):Promise<void>;
+
+export function StartDownloadWith(arg1:string,arg2:boolean,arg3:Array<number>):Promise<void>;
 
 export function Suggest(arg1:string,arg2:string):Promise<Array<model.Suggestion>>;
 

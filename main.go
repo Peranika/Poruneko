@@ -28,9 +28,22 @@ import (
 var assets embed.FS
 
 func main() {
-	update.WaitForPrevious() // when restarted, for the previous instance to quit
+	if generatingBindings {
+		// `wails build` runs this to list the App's methods: apart from the user's data and the app running (handing
+		// over to it would bring its window up and leave the bindings unwritten). The folder is the same every time
+		// (the log stays open until it quits, so it cannot remove the folder)
+		dir := filepath.Join(os.TempDir(), "poruneko-bindings")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			log.Fatal(err)
+		}
+		os.Setenv("PORUNEKO_DATA_DIR", dir)
+	} else {
+		update.WaitForPrevious() // when restarted, for the previous instance to quit
+	}
 	instanceID := instanceID()
-	handOffToRunning(instanceID)
+	if !generatingBindings {
+		handOffToRunning(instanceID)
+	}
 	logPath := setupLog()
 	update.Cleanup() // remove the old exe left by the previous update
 	st := store.Open()
